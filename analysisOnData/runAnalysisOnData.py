@@ -8,7 +8,7 @@ sys.path.append('python/')
 sys.path.append('data/')
 from systematics import systematics
 
-from selections import selections, selections_bkg, selections_fakes, selectionVars
+from selections import selections_whelicity, selections_bkg_whelicity, selections_fakes_whelicity, selectionVars
 from getLumiWeight import getLumiWeight
 
 ROOT.gSystem.Load('bin/libAnalysisOnData.so')
@@ -22,7 +22,7 @@ else:
 runBKG = True if int(sys.argv[1]) == 1 else False 
 outF="SingleMuonData_plots.root"
 if runBKG:
-    selections = selections_bkg
+    selections_whelicity = selections_bkg_whelicity
     outF="SingleMuonData_bkginput_plots.root"
     print "Running job for preparing inputs of background study"
 
@@ -60,7 +60,7 @@ FR = ROOT.TFile.Open("/scratch/bertacch/wmass/wproperties-analysis/bkgAnalysis/T
 p = RDFtree(outputDir = './output/', inputFile = fvec, outputFile=outF, pretend=pretendJob)
 p.branch(nodeToStart = 'input', nodeToEnd = 'defs', modules = [ROOT.baseDefinitions(0),ROOT.fakeRate(FR)])
 
-for region,cut in selections.iteritems():    
+for region,cut in selections_whelicity.iteritems():    
     print region       
     nom = ROOT.vector('string')()
     nom.push_back("")
@@ -70,7 +70,7 @@ for region,cut in selections.iteritems():
     p.branch(nodeToStart = 'defs', nodeToEnd = 'templates_{}/Nominal'.format(region), modules = [ROOT.templates(cut, weight, nom,"Nom",0)])       
 
 if not runBKG:
-    for region,cut in selections_fakes.iteritems():    
+    for region,cut in selections_fakes_whelicity.iteritems():    
         print region       
         nom = ROOT.vector('string')()
         nom.push_back("")

@@ -7,7 +7,7 @@ from RDFtree import RDFtree
 sys.path.append('python/')
 sys.path.append('data/')
 from systematics import systematics
-from selections import selections, selectionVars, selections_bkg
+from selections import selections_whelicity, selectionVars, selections_bkg_whelicity
 
 from getLumiWeight import getLumiWeight
 
@@ -20,13 +20,10 @@ else:
     print "Running on full dataset"
 
 runBKG = True if int(sys.argv[1]) == 1 else False 
-if runBKG:
-    selections = selections_bkg
-    print "Running job for preparing inputs of background study"
-
 outFtag=""
 if runBKG:
-    selections = selections_bkg
+    selections_whelicity = selections_bkg_whelicity
+    print "Running job for preparing inputs of background study"
     outFtag="_bkgselections"
 
 samples={}
@@ -73,7 +70,7 @@ for wdecay, decaycut in wdecayselections.iteritems() :
     fileY = ROOT.TFile.Open("data/histoUnfoldingSystRap_nsel2_dy3_rebin1_default.root")
     p.branch(nodeToStart = 'input', nodeToEnd = 'defs', modules = [ROOT.reweightFromZ(filePt,fileY),ROOT.baseDefinitions(),ROOT.weightDefinitions(fileSF),getLumiWeight(xsec=xsec, inputFile=fvec)])
 
-    for region,cut in selections.iteritems():
+    for region,cut in selections_whelicity.iteritems():
         
         if 'aiso' in region:
             weight = 'float(puWeight*lumiweight*weightPt*weightY)'
@@ -85,7 +82,7 @@ for wdecay, decaycut in wdecayselections.iteritems() :
         nom = ROOT.vector('string')()
         nom.push_back("")
         #last argument refers to histo category - 0 = Nominal, 1 = Pt scale , 2 = MET scale
-        print "branching nominal"
+        print "branching nominal for region:", region 
         cut += decaycut
         if not runBKG:             
             p.branch(nodeToStart = 'defs', nodeToEnd = 'prefit_{}/Nominal'.format(region), modules = [ROOT.muonHistos(cut, weight, nom,"Nom",0)])     
@@ -124,7 +121,7 @@ for wdecay, decaycut in wdecayselections.iteritems() :
                     
                 cut_vec.push_back(newcut)
                 var_vec.push_back(selvar)
-            print "branching column variations:", vartype, "\tvariations:", var_vec
+            print "branching column variations:", vartype, " for region:", region, "\tvariations:", var_vec
             if not runBKG: 
                 p.branch(nodeToStart = 'defs', nodeToEnd = 'prefit_{}/{}Vars'.format(region,vartype), modules = [ROOT.muonHistos(cut_vec, weight, nom,"Nom",hcat,var_vec)])  
             p.branch(nodeToStart = 'defs', nodeToEnd = 'templates_{}/{}Vars'.format(region,vartype), modules = [ROOT.templates(cut_vec, weight, nom,"Nom",hcat,var_vec)])  

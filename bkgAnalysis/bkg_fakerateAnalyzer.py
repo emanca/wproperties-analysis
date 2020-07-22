@@ -70,7 +70,7 @@ class bkg_analyzer:
     def MinuitLinearFit(self, yy, xx, invCov, p0, q0,p0Err,q0Err,s,e) :
 
         def linearChi2(npar, gin, f, par, istatus ):
-            vec = yy-(par[0]+par[1]*(xx-25))#SLOPEOFFSETUNCORR
+            vec = yy-(par[0]+par[1]*(xx-26))#SLOPEOFFSETUNCORR
             chi2 = np.linalg.multi_dot( [vec.T, invCov, vec] )
             f.value = chi2
             return
@@ -118,14 +118,14 @@ class bkg_analyzer:
         histo_fake_dict = {}
         systList = []
         systDict = bkg_utils.bkg_systematics
-        # bin4corFit =  [26,28,30,32,34,36,38,40,42,44,46,48,50,52,55] #LoreHistos
-        bin4corFit =  [25,27,29,31,33,35,37,39,41,43,45,47,49,51,53,55] #redesign
+        bin4corFit =  [26,28,30,32,34,36,38,40,42,44,46,48,50,52,55] #LoreHistos
+        #bin4corFit =  [25,27,29,31,33,35,37,39,41,43,45,47,49,51,53,55] #redesign
         
         if DONT_REBIN : 
             bin4corFit = self.ptBinning
 
-        # binChange = 13 #LoreHistos
-        binChange = 17 #redesign
+        binChange = 13 #LoreHistos
+        #binChange = 17 #redesign
 
         bin4corFitS = ['{:.2g}'.format(x) for x in bin4corFit[:-1]]
 
@@ -1315,11 +1315,11 @@ class bkg_analyzer:
                     fitFake.SetParameters(1,0.1,-3)
                     fitFake.SetParNames("offset","slope",'2deg')              
                 if kind == 'fake' :
-                    fitFake = ROOT.TF1("fitFake", '[0]+[1]*(x-25)',0,100,2) 
+                    fitFake = ROOT.TF1("fitFake", '[0]+[1]*(x-26)',0,100,2) 
                     fitFake.SetParameters(0.5,0.1)
                     fitFake.SetParNames("offset","slope")
                 
-                fit_result = h1Dict[s+e].Fit(fitFake,"QS","",25,self.maxPt_linearFit)
+                fit_result = h1Dict[s+e].Fit(fitFake,"QS","",26,self.maxPt_linearFit)
                 
                 #assign the fit results
                 cov = fit_result.GetCovarianceMatrix()
@@ -1362,7 +1362,7 @@ class bkg_analyzer:
             'fake' : 'Data',
             'prompt' : 'WToMuNu',
         }
-        shiftX=25
+        shiftX=26
         
         htempl = {}
         h1Dict = {}
@@ -1502,9 +1502,9 @@ class bkg_analyzer:
                         histoDict[s+e].SetBinContent( histoDict[s+e].FindBin(lbin[0]),self.ptBinningS.index(p)+1,val)
                         histoDict[s+e].SetBinError( histoDict[s+e].FindBin(lbin[0]),self.ptBinningS.index(p)+1,err)
                 if linearFit :
-                    fitFunc = ROOT.TF2("fitFunc", "[0]+[1]*x+[2]*y+[3]*x*y",0.,40.,25,55) 
+                    fitFunc = ROOT.TF2("fitFunc", "[0]+[1]*x+[2]*y+[3]*x*y",0.,40.,26,55) 
                 else :
-                    fitFunc = fitFunc = ROOT.TF2("fitFunc", "[0]+[1]*y",0.,40.,25,55) 
+                    fitFunc = fitFunc = ROOT.TF2("fitFunc", "[0]+[1]*y",0.,40.,26,55) 
                     
                 fitRes = histoDict[s+e].Fit(fitFunc,"QSR","")#,0,40,26,55)
                 

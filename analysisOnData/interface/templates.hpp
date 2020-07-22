@@ -39,7 +39,7 @@ private:
     std::vector<std::string> _colvarvec;
     HistoCategory _hcat;
 
-    std::vector<float> _pTArr = std::vector<float>(31);
+    std::vector<float> _pTArr = std::vector<float>(30);
     std::vector<float> _etaArr = std::vector<float>(49);
     std::vector<float> _chargeArr = std::vector<float>(3);
     void setAxisarrays();

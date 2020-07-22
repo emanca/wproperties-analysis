@@ -48,8 +48,8 @@ RNode templates::bookJMEvarhistos(RNode df)
 
 void templates::setAxisarrays()
 {
-    for (unsigned int i = 0; i < 31; i++)
-        _pTArr[i] = 25. + i;
+    for (unsigned int i = 0; i < 30; i++)
+        _pTArr[i] = 26. + i;
     for (unsigned int i = 0; i < 49; i++)
         _etaArr[i] = -2.4 + i * (4.8) / 48; //eta -2.4 to 2.4
     for (int i = 0; i < 3; i++)

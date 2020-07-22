@@ -9,7 +9,6 @@ RNode fakeRate::run(RNode d)
     d1 = d1.Define(Form("fakeRate_%s", s.c_str()), [this, s](float pt, float eta, float charge, int vtype) {
       int binX = charge > 0. ? 1 : 2;
       int binY = _FR["fake_offset_" + s]->GetYaxis()->FindBin(eta);
-
       float f_offset = _FR["fake_offset_" + s]->GetBinContent(binX, binY);
       float f_slope = _FR["fake_slope_" + s]->GetBinContent(binX, binY);
       float p_offset = _FR["prompt_offset_" + s]->GetBinContent(binX, binY);
@@ -17,7 +16,6 @@ RNode fakeRate::run(RNode d)
       float p_2deg = _FR["prompt_2deg_" + s]->GetBinContent(binX, binY);
       float f = f_offset + (pt - 26.0) * f_slope;
       float p = p_offset * TMath::Erf(p_slope * pt + p_2deg);
-
       float res = vtype == 1 ? p * f / (p - f) : -(1 - p) * f / (p - f);
       
       return res;
