@@ -64,7 +64,7 @@ CORRFITFINAL= True #correlated fit in the final plots
 TEMPLATE = True
 NOM = ['Nominal','']
 EXTRAP = False #extrapolation syst
-NCORES=30
+NCORES=1
 if NCORES>1 :
     MULTICORE=True
 else :

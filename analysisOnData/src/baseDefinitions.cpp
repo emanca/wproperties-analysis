@@ -66,6 +66,7 @@ RNode baseDefinitions::run(RNode d)
             red.emplace_back(LHE[3]);
             red.emplace_back(LHE[5]);
             red.emplace_back(LHE[7]);
+            red.emplace_back(LHE[8]);
             return red;
         };
 

@@ -11,7 +11,7 @@
 bkg_systematics = {
      #"puWeightVars"  : ["puWeightUp", "puWeightDown"],
     "WHSFVars"  : ["WHSFSyst0Up", "WHSFSyst1Up","WHSFSyst2Up","WHSFSystFlatUp","WHSFSyst0Down", "WHSFSyst1Down","WHSFSyst2Down","WHSFSystFlatDown"],
-    "LHEScaleWeightVars" : ["LHEScaleWeight_muR0p5_muF0p5", "LHEScaleWeight_muR0p5_muF1p0","LHEScaleWeight_muR1p0_muF0p5","LHEScaleWeight_muR1p0_muF2p0","LHEScaleWeight_muR2p0_muF1p0","LHEScaleWeight_muR2p0_muF2p0"],
+    "LHEScaleWeightVars" : ["LHEScaleWeight_muR0p5_muF0p5", "LHEScaleWeight_muR0p5_muF1p0","LHEScaleWeight_muR1p0_muF0p5","LHEScaleWeight_muR1p0_muF2p0","LHEScaleWeight_muR2p0_muF1p0", "LHEScaleWeight_muR2p0_muF2p0"],
     "ptScaleVars" : [ "correctedUp", "correctedDown"], 
     "jmeVars" : [ "jerUp", "jerDown" , "jesTotalUp", "jesTotalDown", "unclustEnUp","unclustEnDown"]
   }

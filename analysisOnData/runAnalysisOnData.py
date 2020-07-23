@@ -55,7 +55,8 @@ ROOT.ROOT.EnableImplicitMT(c)
 print "running with {} cores".format(c)
 
 weight = 'float(1)'
-FR = ROOT.TFile.Open("/scratch/bertacch/wmass/wproperties-analysis/bkgAnalysis/TEST_runTheMatrix/bkg_parameters_CFstatAna.root")
+#FR = ROOT.TFile.Open("/scratch/bertacch/wmass/wproperties-analysis/bkgAnalysis/TEST_runTheMatrix/bkg_parameters_CFstatAna.root")
+FR = ROOT.TFile.Open("/scratchssd/sroychow/wproperties-sroychow/bkgAnalysis/whelicityLike/bkg_parameters_CFstatAna.root")
 
 p = RDFtree(outputDir = './output/', inputFile = fvec, outputFile=outF, pretend=pretendJob)
 p.branch(nodeToStart = 'input', nodeToEnd = 'defs', modules = [ROOT.baseDefinitions(0),ROOT.fakeRate(FR)])
