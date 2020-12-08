@@ -26,7 +26,7 @@ parser.add_argument('-i', '--inputDir',type=str, default='/scratchnvme/wmass/Nan
 parser.add_argument('-o', '--outputDir',type=str, default='output/', help="output dir name of step1 and step3 (inside analysisOnData/)")
 parser.add_argument('-t', '--bkgOutput',type=str, default='bkg/', help="output dir name for bkgAna (inside bkgAnalysis/)")
 parser.add_argument('-f', '--bkgFile',type=str, default='/scratch/bertacch/wmass/wproperties-analysis/bkgAnalysis/TEST_runTheMatrix/bkg_parameters_CFstatAna.root', help="bkg parameters file path/name.root, or the special 'MYBKG' for the one produced in the same loop")
-parser.add_argument('-c', '--ncores',type=int, default=64, help="number of cores used")
+parser.add_argument('-c', '--ncores',type=int, default=128, help="number of cores used")
 parser.add_argument('-q', '--bkgPrep',type=int, default=False, help="run the bkg input preparation")
 parser.add_argument('-w', '--bkgAna',type=int, default=False, help="run the bkg analysis")
 parser.add_argument('-e', '--prefit',type=int, default=False, help="run the prefit hitograms building")
@@ -55,17 +55,21 @@ if bkgFile == 'MYBKG' :
 
 if step1 :
     s1start=time.time()
-    print "step1: bkg input preparation... "
+    print("step1: bkg input preparation... ")
     os.chdir('./analysisOnData')
     if not os.path.isdir(outputDir): os.system('mkdir '+ outputDir)
     os.system('python runAnalysis.py -p=0 -b=1 -i='+inputDir+' -c='+ncores+' -o='+outputDir + ' -sb='+SBana)
+    # os.system('python runAnalysisOnMC.py      -i='+inputDir+' -c='+ncores+' -o='+outputDir + ' -sb='+SBana)
+    # os.system('python runAnalysisOnWJetsMC.py -i='+inputDir+' -c='+ncores+' -o='+outputDir + ' -sb='+SBana +' -b=1')
+    # os.system('python runAnalysisOnData.py    -i='+inputDir+' -c='+ncores+' -o='+outputDir + ' -sb='+SBana +' -b=1')
     os.chdir('../')
     s1end=time.time()
     runTimes.append(s1end - s1start)
 else :   runTimes.append(0.)
+
 if step2 :
     s2start=time.time()
-    print "step2: bkg analysis..."
+    print("step2: bkg analysis...")
     if not os.path.isdir('bkgAnalysis/'+bkgOutput): os.system('mkdir bkgAnalysis/'+bkgOutput)
     if not os.path.isdir('bkgAnalysis/'+bkgOutput+'/bkgInput/'): os.system('mkdir bkgAnalysis/'+bkgOutput+'/bkgInput/')
     os.chdir('bkgAnalysis')
@@ -79,11 +83,12 @@ else :   runTimes.append(0.)
 
 if step3 :
     s3start=time.time()
-    print "step3: Fake from Data..."
+    print("step3: Fake from Data...")
     os.chdir('analysisOnData')
     if not os.path.isdir(outputDir): os.system('mkdir '+ outputDir)
     #ncores is optimized and set in the config itself, so no need to pass here
     os.system('python runAnalysis.py -b=0 -i='+inputDir+ ' -o=' +outputDir+ ' -f='+bkgFile + ' -sb='+SBana)
+    # os.system('python runAnalysisOnData.py    -i='+inputDir+' -c='+ncores+' -o='+outputDir + ' -sb='+SBana +' -b=0' + ' -f='+bkgFile)
     os.chdir('../')
     s3end=time.time()
     runTimes.append(s3end - s3start)
@@ -91,7 +96,7 @@ else :   runTimes.append(0.)
 
 if step4 :
     s4start=time.time()
-    print "step4: plotter..."
+    print("step4: plotter...")
     os.chdir('analysisOnData/python')
     if not os.path.isdir('../'+outputDir): os.system('mkdir ../'+outputDir)
     os.system('python plotter_prefit.py --hadd 1 --output ../'+outputDir+'/plot/ --input ../'+outputDir+' --systComp 1'+' -sb='+SBana)
@@ -101,20 +106,20 @@ if step4 :
 
     sys.path.append('../../bkgAnalysis')
     import bkg_utils
-    for sKind,sList in bkg_utils.bkg_systematics.iteritems() : 
+    for sKind,sList in bkg_utils.bkg_systematics.items() : 
         skipList = ""
-        for sKindInt,sListInt in bkg_utils.bkg_systematics.iteritems() :
+        for sKindInt,sListInt in bkg_utils.bkg_systematics.items() :
             if sKindInt==sKind : continue
             else : skipList+= ' '+str(sKindInt)
-        print "Skipped systematics:", skipList 
+        print("Skipped systematics:", skipList) 
         os.system('python plotter_prefit.py --hadd 0 --output ../'+outputDir+'/plot_only_'+str(sKind)+' --input ../'+outputDir+'/plot/  --systComp 1 --skipSyst '+skipList+' -sb='+SBana)
     s4end=time.time()
     runTimes.append(s4end - s4start)
 else :   runTimes.append(0.)
     
 toc=time.time()
-print "Step1 completed in:", runTimes[0], " seconds"
-print "Step2 completed in:", runTimes[1], " seconds"
-print "Step3 completed in:", runTimes[2], " seconds"
-print "Step4 completed in:", runTimes[3], " seconds"
-print "Total runtime:", toc - tic, " seconds"
+print("Step1 completed in:", runTimes[0], " seconds")
+print("Step2 completed in:", runTimes[1], " seconds")
+print("Step3 completed in:", runTimes[2], " seconds")
+print("Step4 completed in:", runTimes[3], " seconds")
+print("Total runtime:", toc - tic, " seconds")

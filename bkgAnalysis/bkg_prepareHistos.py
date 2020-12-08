@@ -29,7 +29,7 @@ class bkg_prepareHistos:
             self.fileList.append(sample)
         self.fileList.append('WToMu')#not in the json list
         self.fileList.append('WToTau')#not in the json list
-        print self.fileList
+        print(self.fileList)
         
         
     def prepare(self) :
@@ -38,7 +38,7 @@ class bkg_prepareHistos:
         regList = ["Signal", "Signal_aiso","Sideband","Sideband_aiso"]
         
         if self.extrap :
-            for lcut, lbin in bkg_utils.looseCutDict.iteritems() :
+            for lcut, lbin in bkg_utils.looseCutDict.items() :
                 regList.append('Sideband'+lcut)
                 regList.append('Sideband_aiso'+lcut)
                 
@@ -47,7 +47,7 @@ class bkg_prepareHistos:
             outFile =  ROOT.TFile(self.outDir+f+".root", "recreate")
             for r in regList :
                 regExtrapFlag = self.isExtrapReg(r)
-                for sKind, sList in self.systDict.iteritems():  
+                for sKind, sList in self.systDict.items():  
                     if sKind!='Nominal' and regExtrapFlag : #extrap region only for nominal
                         continue
                     if not outFile.GetDirectory('templates_'+r+'/'+sKind):                           
@@ -60,7 +60,7 @@ class bkg_prepareHistos:
                             systName = sName
                         #print "Trying to read:", 'templates_'+r+'/'+sKind+'/'+varName+systName, ' in ', f
                         if ROOT.gDirectory.Get('templates_'+r+'/'+sKind+'/'+varName+systName)==None : #this syst is not present
-                            print "no syst in:", f, r, sKind, systName
+                            print("no syst in:", f, r, sKind, systName)
                             h = inFile.Get('templates_'+r+'/'+self.sKindNom+'/'+varName+self.sNameNom)
                             h.SetName(varName+systName)
                         else :
@@ -80,7 +80,7 @@ class bkg_prepareHistos:
 
     def isExtrapReg(self, reg) :
         FlagOut = False
-        for lcut, lbin in bkg_utils.looseCutDict.iteritems() :
+        for lcut, lbin in bkg_utils.looseCutDict.items() :
                 if reg == 'Sideband_aiso'+lcut:
                     FlagOut = True
                 if reg == 'Sideband'+lcut:

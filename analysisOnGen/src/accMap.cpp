@@ -5,6 +5,11 @@
 
 RNode accMap::run(RNode d){
     
+    // for (float i=0.; i<=200.1; i=i+0.1){ _ptArr.push_back(i); }
+    // int _nBinsPt = _ptArr.size()-1;
+    // for (float i=0.; i<=6.1; i=i+0.1){ _yArr.push_back(i); }
+    // int _nBinsY = _yArr.size()-1;
+    
     auto d1 = d.Filter(_filter);
 
     auto mapTot = d1.Histo2D(TH2D("mapTot", "mapTot", _nBinsY, _yArr.data(), _nBinsPt, _ptArr.data()), "Wrap_preFSR_abs", "Wpt_preFSR", "weight");

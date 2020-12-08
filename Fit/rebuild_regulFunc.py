@@ -28,7 +28,6 @@ def getFitRes(inFile,coeffList, bins) :
     npTreeNP = np.zeros((len(coeffList)-1)*bins[0]*bins[1])
     for obj in npTree :
         counter=0
-        print(len(obj))
         for boh in obj :
             npTreeNP[counter] = boh
             counter+=1

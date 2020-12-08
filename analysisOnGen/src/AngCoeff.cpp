@@ -31,7 +31,11 @@ std::vector<std::string> AngCoeff::stringMultiplication(const std::vector<std::s
 
 RNode AngCoeff::run(RNode d)
 {
-
+    // for (float i=0.; i<=200.1; i=i+0.1){ _ptArr.push_back(i); }
+    // int _nBinsPt = _ptArr.size()-1;
+    // for (float i=0.; i<=6.1; i=i+0.1){ _yArr.push_back(i); }
+    // int _nBinsY = _yArr.size()-1;
+    
     std::vector<std::string> total = stringMultiplication(_syst_name, _coeff);
 
     auto vecMultiplication = [](const ROOT::VecOps::RVec<float> &v1, const ROOT::VecOps::RVec<float> &v2) {

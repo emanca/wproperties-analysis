@@ -18,7 +18,7 @@ class plotter:
 
         self.indir = inDir # indir containig the various outputs
         self.outdir = outDir
-        self.PDFvar = 'LHEPdfWeightVars'
+        self.PDFvar = 'LHEPdfWeight'
         self.SBana = SBana
         
         if not self.SBana :
@@ -67,13 +67,13 @@ class plotter:
         # }
         
         self.groupedSystColors = {
-            "WHSFVars"  : [ROOT.kGreen+1, 'Scale Factors'],
-            "LHEScaleWeightVars" : [ROOT.kViolet-2, 'MC Scale'],
-            "ptScaleVars" : [ROOT.kBlue-4, 'pT Scale'],
-            "jmeVars" : [ROOT.kAzure+10, 'MET'],
-            "LHEPdfWeightVars" : [ROOT.kRed+1, 'PDF'],
+            "WHSF"  : [ROOT.kGreen+1, 'Scale Factors'],
+            "LHEScaleWeight" : [ROOT.kViolet-2, 'MC Scale'],
+            "ptScale" : [ROOT.kBlue-4, 'pT Scale'],
+            "jme" : [ROOT.kAzure+10, 'MET'],
+            "LHEPdfWeight" : [ROOT.kRed+1, 'PDF'],
             "Nominal" : [1, 'Stat. Unc.'],
-            "PrefireWeightVars" : [ROOT.kSpring+10, 'Prefire']
+            "PrefireWeight" : [ROOT.kSpring+10, 'Prefire']
         }
 
 
@@ -539,7 +539,7 @@ SBana = args.SBana
 
 if HADD :
     prepareHistos(inDir=INPUT,outDir=OUTPUT)
-INPUT=OUTPUT
+    INPUT=OUTPUT
 
 p=plotter(outDir=OUTPUT, inDir = INPUT)
 p.plotStack(skipSyst=skippedSyst)

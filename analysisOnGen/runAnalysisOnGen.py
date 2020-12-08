@@ -16,7 +16,7 @@ c=128
 
 ROOT.ROOT.EnableImplicitMT(c)
 
-print "running with {} cores".format(c)
+print("running with {} cores".format(c))
 
 filePt = ROOT.TFile.Open("../analysisOnData/data/histoUnfoldingSystPt_nsel2_dy3_rebin1_default.root")
 fileY = ROOT.TFile.Open("../analysisOnData/data/histoUnfoldingSystRap_nsel2_dy3_rebin1_default.root")
@@ -35,12 +35,12 @@ p.branch(nodeToStart='input', nodeToEnd='basicSelection', modules=[getLumiWeight
 
 Wcharge = {"Wplus":"GenPart_pdgId[GenPart_preFSRMuonIdx]<0","Wminus":"GenPart_pdgId[GenPart_preFSRMuonIdx]>0"}
 if runAC:
-    for charge,filter in Wcharge.iteritems():
+    for charge,filter in Wcharge.items():
         p.branch(nodeToStart='basicSelection', nodeToEnd='angularCoefficients_{}'.format(charge), modules=[ROOT.accMap(filter), ROOT.AngCoeff(filter)])
 
         #weight variations
-        for s,variations in systematics.iteritems():
-            print "branching weight variations", s
+        for s,variations in systematics.items():
+            print("branching weight variations", s)
             vars_vec = ROOT.vector('string')()
             for var in variations[0]:
                 vars_vec.push_back(var)
@@ -63,8 +63,8 @@ if runTemplates:
     p.branch(nodeToStart = 'accMap', nodeToEnd = 'dataObs', modules =[ROOT.dataObs(mass,"massWeights")])
 
     #weight variations
-    for s,variations in systematics.iteritems():
-        print "branching weight variations", s
+    for s,variations in systematics.items():
+        print("branching weight variations", s)
         vars_vec = ROOT.vector('string')()
         for var in variations[0]:
             vars_vec.push_back(var)

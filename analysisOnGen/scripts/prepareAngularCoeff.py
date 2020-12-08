@@ -47,12 +47,12 @@ for charge in Wcharge:
     #GET HISTOS
     hDict = {}
     inFile = ROOT.TFile.Open(INPUT)
-    for sKind, sList in systDict.iteritems():
+    for sKind, sList in systDict.items():
         for sName in sList :
             hDict[sName+'mapTot'] =  inFile.Get('angularCoefficients'+charge+sKind+'/mapTot'+sName)
             hDict[sName+'Y'] =  inFile.Get('angularCoefficients'+charge+sKind+'/Y'+sName)
             hDict[sName+'Pt'] =  inFile.Get('angularCoefficients'+charge+sKind+'/Pt'+sName)
-            for coeff,div in coeffDict.iteritems() :
+            for coeff,div in coeffDict.items() :
                 hDict[sName+coeff] =  inFile.Get('angularCoefficients'+charge+sKind+'/harmonics'+coeff+sName)
                 hDict[sName+coeff+'Err'] =  inFile.Get('angularCoefficients'+charge+sKind+'/harmonicsSq'+coeff+sName)
                 hDict[sName+coeff+'Y'] =  inFile.Get('angularCoefficients'+charge+sKind+'/harmonicsY'+coeff+sName)
@@ -66,7 +66,7 @@ for charge in Wcharge:
     #BUILD OUTPUT
     outFile = ROOT.TFile(OUTPUT+charge+'.root', "RECREATE")
     outFile.cd()
-    for sKind, sList in systDict.iteritems():    
+    for sKind, sList in systDict.items():    
         outFile.mkdir('angularCoefficients'+sKind)
         outFile.cd('angularCoefficients'+sKind)
 
@@ -81,7 +81,7 @@ for charge in Wcharge:
                 for sNameDen in sListMod :
                     if sNameDen!=sName and not (sKind=='_LHEScaleWeight' and UNCORR) : #PDF or correlated Scale
                         continue 
-                    for coeff,div in coeffDict.iteritems() :
+                    for coeff,div in coeffDict.items() :
                         hist = hDict[sName+coeff].Clone()
                         histY = hDict[sName+coeff+'Y'].Clone()
                         histPt = hDict[sName+coeff+'Pt'].Clone()
