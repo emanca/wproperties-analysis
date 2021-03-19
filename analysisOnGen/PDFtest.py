@@ -12,7 +12,7 @@ c=64
 
 ROOT.ROOT.EnableImplicitMT(c)
 
-print "running with {} cores".format(c)
+print("running with {} cores".format(c))
 
 inputFile = '/scratchssd/emanca/wproperties-analysis/signalAnalysis/nanowmass_1.root'
 

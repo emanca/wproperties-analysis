@@ -5,6 +5,11 @@ from termcolor import colored
 import copy
 import argparse
 import os
+import sys
+# sys.path.append('../../')
+# sys.path.append('../')
+import systToapply
+
 
 
 ROOT.gROOT.SetBatch()
@@ -13,15 +18,19 @@ ROOT.TH2.AddDirectory(False)
 
 class plotter :
     
-    def __init__(self):
-            
+    def __init__(self, helXsec=False):
+        
+        self.helXsec = helXsec    
         self.yArr = [0, 0.4, 0.8, 1.2 ,1.6, 2.0, 2.4]
-        self.qtArr = [0., 4., 8., 12., 16., 20., 24., 28., 32.]
+        # self.qtArr = [0., 4., 8., 12., 16., 20., 24., 28., 32.] #equal size
+        # self.qtArr = [0.,   3.1,  5.,   7.,   9.4, 12.4, 16.5, 22.3, 32.]#quantile
+        self.qtArr = [0.,  2.,  4., 6.,  8., 10., 12., 16., 22., 32.] #2GeV
         self.coeffArr = [0,1,2,3,4,5,6]
-        self.nuisArr = ['mass']
+        self.noiArr = ['mass']
         self.dirList = ['up','down']
         self.RatioPadYcut = 1.
         self.lumi=35.9
+        self.mass = 80.419 
         
         self.systDict = {
             "_LHEScaleWeight" : ["_LHEScaleWeight_muR0p5_muF0p5", "_LHEScaleWeight_muR0p5_muF1p0","_LHEScaleWeight_muR1p0_muF0p5","_LHEScaleWeight_muR1p0_muF2p0","_LHEScaleWeight_muR2p0_muF1p0", "_LHEScaleWeight_muR2p0_muF2p0"],
@@ -34,18 +43,40 @@ class plotter :
                 if ('0p5' in scNum and '2p0' in scDen) or ('2p0' in scNum and '0p5' in scDen): 
                     self.vetoScaleList.append([scNum,scDen])        
         
-        self.hels = ['L', 'I', 'T', 'A', 'P', 'UL']
-        self.coeffDict = {
-            'A0' : 1.,
-            'A1' : 5.,
-            'A2' : 20.,
-            'A3' : 4.,
-            'A4' : 4.,
-            'unpolarizedxsec' : 1
-        }
-        self.coeffList = ['A0','A1','A2','A3','A4','unpolarizedxsec' ]
-        # for ind,val in self.coeffDict.iteritems() :
-        #     self.coeffList.append(ind)
+        if not self.helXsec : 
+            self.coeffDict = {
+                'A0' : [1.,'A0'],
+                'A1' : [5.,'A1'],
+                'A2' : [20.,'A2'],
+                'A3' : [4.,'A3'],
+                'A4' : [4.,'A4'],
+                'unpolarizedxsec' : [1,'unpolarizedxsec']
+            }
+            self.coeffList = ['A0','A1','A2','A3','A4','unpolarizedxsec' ]
+        else :
+            self.coeffDict = {
+                'L' : [2.,'A0'],
+                'I' : [2*math.sqrt(2),'A1'],
+                'T' : [4.,'A2'],
+                'A' : [4*math.sqrt(2), 'A3'],
+                'P' : [2.,'A4'],
+                'UL' : [1., 'unpolarizedxsec']
+            }
+            self.coeffList = ['L', 'I', 'T', 'A', 'P', 'UL']
+        
+        #DEBUG josh
+        # if not self.helXsec : 
+        #     self.coeffDict = {
+        #         'unpolarizedxsec' : [1,'unpolarizedxsec']
+        #     }
+        #     self.coeffList = ['unpolarizedxsec' ]
+        # else :
+        #     self.coeffDict = {
+        #         'UL' : [1., 'unpolarizedxsec']
+        #     }
+        #     self.coeffList = ['UL']
+        # self.coeffArr = [0]
+        ############################################################ END OF DEBUG
         
         self.histos = {}
         self.canvas = {}
@@ -62,6 +93,34 @@ class plotter :
             "Nominal" : [1, 'Fit Unc.']
         }
         
+        self.nuisanceDict = {
+            "mass"      : [ROOT.kBlue-4, 'm_{W}', 35],
+            "WHSFSyst"  : [ROOT.kGreen+1, 'SF syst', 36],
+            # "alphaS"    : [ROOT.kOrange-3, '#alpha_{s}', 38],
+            "pdfs"      : [ROOT.kRed+1, 'PDF+#alpha_{s}', 25],
+            "WHSFStat"  : [ROOT.kGreen+10, 'SF stat', 32],
+            "stat"      : [ROOT.kGray+1, 'stat', 31],
+            "PrefireWeight" : [ROOT.kSpring+10, 'Prefire weight', 28],
+            "jme"       : [ROOT.kAzure+10, 'MET uncert.',45],
+            "ptScale"       : [ROOT.kYellow+2, 'p_{T} Scale',43],
+            "binByBinStat" : [1, 'Bin stat', 46],
+            "QCDnorm" : [ROOT.kViolet, 'QCD norm.', 22],
+            "CMSlumi" : [ROOT.kOrange-7,"Lumi",41],
+            # "DYxsec" : [ROOT.kCyan+2,"#sigma_{DY}",3],
+            # "Topxsec" : [ROOT.kCyan-6,"#sigma_{t}",3],
+            # "Dibosonxsec" : [ROOT.kCyan-1,"#sigma_{diboson}",3],
+            # "Tauxsec" : [ROOT.kTeal,"#sigma_{W#rightarrow#tau#nu}",3],
+            "ewkXsec" : [ROOT.kTeal,"#sigma_{W#rightarrow#tau#nu}+#sigma_{t}+#sigma_{diboson}",3],
+            "LeptonVeto" : [ROOT.kMagenta-7,"Lepton veto",23],
+            "WQT": [ROOT.kViolet+7,"q_{T}^{V}",27],
+            # "LHEScaleWeight" : [ROOT.kViolet-2,"MC Scales",43],   
+        }
+        
+        self.category = {
+            ''      : '',
+            'y'     : 'Y',
+            'qt'    : 'Pt'
+            }
         
         #unrolled binning: qt large, y fine
         self.unrolledQtY= list(self.yArr)
@@ -106,20 +165,32 @@ class plotter :
         
         
         
-    def getHistos(self,inFile, FitFile, uncorrelate,suff,apoFile='') :
+    def getHistos(self,inFile, FitFile, uncorrelate,suff,apoFile='',toyFile='',impact=False) :
         
         resFit = FitFile.fitresults
-
+        genMod=''#_gen
+        
         #MC (Pre Fit) angular coefficients and variations
         self.histos[suff+'MC'+'mapTot'] =  inFile.Get('angularCoefficients/mapTot')
         self.histos[suff+'MCy'+'mapTot'] =  inFile.Get('angularCoefficients/Y')
         self.histos[suff+'MCqt'+'mapTot'] =  inFile.Get('angularCoefficients/Pt')
-        for coeff,div in self.coeffDict.iteritems() :
-            self.histos[suff+'MC'+coeff] =  inFile.Get('angularCoefficients/harmonics'+coeff+'_nom_nom')
-            self.histos[suff+'MC'+'y'+coeff] =  inFile.Get('angularCoefficients/harmonicsY'+coeff+'_nom_nom')
-            self.histos[suff+'MC'+'qt'+coeff] =  inFile.Get('angularCoefficients/harmonicsPt'+coeff+'_nom_nom')
+        
+        for cat in self.category : #rescale maptot by lumi because mapTot=sigma_UL*Lumi
+            self.histos[suff+'MC'+cat+'mapTot'].Scale(1/self.lumi)
+        
+        for coeff,div in self.coeffDict.items() :
+            for cat,catName in self.category.items():
+                if coeff!='UL' and coeff!='unpolarizedxsec' :
+                    self.histos[suff+'MC'+cat+coeff] =  inFile.Get('angularCoefficients/harmonics'+catName+div[1]+'_nom_nom')
+                    self.histos[suff+'MC'+cat+coeff].SetName(self.histos[suff+'MC'+cat+coeff].GetName().replace(div[1],coeff) )
+                else :
+                    self.histos[suff+'MC'+cat+coeff] = self.histos[suff+'MC'+cat+'mapTot'].Clone(self.histos[suff+'MC'+cat+'mapTot'].GetName()+coeff) 
+    
+                if self.helXsec and coeff!='UL' : #sigma_hel = A_i*sigma_UL/const_i
+                    self.histos[suff+'MC'+cat+coeff].Multiply(self.histos[suff+'MC'+cat+'mapTot'])
+                    self.histos[suff+'MC'+cat+coeff].Scale(1/div[0])
 
-        for sKind, sList in self.systDict.iteritems():
+        for sKind, sList in self.systDict.items():
 
             sListMod = copy.deepcopy(sList)
             if sKind=='_LHEScaleWeight' and UNCORR :
@@ -129,52 +200,93 @@ class plotter :
                 self.histos[suff+'MC'+sName+'mapTot'] =  inFile.Get('angularCoefficients'+sKind+'/mapTot'+sName)
                 self.histos[suff+'MCy'+sName+'mapTot'] =  inFile.Get('angularCoefficients'+sKind+'/Y'+sName)
                 self.histos[suff+'MCqt'+sName+'mapTot'] =  inFile.Get('angularCoefficients'+sKind+'/Pt'+sName)
+                
+                for cat in self.category : #rescale maptot by lumi because mapTot=sigma_UL*Lumi
+                    if sName=='_nom' : continue
+                    self.histos[suff+'MC'+cat+sName+'mapTot'].Scale(1/self.lumi)
+                
                 for sNameDen in sListMod :
-                    if sNameDen!=sName and not (sKind=='_LHEScaleWeight' and UNCORR) : #PDF or correlated Scale
+                    if sNameDen!=sName and not (sKind=='_LHEScaleWeight' and UNCORR and (not self.helXsec)): #PDF or correlated Scale
                         continue 
-                    if sName=='_nom' and sNameDen=='_nom' : 
-                        continue
-                    for coeff,div in self.coeffDict.iteritems() :
-                        if "unpolarizedxsec" in coeff: continue
-                        if UNCORR :
-                            if sKind=='_LHEScaleWeight':
-                                self.histos[suff+'MC'+sName+sNameDen+coeff] =  inFile.Get('angularCoefficients'+sKind+'/harmonics'+coeff+sName+sNameDen)
-                                self.histos[suff+'MCy'+sName+sNameDen+coeff] =  inFile.Get('angularCoefficients'+sKind+'/harmonicsY'+coeff+sName+sNameDen)
-                                self.histos[suff+'MCqt'+sName+sNameDen+coeff] =  inFile.Get('angularCoefficients'+sKind+'/harmonicsPt'+coeff+sName+sNameDen)
+                    if sName=='_nom' and sNameDen=='_nom' : continue
+                    for coeff,div in self.coeffDict.items() :
+                        # if "unpol" in coeff: continue
+                        for cat,catName in  self.category.items():
+                            if UNCORR and sKind=='_LHEScaleWeight':
+                
+                                if coeff!='UL' and coeff!='unpolarizedxsec' :
+                                    self.histos[suff+'MC'+cat+sName+sNameDen+coeff] =  inFile.Get('angularCoefficients'+sKind+'/harmonics'+catName+div[1]+sName+sNameDen)
+                                    self.histos[suff+'MC'+cat+sName+sNameDen+coeff].SetName(self.histos[suff+'MC'+cat+sName+sNameDen+coeff].GetName().replace(div[1],coeff) )
+                                else :
+                                    if sName=='_nom' or sNameDen=='_nom': continue
+                                    self.histos[suff+'MC'+cat+sName+sNameDen+coeff] = self.histos[suff+'MC'+cat+sName+'mapTot'].Clone(self.histos[suff+'MC'+cat+sName+'mapTot'].GetName()+coeff)
+                                
+                                if self.helXsec and coeff!='UL' : #sigma_hel = A_i*sigma_UL/const_i
+                                    self.histos[suff+'MC'+cat+sName+sNameDen+coeff].Multiply(self.histos[suff+'MC'+cat+sName+'mapTot'])
+                                    self.histos[suff+'MC'+cat+sName+sNameDen+coeff].Scale(1/div[0])
+                                
+                                # self.histos[suff+'MC'+cat+sName+sNameDen+coeff] =  inFile.Get('angularCoefficients'+sKind+'/harmonics'+catName+div[1]+sName+sNameDen)
+                                # if self.helXsec :
+                                #     if coeff!='UL' :
+                                #         self.histos[suff+'MC'+cat+sName+sNameDen+coeff].Multiply(self.histos[suff+'MC'+cat+sName+'mapTot'])
+                                #         self.histos[suff+'MC'+cat+sName+sNameDen+coeff].Scale(1/div[0])
+                                #     else :
+                                #         self.histos[suff+'MC'+cat+sName+sNameDen+coeff] = self.histos[suff+'MC'+cat+sName+'mapTot'].Clone(self.histos[suff+'MC'+cat+sName+'mapTot'].GetName()+'UL')
                             else :
-                                self.histos[suff+'MC'+sName+coeff] =  inFile.Get('angularCoefficients'+sKind+'/harmonics'+coeff+sName+sNameDen)
-                                self.histos[suff+'MCy'+sName+coeff] =  inFile.Get('angularCoefficients'+sKind+'/harmonicsY'+coeff+sName+sNameDen)
-                                self.histos[suff+'MCqt'+sName+coeff] =  inFile.Get('angularCoefficients'+sKind+'/harmonicsPt'+coeff+sName+sNameDen)
-                        else :
-                            self.histos[suff+'MC'+sName+coeff] =  inFile.Get('angularCoefficients'+sKind+'/harmonics'+coeff+sName) 
-                            self.histos[suff+'MCy'+sName+coeff] =  inFile.Get('angularCoefficients'+sKind+'/harmonicsY'+coeff+sName) 
-                            self.histos[suff+'MCqt'+sName+coeff] =  inFile.Get('angularCoefficients'+sKind+'/harmonicsPt'+coeff+sName) 
+                                    
+                                if coeff!='UL' and coeff!='unpolarizedxsec' :
+                                    self.histos[suff+'MC'+cat+sName+coeff] =  inFile.Get('angularCoefficients'+sKind+'/harmonics'+catName+div[1]+sName+sNameDen)
+                                    self.histos[suff+'MC'+cat+sName+coeff].SetName(self.histos[suff+'MC'+cat+sName+coeff].GetName().replace(div[1],coeff) )
+                                else :
+                                    if sName=='_nom' or sNameDen=='_nom': continue
+                                    self.histos[suff+'MC'+cat+sName+coeff] = self.histos[suff+'MC'+cat+sName+'mapTot'].Clone(self.histos[suff+'MC'+cat+sName+'mapTot'].GetName()+coeff)
+                                
+                                if self.helXsec and coeff!='UL' : #sigma_hel = A_i*sigma_UL/const_i
+                                    self.histos[suff+'MC'+cat+sName+coeff].Multiply(self.histos[suff+'MC'+cat+sName+'mapTot'])
+                                    self.histos[suff+'MC'+cat+sName+coeff].Scale(1/div[0])
+                                    
+                                    # self.histos[suff+'MC'+cat+sName+coeff] =  inFile.Get('angularCoefficients'+sKind+'/harmonics'+catName+div[1]+sName+sNameDen)
+                                    # if self.helXsec :
+                                    #     if coeff!='UL' :
+                                    #         self.histos[suff+'MC'+cat+sName+coeff].Multiply(self.histos[suff+'MC'+cat+sName+'mapTot'])
+                                    #         self.histos[suff+'MC'+cat+sName+coeff].Scale(1/div[0])
+                                    #     else :
+                                    #         self.histos[suff+'MC'+cat+sName+coeff] = self.histos[suff+'MC'+cat+sName+'mapTot'].Clone(self.histos[suff+'MC'+cat+sName+'mapTot'].GetName()+'UL')
+                            # else :
+                                
+                            #     self.histos[suff+'MC'+cat+sName+coeff] =  inFile.Get('angularCoefficients'+sKind+'/harmonics'+catName+div[1]+sName) 
+                            #     if self.helXsec :
+                            #         if coeff!='UL' :
+                            #             self.histos[suff+'MC'+cat+sName+coeff].Multiply(self.histos[suff+'MC'+cat+sName+'mapTot'])
+                            #             self.histos[suff+'MC'+cat+sName+coeff].Scale(1/div[0])
+                            #         else :
+                            #             self.histos[suff+'MC'+cat+sName+coeff] = self.histos[suff+'MC'+cat+sName+'mapTot'].Clone(self.histos[suff+'MC'+cat+sName+'mapTot'].GetName()+'UL')
         
          
-        #fit - helicity xsecs histos 
-        for hel in self.hels:
-            self.histos[suff+'FitHel'+hel] = ROOT.TH2D(suff+'FitHel{c}'.format(c=hel), suff+'FitHel{c}'.format(c=hel), len(self.yArr)-1, array('f',self.yArr), len(self.qtArr)-1, array('f',self.qtArr))
-            self.histos[suff+'FitHel'+hel+'norm'] = ROOT.TH2D(suff+'FitHel{c}norm'.format(c=hel), suff+'FitHel{c}norm'.format(c=hel), len(self.yArr)-1, array('f',self.yArr), len(self.qtArr)-1, array('f',self.qtArr))
-            self.histos[suff+'FitHel'+hel].GetXaxis().SetTitle('W rapidity')
-            self.histos[suff+'FitHel'+hel].GetYaxis().SetTitle('W q_{T}')
-            self.histos[suff+'FitHel'+hel+'norm'].GetXaxis().SetTitle('W rapidity')
-            self.histos[suff+'FitHel'+hel+'norm'].GetYaxis().SetTitle('W q_{T}')
-            for ev in resFit: #dummy because there's one event only
-                for i in range(1, self.histos[suff+'FitHel'+hel].GetNbinsX()+1): #loop over rapidity bins
-                    for j in range(1, self.histos[suff+'FitHel'+hel].GetNbinsY()+1): #loop over pt bins
-                        try:
-                            coeff = eval('ev.helXsecs{}_y_{}_qt_{}_pmaskedexp'.format(hel, i, j))
-                            coeff_err = eval('ev.helXsecs{}_y_{}_qt_{}_pmaskedexp_err'.format(hel, i, j))
-                            self.histos[suff+'FitHel'+hel].SetBinContent(i,j,coeff)
-                            self.histos[suff+'FitHel'+hel].SetBinError(i,j,coeff_err)
+        #fit - helicity xsecs histos  (included in helXsec option)
+        # for hel in self.hels:
+        #     self.histos[suff+'FitHel'+hel] = ROOT.TH2D(suff+'FitHel{c}'.format(c=hel), suff+'FitHel{c}'.format(c=hel), len(self.yArr)-1, array('f',self.yArr), len(self.qtArr)-1, array('f',self.qtArr))
+        #     self.histos[suff+'FitHel'+hel+'norm'] = ROOT.TH2D(suff+'FitHel{c}norm'.format(c=hel), suff+'FitHel{c}norm'.format(c=hel), len(self.yArr)-1, array('f',self.yArr), len(self.qtArr)-1, array('f',self.qtArr))
+        #     self.histos[suff+'FitHel'+hel].GetXaxis().SetTitle('W rapidity')
+        #     self.histos[suff+'FitHel'+hel].GetYaxis().SetTitle('W q_{T}')
+        #     self.histos[suff+'FitHel'+hel+'norm'].GetXaxis().SetTitle('W rapidity')
+        #     self.histos[suff+'FitHel'+hel+'norm'].GetYaxis().SetTitle('W q_{T}')
+        #     for ev in resFit: #dummy because there's one event only
+        #         for i in range(1, self.histos[suff+'FitHel'+hel].GetNbinsX()+1): #loop over rapidity bins
+        #             for j in range(1, self.histos[suff+'FitHel'+hel].GetNbinsY()+1): #loop over pt bins
+        #                 try:
+        #                     coeff = eval('ev.helXsecs{}_y_{}_qt_{}_pmaskedexp{}'.format(hel, i, j,genMod))
+        #                     coeff_err = eval('ev.helXsecs{}_y_{}_qt_{}_pmaskedexp_err'.format(hel, i, j))
+        #                     self.histos[suff+'FitHel'+hel].SetBinContent(i,j,coeff)
+        #                     self.histos[suff+'FitHel'+hel].SetBinError(i,j,coeff_err)
 
-                            coeffnorm = eval('ev.helXsecs{}_y_{}_qt_{}_pmaskedexpnorm'.format(hel, i, j))
-                            coeffnorm_err = eval('ev.helXsecs{}_y_{}_qt_{}_pmaskedexpnorm_err'.format(hel, i, j))
-                            self.histos[suff+'FitHel'+hel+'norm'].SetBinContent(i,j,coeffnorm)
-                            self.histos[suff+'FitHel'+hel+'norm'].SetBinError(i,j,coeffnorm_err)
+        #                     coeffnorm = eval('ev.helXsecs{}_y_{}_qt_{}_pmaskedexpnorm{}'.format(hel, i, j,genMod))
+        #                     coeffnorm_err = eval('ev.helXsecs{}_y_{}_qt_{}_pmaskedexpnorm_err'.format(hel, i, j))
+        #                     self.histos[suff+'FitHel'+hel+'norm'].SetBinContent(i,j,coeffnorm)
+        #                     self.histos[suff+'FitHel'+hel+'norm'].SetBinError(i,j,coeffnorm_err)
                             
-                        except AttributeError:
-                            pass
+        #                 except AttributeError:
+        #                     pass
 
         #fit - angular coefficients with band
         for c in self.coeffDict:
@@ -185,146 +297,510 @@ class plotter :
                 for i in range(1, self.histos[suff+'FitAC'+c].GetNbinsX()+1): #loop over rapidity bins
                     for j in range(1, self.histos[suff+'FitAC'+c].GetNbinsY()+1): #loop over pt bins
                         try:
-                            coeff = eval('ev.y_{i}_qt_{j}_{c}'.format(c=c, j=j, i=i))
-                            coeff_err = eval('ev.y_{i}_qt_{j}_{c}_err'.format(c=c, j=j, i=i))
-                            if 'unpol' in c:
+                            if not self.helXsec : coeffString = 'ev.y_{i}_qt_{j}_{c}{g}'.format(c=c, j=j, i=i,g=genMod)
+                            else : coeffString = 'ev.helXsecs{c}_y_{i}_qt_{j}_pmaskedexp{g}'.format(c=c, i=i, j=j,g=genMod)
+                            # else : coeffString = 'ev.helXsecs{c}_y_{i}_qt_{j}_mu{g}'.format(c=c, i=i, j=j,g=genMod)
+                            coeff = eval(coeffString)
+                            coeff_err = eval(coeffString+'_err') #doesn't work fit genMod!=0
+                            if 'unpol' in c or self.helXsec:
                                 coeff = coeff/(3./16./math.pi)/self.lumi
                                 coeff_err = coeff_err/(3./16./math.pi)/self.lumi
                             self.histos[suff+'FitAC'+c].SetBinContent(i,j,coeff)
                             self.histos[suff+'FitAC'+c].SetBinError(i,j,coeff_err)
-                            
                         except AttributeError: 
                             pass
                 for j in range(1, self.histos[suff+'FitAC'+c].GetNbinsY()+1): #loop over pt bins
                     try:
-                        coeff = eval('ev.qt_{j}_helmeta_{c}'.format(c=c, j=j))
-                        coeff_err = eval('ev.qt_{j}_helmeta_{c}_err'.format(c=c, j=j))
-                        if 'unpol' in c:
+                        if not self.helXsec : coeffString = 'ev.qt_{j}_helmeta_{c}{g}'.format(c=c, j=j,g=genMod)
+                        else : coeffString = 'ev.helXsecs{c}_qt_{j}_sumxsec{g}'.format(c=c, j=j,g=genMod)
+                        coeff = eval(coeffString)
+                        coeff_err = eval(coeffString+'_err') #doesn't work fit genMod!=0
+                        if 'unpol' in c or self.helXsec:
                                 coeff = coeff/(3./16./math.pi)/self.lumi
                                 coeff_err = coeff_err/(3./16./math.pi)/self.lumi
                         self.histos[suff+'FitACqt'+c].SetBinContent(j,coeff)
                         self.histos[suff+'FitACqt'+c].SetBinError(j,coeff_err)
-
-
                     except AttributeError: 
                         pass
                 for i in range(1, self.histos[suff+'FitAC'+c].GetNbinsX()+1): #loop over rapidity bins
                     try:
-                        coeff = eval('ev.y_{i}_helmeta_{c}'.format(c=c, i=i))
-                        coeff_err = eval('ev.y_{i}_helmeta_{c}_err'.format(c=c, i=i))
-                        if 'unpol' in c:
+                        if not self.helXsec : coeffString = 'ev.y_{i}_helmeta_{c}{g}'.format(c=c, i=i,g=genMod)
+                        else : coeffString = 'ev.helXsecs{c}_y_{i}_sumxsec{g}'.format(c=c, i=i,g=genMod)
+                        coeff = eval(coeffString)
+                        coeff_err = eval(coeffString+'_err') #doesn't work fit genMod!=0
+                        if 'unpol' in c or self.helXsec:
                                 coeff = coeff/(3./16./math.pi)/self.lumi
                                 coeff_err = coeff_err/(3./16./math.pi)/self.lumi
                         self.histos[suff+'FitACy'+c].SetBinContent(i,coeff)
                         self.histos[suff+'FitACy'+c].SetBinError(i,coeff_err)
-
                     except AttributeError: 
                         pass
+        
+        if not self.helXsec : covString = ['helpois','helmetapois'] 
+        else : covString = ['pmaskedexp','sumpois']
+        # else : covString = ['mu','sumpois']  #josh debug
             
         #covariance and correlation matrices 
-        self.histos[suff+'corrMat'] = FitFile.Get('correlation_matrix_channelhelpois')
-        self.histos[suff+'covMat'] = FitFile.Get('covariance_matrix_channelhelpois')  
-        self.histos[suff+'corrMat'+'Integrated'] = FitFile.Get('correlation_matrix_channelhelmetapois')
-        self.histos[suff+'covMat'+'Integrated'] = FitFile.Get('covariance_matrix_channelhelmetapois')
+        self.histos[suff+'corrMat'] = FitFile.Get('correlation_matrix_channel'+covString[0])
+        self.histos[suff+'covMat'] = FitFile.Get('covariance_matrix_channel'+covString[0])  
+        self.histos[suff+'corrMat'+'Integrated'] = FitFile.Get('correlation_matrix_channel'+covString[1])
+        self.histos[suff+'covMat'+'Integrated'] = FitFile.Get('covariance_matrix_channel'+covString[1])
+        
+        #mass
+        self.histos[suff+'mass'] = ROOT.TH1F('mass'+suff,'mass'+suff,1,0,1)
+        for ev in resFit: #dummy because there's one event only
+            try :
+                massVal = eval('ev.mass{}'.format(genMod))
+                massErr = eval('ev.mass_err')
+            except :
+                print("missing mass in tree")
+                massVal = 0
+                massErr= 0
+        self.histos[suff+'mass'].SetBinContent(1,massVal)
+        self.histos[suff+'mass'].SetBinError(1,massErr)
+        # print("WARNING: mass =0., error converted in GeV")
         
         if apoFile!='' :
             for c in self.coeffDict:   
                 self.histos[suff+'apo'+c] = apoFile.Get('post-fit-regularization_'+c)
-              
+                
+        if impact :
+            self.histos[suff+'impact2D'+'group'+'UNR']=FitFile.Get('nuisance_group_impact_'+covString[0])
+            self.histos[suff+'impact2D'+'UNR']=FitFile.Get('nuisance_impact_'+covString[0])
+            self.histos[suff+'impact2D'+'group'+'int']=FitFile.Get('nuisance_group_impact_'+covString[1])
+            try :
+                self.histos[suff+'impact2D'+'group'+'mass']=FitFile.Get('nuisance_group_impact_nois')
+            except :
+                print("missing mass in nuisance")
+                self.histos[suff+'impact2D'+'group'+'mass'] = 0 
         
-    def AngCoeffPlots(self,inputFile, fitFile, uncorrelate,suff,aposteriori) :
+        #nuisance plots
+        NbinsNui = 0
+        self.NuiConstrDict = {
+            'all' : [0, [],0, [0], [True,True,True]], #[Nbin,[sName],counterBin,[binwidth],[Flag_pdf,Flag_SFstat,Flag_Scale]]
+            'LHEPdfWeight' : [0, [],0], 
+            'WHSFStat' : [0, [],0],
+            'LHEScaleWeight' : [0, [],0],
+            'others' : [0, [],0]
+        }
+        
+        for gk,group in systToapply.systematicsDict.items() :
+            if gk=='Nominal' : continue
+            flagOthers=True
+            for nuiDict_key, nuiDict_val in self.NuiConstrDict.items() :
+                if nuiDict_key in gk or (nuiDict_key=='LHEPdfWeight' and gk=='alphaS'):
+                    flagOthers=False
+                    for sName in group['vars'] :
+                        self.NuiConstrDict[nuiDict_key][0] +=1
+                        self.NuiConstrDict[nuiDict_key][1].append(sName)
+            for sName in group['vars'] :
+                self.NuiConstrDict['all'][0] +=1
+                self.NuiConstrDict['all'][1].append(sName)
+                if 'LHEPdfWeight' not in gk and 'WHSFStat' not in gk and 'LHEScaleWeight' not in gk :
+                    binW = 1
+                else :
+                    binW = 0.15
+                self.NuiConstrDict['all'][3].append(self.NuiConstrDict['all'][3][-1]+binW)
+            if flagOthers :
+                for sName in group['vars'] :
+                    self.NuiConstrDict['others'][0]+=1
+                    self.NuiConstrDict['others'][1].append(sName)
+                # for sName in group['vars'] :
+                # NbinsNui+=1 
+        for nuiDict_key, nuiDict_val in self.NuiConstrDict.items() : 
+            if 'all' not in nuiDict_key :
+                self.histos[suff+'NuiConstr'+nuiDict_key] = ROOT.TH1F(suff+'_NuiConstr'+nuiDict_key,suff+'_NuiConstr'+nuiDict_key,nuiDict_val[0],0,nuiDict_val[0])
+            else :
+                self.histos[suff+'NuiConstr'+nuiDict_key] = ROOT.TH1F(suff+'_NuiConstr'+nuiDict_key,suff+'_NuiConstr'+nuiDict_key,nuiDict_val[0],array('f',self.NuiConstrDict['all'][3]))
+            self.histos[suff+'NuiConstr'+nuiDict_key].GetXaxis().SetNdivisions(-1)
+        # nuiBinCount=0
+        for ev in resFit: #dummy, 1ev
+            for gk,group in systToapply.systematicsDict.items() :
+                if gk=='Nominal' : continue
+                for sName in group['vars'] :
+                    for nuiDict_key, nuiDict_val in self.NuiConstrDict.items() : 
+                        if sName in nuiDict_val[1] :
+                            self.NuiConstrDict[nuiDict_key][2]+=1
+                        # nuiBinCount+=1
+                            if 'all' in nuiDict_key and (('LHEPdfWeight' in gk and self.NuiConstrDict['all'][4][0]) or ('WHSFStat' in gk and self.NuiConstrDict['all'][4][1]) or ('LHEScaleWeight' in gk and self.NuiConstrDict['all'][4][2])):
+                                if 'LHEPdfWeight' in gk : 
+                                    self.NuiConstrDict['all'][4][0]=False
+                                    shift = 0.5*float(len(self.NuiConstrDict['LHEPdfWeight'][1]))
+                                if 'WHSFStat' in gk :
+                                    self.NuiConstrDict['all'][4][1]=False
+                                    shift = 0.5*float(len(self.NuiConstrDict['WHSFStat'][1]))
+                                if 'LHEScaleWeight' in gk : 
+                                    self.NuiConstrDict['all'][4][2]=False
+                                    shift = 0.5*float(len(self.NuiConstrDict['LHEScaleWeight'][1]))                                
+                                self.histos[suff+'NuiConstr'+nuiDict_key].GetXaxis().SetBinLabel(self.NuiConstrDict[nuiDict_key][2]+int(shift),gk)
+                            elif 'all' not in nuiDict_key or ('LHEPdfWeight' not in gk and 'WHSFStat' not in gk and 'LHEScaleWeight' not in gk):
+                                self.histos[suff+'NuiConstr'+nuiDict_key].GetXaxis().SetBinLabel(self.NuiConstrDict[nuiDict_key][2],sName)
+                            nuiVal = eval('ev.{}'.format(sName))
+                            nuiErr = eval('ev.{}_err'.format(sName))
+                            self.histos[suff+'NuiConstr'+nuiDict_key].SetBinContent(self.NuiConstrDict[nuiDict_key][2],nuiVal)
+                            self.histos[suff+'NuiConstr'+nuiDict_key].SetBinError(self.NuiConstrDict[nuiDict_key][2],nuiErr)
+        
+        if toyFile!= '' and self.helXsec : print("toys not implemented for helicty xsection")
+        if toyFile!= '' and not self.helXsec :
+            resFitToy = toyFile.fitresults
+            print("start toy analysis")
+            
+            self.histos[suff+'mass'+'toy'] = ROOT.TH1F(suff+'mass'+'toy',suff+'mass'+'toy',100,0,-1)
+            self.histos[suff+'mass'+'toyPull'] = ROOT.TH1F(suff+'mass'+'toyPull',suff+'mass'+'toyPull',100,0,-1)
+            self.histos[suff+'mass'+'toy'+'mean'] = ROOT.TH1F(suff+'mass'+'toy'+'mean',suff+'mass'+'toy'+'mean',1,0,1)
+            self.histos[suff+'mass'+'toyPull'+'mean'] = ROOT.TH1F(suff+'mass'+'toyPull'+'mean',suff+'mass'+'toyPull'+'mean',1,0,1)
+            
+            for c in self.coeffDict:
+                self.histos[suff+'FitAC'+c+'toy'] = ROOT.TH2D(suff+'FitAC{c}_toy'.format(c=c), suff+'FitAC{c}_toy'.format(c=c), len(self.yArr)-1, array('f',self.yArr), len(self.qtArr)-1, array('f',self.qtArr))
+                self.histos[suff+'FitACqt'+c+'toy'] = ROOT.TH1D(suff+'FitACqt{c}_toy'.format(c=c), suff+'FitACqt{c}_toy'.format(c=c), len(self.qtArr)-1, array('f',self.qtArr))
+                self.histos[suff+'FitACy'+c+'toy'] = ROOT.TH1D(suff+'FitACy{c}_toy'.format(c=c), suff+'FitACy{c}_toy'.format(c=c), len(self.yArr)-1, array('f',self.yArr))
+                self.histos[suff+'FitAC'+c+'toyPull'] = ROOT.TH2D(suff+'FitAC{c}_toyPull'.format(c=c), suff+'FitAC{c}_toyPull'.format(c=c), len(self.yArr)-1, array('f',self.yArr), len(self.qtArr)-1, array('f',self.qtArr))
+                self.histos[suff+'FitACqt'+c+'toyPull'] = ROOT.TH1D(suff+'FitACqt{c}_toyPull'.format(c=c), suff+'FitACqt{c}_toyPull'.format(c=c), len(self.qtArr)-1, array('f',self.qtArr))
+                self.histos[suff+'FitACy'+c+'toyPull'] = ROOT.TH1D(suff+'FitACy{c}_toyPull'.format(c=c), suff+'FitACy{c}_toyPull'.format(c=c), len(self.yArr)-1, array('f',self.yArr))
+                
+                for i in range(1, self.histos[suff+'FitAC'+c].GetNbinsX()+1): #loop over rapidity bins
+                    for j in range(1, self.histos[suff+'FitAC'+c].GetNbinsY()+1): #loop over pt bins
+                        self.histos[suff+'FitAC'+c+'toy'+'y'+str(i)+'_qt'+str(j)] = ROOT.TH1D(suff+'FitAC'+c+'toy'+'y'+str(i)+'_qt'+str(j),suff+'FitAC'+c+'toy'+'y'+str(i)+'_qt'+str(j),100,0,-1)
+                        self.histos[suff+'FitAC'+c+'toyPull'+'y'+str(i)+'_qt'+str(j)] = ROOT.TH1D(suff+'FitAC'+c+'toyPull'+'y'+str(i)+'_qt'+str(j),suff+'FitAC'+c+'toyPull'+'y'+str(i)+'_qt'+str(j),100,0,-1)
+                for j in range(1, self.histos[suff+'FitAC'+c].GetNbinsY()+1): #loop over pt bins
+                    self.histos[suff+'FitACqt'+c+'toy'+'qt'+str(j)] = ROOT.TH1D(suff+'FitACqt'+c+'toy'+'qt'+str(j),suff+'FitACqt'+c+'toy'+'qt'+str(j),100,0,-1)
+                    self.histos[suff+'FitACqt'+c+'toyPull'+'qt'+str(j)] = ROOT.TH1D(suff+'FitACqt'+c+'toyPull'+'qt'+str(j),suff+'FitACqt'+c+'toyPull'+'qt'+str(j),100,0,-1)
+                for i in range(1, self.histos[suff+'FitAC'+c].GetNbinsX()+1): #loop over rapidity bins
+                    self.histos[suff+'FitACy'+c+'toy'+'y'+str(i)] = ROOT.TH1D(suff+'FitACy'+c+'toy'+'y'+str(i),suff+'FitACy'+c+'toy'+'y'+str(i),100,0,-1)
+                    self.histos[suff+'FitACy'+c+'toyPull'+'y'+str(i)] = ROOT.TH1D(suff+'FitACy'+c+'toyPull'+'y'+str(i),suff+'FitACy'+c+'toyPull'+'y'+str(i),100,0,-1)
+
+                
+            for ev in resFitToy:
+                print("new event")
+                mtoy = eval('ev.mass')
+                mtoyPull = eval('(ev.mass-ev.mass_gen)/ev.mass_err')
+                self.histos[suff+'mass'+'toy'].Fill(mtoy)
+                self.histos[suff+'mass'+'toyPull'].Fill(mtoyPull)
+                
+                for c in self.coeffDict:
+                    for i in range(1, self.histos[suff+'FitAC'+c].GetNbinsX()+1): 
+                        for j in range(1, self.histos[suff+'FitAC'+c].GetNbinsY()+1): 
+                            binName = 'y_'+str(i)+'_qt_'+str(j)+'_'+c
+                            unpolMult = '(3./16./3.1415926535)/'+str(self.lumi)
+                            # print("double loop", c,i,j)
+                            if 'unpol' in c: 
+                                vtoy = eval('ev.'+binName+'/'+unpolMult)
+                            else :
+                                vtoy = eval('ev.'+binName)
+                            vtoyPull = eval('(ev.'+binName+'-ev.'+binName+'_gen'+')/ev.'+binName+'_err')  
+                            self.histos[suff+'FitAC'+c+'toy'+'y'+str(i)+'_qt'+str(j)].Fill(vtoy)    
+                            self.histos[suff+'FitAC'+c+'toyPull'+'y'+str(i)+'_qt'+str(j)].Fill(vtoyPull)    
+            
+                    for j in range(1, self.histos[suff+'FitAC'+c].GetNbinsY()+1): #loop over pt bins
+                        binName = 'qt_'+str(j)+'_helmeta_'+c
+                        unpolMult = '(3./16./3.1415926535)/'+str(self.lumi)
+                        # print("qt loop", c,j)
+                        
+                        if 'unpol' in c: 
+                            vtoy = eval('ev.'+binName+'/'+unpolMult)
+                        else :
+                            vtoy = eval('ev.'+binName)
+                        vtoyPull = eval('(ev.'+binName+'-ev.'+binName+'_gen'+')/ev.'+binName+'_err')  
+                        self.histos[suff+'FitACqt'+c+'toy'+'qt'+str(j)].Fill(vtoy)    
+                        self.histos[suff+'FitACqt'+c+'toyPull'+'qt'+str(j)].Fill(vtoyPull)    
+        
+                    for i in range(1, self.histos[suff+'FitAC'+c].GetNbinsX()+1): #loop over rapidity bins
+                        binName = 'y_'+str(i)+'_helmeta_'+c
+                        unpolMult = '(3./16./3.1415926535)/'+str(self.lumi)
+                        # print("y loop", c,i)
+                        
+                        if 'unpol' in c: 
+                            vtoy = eval('ev.'+binName+'/'+unpolMult)
+                        else :
+                            vtoy = eval('ev.'+binName)
+                        vtoyPull = eval('(ev.'+binName+'-ev.'+binName+'_gen'+')/ev.'+binName+'_err')  
+                        self.histos[suff+'FitACy'+c+'toy'+'y'+str(i)].Fill(vtoy)    
+                        self.histos[suff+'FitACy'+c+'toyPull'+'y'+str(i)].Fill(vtoyPull)    
+            
+            self.histos[suff+'mass'+'toy'+'mean'].SetBinContent(1,self.histos[suff+'mass'+'toy'].GetMean())
+            self.histos[suff+'mass'+'toy'+'mean'].SetBinError(1,self.histos[suff+'mass'+'toy'].GetStdDev())
+            self.histos[suff+'mass'+'toyPull'+'mean'].SetBinContent(1,self.histos[suff+'mass'+'toyPull'].GetMean())
+            self.histos[suff+'mass'+'toyPull'+'mean'].SetBinError(1,self.histos[suff+'mass'+'toyPull'].GetStdDev())
+            for c in self.coeffDict:        
+                for i in range(1, self.histos[suff+'FitAC'+c].GetNbinsX()+1): #loop over rapidity bins
+                    for j in range(1, self.histos[suff+'FitAC'+c].GetNbinsY()+1): #loop over pt bins
+                        self.histos[suff+'FitAC'+c+'toy'].SetBinContent(i,j,self.histos[suff+'FitAC'+c+'toy'+'y'+str(i)+'_qt'+str(j)].GetMean())
+                        self.histos[suff+'FitAC'+c+'toy'].SetBinError(i,j,self.histos[suff+'FitAC'+c+'toy'+'y'+str(i)+'_qt'+str(j)].GetStdDev())
+                        self.histos[suff+'FitAC'+c+'toyPull'].SetBinContent(i,j,self.histos[suff+'FitAC'+c+'toyPull'+'y'+str(i)+'_qt'+str(j)].GetMean())
+                        self.histos[suff+'FitAC'+c+'toyPull'].SetBinError(i,j,self.histos[suff+'FitAC'+c+'toyPull'+'y'+str(i)+'_qt'+str(j)].GetStdDev())
+                    
+                for j in range(1, self.histos[suff+'FitAC'+c].GetNbinsY()+1): #loop over pt bins
+                    self.histos[suff+'FitACqt'+c+'toy'].SetBinContent(j,self.histos[suff+'FitACqt'+c+'toy'+'qt'+str(j)].GetMean())
+                    self.histos[suff+'FitACqt'+c+'toy'].SetBinError(j,self.histos[suff+'FitACqt'+c+'toy'+'qt'+str(j)].GetStdDev())
+                    self.histos[suff+'FitACqt'+c+'toyPull'].SetBinContent(j,self.histos[suff+'FitACqt'+c+'toyPull'+'qt'+str(j)].GetMean())
+                    self.histos[suff+'FitACqt'+c+'toyPull'].SetBinError(j,self.histos[suff+'FitACqt'+c+'toyPull'+'qt'+str(j)].GetStdDev())
+                    
+                for i in range(1, self.histos[suff+'FitAC'+c].GetNbinsX()+1): #loop over rapidity bins
+                    self.histos[suff+'FitACy'+c+'toy'].SetBinContent(i,self.histos[suff+'FitACy'+c+'toy'+'y'+str(i)].GetMean())
+                    self.histos[suff+'FitACy'+c+'toy'].SetBinError(i,self.histos[suff+'FitACy'+c+'toy'+'y'+str(i)].GetStdDev())
+                    self.histos[suff+'FitACy'+c+'toyPull'].SetBinContent(i,self.histos[suff+'FitACy'+c+'toyPull'+'y'+str(i)].GetMean())
+                    self.histos[suff+'FitACy'+c+'toyPull'].SetBinError(i,self.histos[suff+'FitACy'+c+'toyPull'+'y'+str(i)].GetStdDev())
+                    
+                    
+                    
+                    
+                    
+                    
+                # for i in range(1, self.histos[suff+'FitAC'+c].GetNbinsX()+1): #loop over rapidity bins
+                #     for j in range(1, self.histos[suff+'FitAC'+c].GetNbinsY()+1): #loop over pt bins
+                #         binName = 'y_'+str(i)+'_qt_'+str(j)+'_'+c
+                #         unpolMult = '(3./16./3.1415926535)/'+str(self.lumi)
+                #         print(c,i,j)
+                        
+                #         self.histos[suff+'FitAC'+c+'toy'+'y'+str(i)+'_qt'+str(j)] = ROOT.TH1D(suff+'FitAC'+c+'toy'+'y'+str(i)+'_qt'+str(j),suff+'FitAC'+c+'toy'+'y'+str(i)+'_qt'+str(j),100,0,-1)
+                #         self.histos[suff+'FitAC'+c+'toyPull'+'y'+str(i)+'_qt'+str(j)] = ROOT.TH1D(suff+'FitAC'+c+'toyPull'+'y'+str(i)+'_qt'+str(j),suff+'FitAC'+c+'toyPull'+'y'+str(i)+'_qt'+str(j),100,0,-1)
+                        
+                #         for ev in resFitToy:
+                #             if 'unpol' in c: 
+                #                 vtoy = eval('ev.'+binName+'/'+unpolMult)
+                #             else :
+                #                 vtoy = eval('ev.'+binName)
+                #             vtoyPull = eval('(ev.'+binName+'-ev.'+binName+'_gen'+')/ev.'+binName+'_err')  
+                #             self.histos[suff+'FitAC'+c+'toy'+'y'+str(i)+'_qt'+str(j)].Fill(vtoy)    
+                #             self.histos[suff+'FitAC'+c+'toyPull'+'y'+str(i)+'_qt'+str(j)].Fill(vtoyPull)    
+                        
+                #         self.histos[suff+'FitAC'+c+'toy'].SetBinContent(i,j,self.histos[suff+'FitAC'+c+'toy'+'y'+str(i)+'_qt'+str(j)].GetMean())
+                #         self.histos[suff+'FitAC'+c+'toy'].SetBinError(i,j,self.histos[suff+'FitAC'+c+'toy'+'y'+str(i)+'_qt'+str(j)].GetStdDev())
+                #         self.histos[suff+'FitAC'+c+'toyPull'].SetBinContent(i,j,self.histos[suff+'FitAC'+c+'toyPull'+'y'+str(i)+'_qt'+str(j)].GetMean())
+                #         self.histos[suff+'FitAC'+c+'toyPull'].SetBinError(i,j,self.histos[suff+'FitAC'+c+'toyPull'+'y'+str(i)+'_qt'+str(j)].GetStdDev())
+                    
+                            
+                # for j in range(1, self.histos[suff+'FitAC'+c].GetNbinsY()+1): #loop over pt bins
+                #         binName = 'qt_'+str(j)+'_helmeta_'+c
+                #         unpolMult = '(3./16./3.1415926535)/'+str(self.lumi)
+                #         print(c,j)
+                        
+                #         self.histos[suff+'FitACqt'+c+'toy'+'qt'+str(j)] = ROOT.TH1D(suff+'FitACqt'+c+'toy'+'qt'+str(j),suff+'FitACqt'+c+'toy'+'qt'+str(j),100,0,-1)
+                #         self.histos[suff+'FitACqt'+c+'toyPull'+'qt'+str(j)] = ROOT.TH1D(suff+'FitACqt'+c+'toyPull'+'qt'+str(j),suff+'FitACqt'+c+'toyPull'+'qt'+str(j),100,0,-1)
+                        
+                #         for ev in resFitToy:
+                #             if 'unpol' in c: 
+                #                 vtoy = eval('ev.'+binName+'/'+unpolMult)
+                #             else :
+                #                 vtoy = eval('ev.'+binName)
+                #             vtoyPull = eval('(ev.'+binName+'-ev.'+binName+'_gen'+')/ev.'+binName+'_err')  
+                #             self.histos[suff+'FitACqt'+c+'toy'+'qt'+str(j)].Fill(vtoy)    
+                #             self.histos[suff+'FitACqt'+c+'toyPull'+'qt'+str(j)].Fill(vtoyPull)    
+                        
+                #         self.histos[suff+'FitACqt'+c+'toy'].SetBinContent(j,self.histos[suff+'FitACqt'+c+'toy'+'qt'+str(j)].GetMean())
+                #         self.histos[suff+'FitACqt'+c+'toy'].SetBinError(j,self.histos[suff+'FitACqt'+c+'toy'+'qt'+str(j)].GetStdDev())
+                #         self.histos[suff+'FitACqt'+c+'toyPull'].SetBinContent(j,self.histos[suff+'FitACqt'+c+'toyPull'+'qt'+str(j)].GetMean())
+                #         self.histos[suff+'FitACqt'+c+'toyPull'].SetBinError(j,self.histos[suff+'FitACqt'+c+'toyPull'+'qt'+str(j)].GetStdDev())
+                
+            
+                # for i in range(1, self.histos[suff+'FitAC'+c].GetNbinsX()+1): #loop over rapidity bins
+                #     binName = 'y_'+str(i)+'_helmeta_'+c
+                #     unpolMult = '(3./16./3.1415926535)/'+str(self.lumi)
+                #     print(c,i)
+                    
+                #     self.histos[suff+'FitACy'+c+'toy'+'y'+str(i)] = ROOT.TH1D(suff+'FitACy'+c+'toy'+'y'+str(i),suff+'FitACy'+c+'toy'+'y'+str(i),100,0,-1)
+                #     self.histos[suff+'FitACy'+c+'toyPull'+'y'+str(i)] = ROOT.TH1D(suff+'FitACy'+c+'toyPull'+'y'+str(i),suff+'FitACy'+c+'toyPull'+'y'+str(i),100,0,-1)
+                    
+                #     for ev in resFitToy:
+                #         if 'unpol' in c: 
+                #             vtoy = eval('ev.'+binName+'/'+unpolMult)
+                #         else :
+                #             vtoy = eval('ev.'+binName)
+                #         vtoyPull = eval('(ev.'+binName+'-ev.'+binName+'_gen'+')/ev.'+binName+'_err')  
+                #         self.histos[suff+'FitACy'+c+'toy'+'y'+str(i)].Fill(vtoy)    
+                #         self.histos[suff+'FitACy'+c+'toyPull'+'y'+str(i)].Fill(vtoyPull)    
+                    
+                #     self.histos[suff+'FitACy'+c+'toy'].SetBinContent(i,self.histos[suff+'FitACy'+c+'toy'+'y'+str(i)].GetMean())
+                #     self.histos[suff+'FitACy'+c+'toy'].SetBinError(i,self.histos[suff+'FitACy'+c+'toy'+'y'+str(i)].GetStdDev())
+                #     self.histos[suff+'FitACy'+c+'toyPull'].SetBinContent(i,self.histos[suff+'FitACy'+c+'toyPull'+'y'+str(i)].GetMean())
+                #     self.histos[suff+'FitACy'+c+'toyPull'].SetBinError(i,self.histos[suff+'FitACy'+c+'toyPull'+'y'+str(i)].GetStdDev())
+                
+                
+                    # toyLim = [-1,1]
+                    # toyPullLim = [-1,1]
+                    # for ev in resFitToy: #evaluate min e max
+                    #     if 'unpol' in c: 
+                    #         vtoy = eval('ev.'+binName+'/'+unpolMult)
+                    #     else :
+                    #         vtoy = eval('ev.'+binName)
+                    #     vtoyPull = eval('(ev.'+binName+'-ev.'+binName+'_gen'+')/ev.'+binName+'_err')     
+                    #     if vtoy<toyLim[0] : toyLim[0] = vtoy
+                    #     if vtoy>toyLim[1] : toyLim[1] = vtoy
+                    #     if vtoyPull<toyPullLim[0] : toyPullLim[0] = vtoy
+                    #     if vtoyPull>toyPullLim[1] : toyPullLim[1] = vtoy
+                    # toyLim[0] = 1.1*toyLim[0]
+                    # toyLim[1] = 1.1*toyLim[1]
+                    # toyLim[0] = 1.1*toyPullLim[0]
+                    # toyPullLim[1] = 1.1*toyPullLim[1]
+    
+    def varBinWidth_modifier(self) :
+        for k,histo in self.histos.items() :
+            
+            if 'A0' in k or 'A1' in k  or 'A2' in k or 'A3' in k or 'A4' in k: continue 
+            # if not 'unpol' in k and not 'mapTot' in k : continue #only unpol and maptot are plotted as absolute value
+            # if not self.helXsec and (not 'unpol' in k and not 'mapTot' in k) : continue
+            if 'corrMat' in k or 'covMat' in k: continue
+            if 'impact' in k : continue 
+            if 'NuiConstr' in k : continue
+            if 'mass' in k : continue
+            
+            if not (type(histo)==ROOT.TH1F or type(histo)==ROOT.TH1D or type(histo)==ROOT.TH2F or type(histo)==ROOT.TH2D) : continue
+            # print(k)
+            
+            #the following line rebin only if variable bin width is present in the histogram
+            #########################################################################################################################
+            # if 'unpol' in k :
+            # if not 'MC' in k :
+            #     maxBinX = histo.GetNbinsX()+1
+            #     maxBinY = histo.GetNbinsY()+1
+            # else : #this is needed because these histograms extend to qt=200, Y=6
+            #     if 'MCqt' in k : 
+            #         maxBinX = len(self.qtArr)
+            #     else : 
+            #         maxBinX = len(self.yArr)
+            #     maxBinY = len(self.qtArr)
+
+            # # if 'MCqt' in k : 
+            # #     maxBinX = len(self.qtArr)
+            # # else : 
+            # #     maxBinX = len(self.yArr)
+            # # maxBinY = len(self.qtArr)
+            
+            
+            # if type(histo)==ROOT.TH1F or type(histo)==ROOT.TH1D :
+            #     varWidth_X = False
+            #     for i in range(1, maxBinX-1) :
+            #         for j in range(i+1,maxBinX) :
+            #             if abs(histo.GetXaxis().GetBinWidth(j)-histo.GetXaxis().GetBinWidth(i))>0.0001:
+            #                 varWidth_X = True
+            #                 break
+            #     if varWidth_X :
+            #         # print("1D, k=", k)
+            #         for i in range(1, maxBinX):
+            #             # print("pre", histo.GetBinContent(i))
+            #             histo.SetBinContent(i, histo.GetBinContent(i)/histo.GetXaxis().GetBinWidth(i))
+            #             histo.SetBinError(i, histo.GetBinError(i)/histo.GetXaxis().GetBinWidth(i))
+            #             # print("post", histo.GetBinContent(i),histo.GetXaxis().GetBinWidth(i))
+                        
+            # elif type(histo)==ROOT.TH2F or type(histo)==ROOT.TH2D :
+            #     varWidth_X = False
+            #     for i in range(1, maxBinX-1) :
+            #         for j in range(i+1,maxBinX) :
+            #             if abs(histo.GetXaxis().GetBinWidth(j)-histo.GetXaxis().GetBinWidth(i))>0.0001:
+            #                 varWidth_X = True
+            #                 break
+            #     if varWidth_X :
+            #         # print("2Dx, k=", k)
+            #         for y in range(1, maxBinY) :
+            #             for i in range(1, maxBinX):
+            #                 # print("pre", histo.GetBinContent(i,y))
+            #                 histo.SetBinContent(i,y, histo.GetBinContent(i,y)/histo.GetXaxis().GetBinWidth(i))
+            #                 histo.SetBinError(i,y, histo.GetBinError(i,y)/histo.GetXaxis().GetBinWidth(i))
+            #                 # print("post", histo.GetBinContent(i,y), histo.GetXaxis().GetBinWidth(i))
+            #     varWidth_Y = False
+            #     for i in range(1, maxBinY-1) :
+            #         for j in range(i+1,maxBinY) :
+            #             if abs(histo.GetYaxis().GetBinWidth(j)-histo.GetYaxis().GetBinWidth(i))>0.0001:
+            #                 varWidth_Y = True
+            #                 break
+            #     if varWidth_Y :
+            #         # print("2Dy, k=", k)
+            #         for j in range(1, maxBinY) :
+            #             for x in range(1, maxBinX):
+            #                 # print("pre", histo.GetBinContent(x,j))
+            #                 histo.SetBinContent(x,j, histo.GetBinContent(x,j)/histo.GetYaxis().GetBinWidth(j))
+            #                 histo.SetBinError(x,j, histo.GetBinError(x,j)/histo.GetYaxis().GetBinWidth(j))
+            #                 # print("post", histo.GetBinContent(x,j), histo.GetYaxis().GetBinWidth(j))
+            ####################################################################################################################
+            
+            #this rebin always
+            if type(histo)==ROOT.TH1F or type(histo)==ROOT.TH1D :
+                for i in range(1, histo.GetNbinsX()+1):
+                    histo.SetBinContent(i, histo.GetBinContent(i)/histo.GetXaxis().GetBinWidth(i))
+                    histo.SetBinError(i, histo.GetBinError(i)/histo.GetXaxis().GetBinWidth(i))    
+            elif type(histo)==ROOT.TH2F or type(histo)==ROOT.TH2D :
+                for i in range(1, histo.GetNbinsX()+1):
+                    for j in range(1,  histo.GetNbinsY()+1):
+                        histo.SetBinContent(i,j, histo.GetBinContent(i,j)/histo.GetXaxis().GetBinWidth(i)/histo.GetYaxis().GetBinWidth(j))
+                        histo.SetBinError(i,j, histo.GetBinError(i,j)/histo.GetXaxis().GetBinWidth(i)/histo.GetYaxis().GetBinWidth(j)) 
+                
+                 
+                
+                
+            
+    def AngCoeffPlots(self,inputFile, fitFile, uncorrelate,suff,aposteriori,toy,impact) :
         
         FitFile = ROOT.TFile.Open(fitFile)
         inFile = ROOT.TFile.Open(inputFile)
-        if aposteriori!='' :
-            apoFile = ROOT.TFile.Open(aposteriori)
-            self.getHistos(inFile=inFile, FitFile=FitFile, uncorrelate=uncorrelate,suff=suff,apoFile=apoFile)
-        else :
-            self.getHistos(inFile=inFile, FitFile=FitFile, uncorrelate=uncorrelate,suff=suff)
+        # if aposteriori!='' :
+        #     apoFile = ROOT.TFile.Open(aposteriori)
+        #     self.getHistos(inFile=inFile, FitFile=FitFile, uncorrelate=uncorrelate,suff=suff,apoFile=apoFile)
+        # else :
+        #     self.getHistos(inFile=inFile, FitFile=FitFile, uncorrelate=uncorrelate,suff=suff)
         # print "WARNING: syst.band done with the fit central value (ok if asimov only)"
         
+        if aposteriori!='' :
+            apoFile = ROOT.TFile.Open(aposteriori) 
+        else :
+            apoFile = ''
+        if toy!='' :
+            toyFile = ROOT.TFile.Open(toy)
+        else :
+            toyFile = ''
+        self.getHistos(inFile=inFile, FitFile=FitFile, uncorrelate=uncorrelate,suff=suff,apoFile=apoFile,toyFile=toyFile,impact=impact)
+        self.varBinWidth_modifier()
+        
+
+
+        
+            
         # ------------- build the bands for the angular coefficient ---------------------------# 
         for c in self.coeffDict:
-            # self.histos[suff+'FitBand'+c] = self.histos[suff+'FitAC'+c].Clone('FitBand'+c) #from fit (good in case of asimov)
-            # self.histos[suff+'FitBandPDF'+c] = self.histos[suff+'FitAC'+c].Clone('FitBandPDF'+c) #from fit (good in case of asimov) NB: NB: not used in the plots now
-            # self.histos[suff+'FitBandScale'+c] = self.histos[suff+'FitAC'+c].Clone('FitBandScale'+c) #from fit (good in case of asimov) NB: not used in the plots now
-            
-            # self.histos[suff+'FitBandy'+c] = self.histos[suff+'FitACy'+c].Clone('FitBandy'+c)
-            # self.histos[suff+'FitBandPDFy'+c] = self.histos[suff+'FitACy'+c].Clone('FitBandPDFy'+c)
-            # self.histos[suff+'FitBandScaley'+c] = self.histos[suff+'FitACy'+c].Clone('FitBandScaley'+c)
-            
-            # self.histos[suff+'FitBandqt'+c] = self.histos[suff+'FitACqt'+c].Clone('FitBandqt'+c)
-            # self.histos[suff+'FitBandPDFqt'+c] = self.histos[suff+'FitACqt'+c].Clone('FitBandPDFqt'+c)
-            # self.histos[suff+'FitBandScaleqt'+c] = self.histos[suff+'FitACqt'+c].Clone('FitBandScaleqt'+c)
-            if not "unpol" in c:    
-                self.histos[suff+'FitBand'+c] = self.histos[suff+'MC'+c].Clone('FitBand'+c)
-                self.histos[suff+'FitBandPDF'+c] = self.histos[suff+'MC'+c].Clone('FitBandPDF'+c) 
-                self.histos[suff+'FitBandScale'+c] = self.histos[suff+'MC'+c].Clone('FitBandScale'+c) 
-                
-                self.histos[suff+'FitBandy'+c] = self.histos[suff+'MC'+'y'+c].Clone('FitBandy'+c)
-                self.histos[suff+'FitBandPDFy'+c] = self.histos[suff+'MC'+'y'+c].Clone('FitBandPDFy'+c)
-                self.histos[suff+'FitBandScaley'+c] = self.histos[suff+'MC'+'y'+c].Clone('FitBandScaley'+c)
-                
-                self.histos[suff+'FitBandqt'+c] = self.histos[suff+'MC'+'qt'+c].Clone('FitBandqt'+c)
-                self.histos[suff+'FitBandPDFqt'+c] = self.histos[suff+'MC'+'qt'+c].Clone('FitBandPDFqt'+c)
-                self.histos[suff+'FitBandScaleqt'+c] = self.histos[suff+'MC'+'qt'+c].Clone('FitBandScaleqt'+c)
-            else :
-                self.histos[suff+'FitBand'+c] = self.histos[suff+'MC'+'mapTot'].Clone('FitBand'+c)
-                self.histos[suff+'FitBandPDF'+c] = self.histos[suff+'MC'+'mapTot'].Clone('FitBandPDF'+c) 
-                self.histos[suff+'FitBandScale'+c] = self.histos[suff+'MC'+'mapTot'].Clone('FitBandScale'+c) 
-                
-                self.histos[suff+'FitBandy'+c] = self.histos[suff+'MC'+'y'+'mapTot'].Clone('FitBandy'+c)
-                self.histos[suff+'FitBandPDFy'+c] = self.histos[suff+'MC'+'y'+'mapTot'].Clone('FitBandPDFy'+c)
-                self.histos[suff+'FitBandScaley'+c] = self.histos[suff+'MC'+'y'+'mapTot'].Clone('FitBandScaley'+c)
-                
-                self.histos[suff+'FitBandqt'+c] = self.histos[suff+'MC'+'qt'+'mapTot'].Clone('FitBandqt'+c)
-                self.histos[suff+'FitBandPDFqt'+c] = self.histos[suff+'MC'+'qt'+'mapTot'].Clone('FitBandPDFqt'+c)
-                self.histos[suff+'FitBandScaleqt'+c] = self.histos[suff+'MC'+'qt'+'mapTot'].Clone('FitBandScaleqt'+c)
-                self.histos[suff+'FitBand'+c].Scale(1/self.lumi)
-                self.histos[suff+'FitBandPDF'+c].Scale(1/self.lumi)
-                self.histos[suff+'FitBandScale'+c].Scale(1/self.lumi)
-                self.histos[suff+'FitBandy'+c].Scale(1/self.lumi)
-                self.histos[suff+'FitBandPDFy'+c].Scale(1/self.lumi)
-                self.histos[suff+'FitBandScaley'+c].Scale(1/self.lumi)
-                self.histos[suff+'FitBandqt'+c].Scale(1/self.lumi)
-                self.histos[suff+'FitBandPDFqt'+c].Scale(1/self.lumi)
-                self.histos[suff+'FitBandScaleqt'+c].Scale(1/self.lumi)
-
+            for cat in self.category : 
+                if c!='UL' and c!='unpolarizedxsec' : 
+                    self.histos[suff+'FitBand'+cat+c] = self.histos[suff+'MC'+cat+c].Clone('FitBand'+cat+c)
+                    self.histos[suff+'FitBandPDF'+cat+c] = self.histos[suff+'MC'+cat+c].Clone('FitBandPDF'+cat+c) 
+                    self.histos[suff+'FitBandScale'+cat+c] = self.histos[suff+'MC'+cat+c].Clone('FitBandScale'+cat+c) 
+                else :
+                    self.histos[suff+'FitBand'+cat+c] = self.histos[suff+'MC'+cat+'mapTot'].Clone('FitBand'+cat+c)
+                    self.histos[suff+'FitBandPDF'+cat+c] = self.histos[suff+'MC'+cat+'mapTot'].Clone('FitBandPDF'+cat+c) 
+                    self.histos[suff+'FitBandScale'+cat+c] = self.histos[suff+'MC'+cat+'mapTot'].Clone('FitBandScale'+cat+c) 
 
             for i in range(1, self.histos[suff+'FitAC'+c].GetNbinsX()+1): #loop over rapidity bins
                 for j in range(1, self.histos[suff+'FitAC'+c].GetNbinsY()+1): #loop over pt bins
-                
-                    #debug unclousure
-                    if abs(self.histos[suff+'FitBand'+c].GetBinContent(i,j)-self.histos[suff+'FitAC'+c].GetBinContent(i,j))/self.histos[suff+'FitBand'+c].GetBinContent(i,j)>0.0000001 :
-                            print "not clousure of", c, i, j , ",   (fitted-mc)/fitted=", (self.histos[suff+'FitBand'+c].GetBinContent(i,j)-self.histos[suff+'FitAC'+c].GetBinContent(i,j))/self.histos[suff+'FitAC'+c].GetBinContent(i,j)
+
+                    #unclosure check
+                    if abs(self.histos[suff+'FitBand'+c].GetBinContent(i,j))>0.0000001 :
+                        if abs((self.histos[suff+'FitBand'+c].GetBinContent(i,j)-self.histos[suff+'FitAC'+c].GetBinContent(i,j))/self.histos[suff+'FitBand'+c].GetBinContent(i,j))>0.0000001 :
+                                print("not closure of", c, i, j , ",   (mc-fit)/mc=", (self.histos[suff+'FitBand'+c].GetBinContent(i,j)-self.histos[suff+'FitAC'+c].GetBinContent(i,j))/self.histos[suff+'FitBand'+c].GetBinContent(i,j), 'fit/mc=', self.histos[suff+'FitAC'+c].GetBinContent(i,j)/self.histos[suff+'FitBand'+c].GetBinContent(i,j))
                     if i==1 :
-                        if abs(self.histos[suff+'FitBandqt'+c].GetBinContent(j)-self.histos[suff+'FitACqt'+c].GetBinContent(j))/self.histos[suff+'FitBandqt'+c].GetBinContent(j)>0.0000001 :
-                            print "not clousure of", c, j , "(qT),   (fitted-mc)/fitted=", (self.histos[suff+'FitBandqt'+c].GetBinContent(j)-self.histos[suff+'FitACqt'+c].GetBinContent(j))/self.histos[suff+'FitBandqt'+c].GetBinContent(j)
+                        if abs(self.histos[suff+'FitBandqt'+c].GetBinContent(j))>0.0000001 :
+                            if abs((self.histos[suff+'FitBandqt'+c].GetBinContent(j)-self.histos[suff+'FitACqt'+c].GetBinContent(j))/self.histos[suff+'FitBandqt'+c].GetBinContent(j))>0.0000001 :
+                                print("not closure of", c, j , "(qT),   (mc-fit)/mc=", (self.histos[suff+'FitBandqt'+c].GetBinContent(j)-self.histos[suff+'FitACqt'+c].GetBinContent(j))/self.histos[suff+'FitBandqt'+c].GetBinContent(j), 'fit/mc=', self.histos[suff+'FitACqt'+c].GetBinContent(j)/self.histos[suff+'FitBandqt'+c].GetBinContent(j))
                     if j==1 : 
-                        if abs(self.histos[suff+'FitBandy'+c].GetBinContent(i)-self.histos[suff+'FitACy'+c].GetBinContent(i))/self.histos[suff+'FitBandqt'+c].GetBinContent(i)>0.0000001 :
-                            print "not clousure of", c, i , "(y),   (fitted-mc)/fitted=", (self.histos[suff+'FitBandy'+c].GetBinContent(i)-self.histos[suff+'FitACy'+c].GetBinContent(i))/self.histos[suff+'FitBandy'+c].GetBinContent(i)
+                        if abs(self.histos[suff+'FitBandy'+c].GetBinContent(i))>0.0000001 :
+                            if abs((self.histos[suff+'FitBandy'+c].GetBinContent(i)-self.histos[suff+'FitACy'+c].GetBinContent(i))/self.histos[suff+'FitBandy'+c].GetBinContent(i))>0.0000001 :
+                                print("not closure of", c, i , "(y),   (mc-fit)/mc=", (self.histos[suff+'FitBandy'+c].GetBinContent(i)-self.histos[suff+'FitACy'+c].GetBinContent(i))/self.histos[suff+'FitBandy'+c].GetBinContent(i), 'fit/mc=', self.histos[suff+'FitACy'+c].GetBinContent(i)/self.histos[suff+'FitBandy'+c].GetBinContent(i))
                     
                     errPDF = 0.
                     if i==1 : errPDFqt = 0.
                     if j==1 : errPDFy = 0.
                     MCVal = self.histos[suff+'FitBand'+c].GetBinContent(i,j) #like MC, but already lumi scaled
-                    # if 'unpol' in c:
-                    #     MCVal=MCVal/self.lumi
                     if i==1 : MCValqt = self.histos[suff+'FitBandqt'+c].GetBinContent(j)
                     if j==1 : MCValy = self.histos[suff+'FitBandy'+c].GetBinContent(i)
                     
                     for sName in self.systDict['_LHEPdfWeight']:
-                        if 'unpol' in c:
-                            systVal=self.histos[suff+'MC'+sName+'mapTot'].GetBinContent(i,j)/self.lumi
-                            if i==1 : systValqt=self.histos[suff+'MCqt'+sName+'mapTot'].GetBinContent(j)/self.lumi
-                            if j==1 : systValy=self.histos[suff+'MCy'+sName+'mapTot'].GetBinContent(i)/self.lumi
-                        else:
-                            systVal = self.histos[suff+'MC'+sName+c].GetBinContent(i,j)
-                            if i==1 : systValqt = self.histos[suff+'MCqt'+sName+c].GetBinContent(j)
-                            if j==1 : systValy = self.histos[suff+'MCy'+sName+c].GetBinContent(i)
+                        # if 'unpol' in c:
+                        #     systVal=self.histos[suff+'MC'+sName+'mapTot'].GetBinContent(i,j)
+                        #     if i==1 : systValqt=self.histos[suff+'MCqt'+sName+'mapTot'].GetBinContent(j)
+                        #     if j==1 : systValy=self.histos[suff+'MCy'+sName+'mapTot'].GetBinContent(i)
+                        # else:
+                        systVal = self.histos[suff+'MC'+sName+c].GetBinContent(i,j)
+                        if i==1 : systValqt = self.histos[suff+'MCqt'+sName+c].GetBinContent(j)
+                        if j==1 : systValy = self.histos[suff+'MCy'+sName+c].GetBinContent(i)
                         errPDF+= (MCVal - systVal)**2  
                         if i==1 : errPDFqt+= (MCValqt - systValqt)**2  
-                        if j==1 : errPDFy+= (MCValy - systValy)**2  
+                        if j==1 : errPDFy+= (MCValy - systValy)**2                  
                     self.histos[suff+'FitBandPDF'+c].SetBinError(i,j,math.sqrt(errPDF)) 
                     if i==1 : self.histos[suff+'FitBandPDFqt'+c].SetBinError(j,math.sqrt(errPDFqt)) 
                     if j==1 : self.histos[suff+'FitBandPDFy'+c].SetBinError(i,math.sqrt(errPDFy)) 
@@ -337,23 +813,23 @@ class plotter :
                     if j==1 : errScaley = 0.
                     for sName in sListMod:
                         for sNameDen in sListMod :
-                            if sNameDen!=sName and not UNCORR : continue
+                            if sNameDen!=sName and not (UNCORR and not self.helXsec): continue
                             if sNameDen!=sName and 'unpol' in c : continue
                             if sName=='_nom' and sNameDen=='_nom' : continue
                             if ([sName,sNameDen] in self.vetoScaleList) : continue  #extremal cases
-                            if 'unpol' in c:
-                                systVal=self.histos[suff+'MC'+sName+'mapTot'].GetBinContent(i,j)/self.lumi
-                                if i==1 : systValqt =self.histos[suff+'MCqt'+sName+'mapTot'].GetBinContent(j)/self.lumi
-                                if j==1 : systValy =self.histos[suff+'MCy'+sName+'mapTot'].GetBinContent(i)/self.lumi
-                            else:
-                                if UNCORR :
-                                    systVal = self.histos[suff+'MC'+sName+sNameDen+c].GetBinContent(i,j)
-                                    if i==1 : systValqt = self.histos[suff+'MCqt'+sName+sNameDen+c].GetBinContent(j)
-                                    if j==1 : systValy = self.histos[suff+'MCy'+sName+sNameDen+c].GetBinContent(i)
-                                else : 
-                                    systVal = self.histos[suff+'MC'+sName+c].GetBinContent(i,j)
-                                    if i==1 : systValqt = self.histos[suff+'MCqt'+sName+c].GetBinContent(j)
-                                    if j==1 : systValy = self.histos[suff+'MCy'+sName+c].GetBinContent(i)
+                            # if 'unpol' in c:
+                            #     systVal=self.histos[suff+'MC'+sName+'mapTot'].GetBinContent(i,j)
+                            #     if i==1 : systValqt =self.histos[suff+'MCqt'+sName+'mapTot'].GetBinContent(j)
+                            #     if j==1 : systValy =self.histos[suff+'MCy'+sName+'mapTot'].GetBinContent(i)
+                            # else:
+                            if UNCORR :
+                                systVal = self.histos[suff+'MC'+sName+sNameDen+c].GetBinContent(i,j)
+                                if i==1 : systValqt = self.histos[suff+'MCqt'+sName+sNameDen+c].GetBinContent(j)
+                                if j==1 : systValy = self.histos[suff+'MCy'+sName+sNameDen+c].GetBinContent(i)
+                            else : 
+                                systVal = self.histos[suff+'MC'+sName+c].GetBinContent(i,j)
+                                if i==1 : systValqt = self.histos[suff+'MCqt'+sName+c].GetBinContent(j)
+                                if j==1 : systValy = self.histos[suff+'MCy'+sName+c].GetBinContent(i)
                             err_temp= (MCVal - systVal)**2
                             if i==1 : err_tempqt= (MCValqt - systValqt)**2
                             if j==1 : err_tempy= (MCValy - systValy)**2
@@ -382,6 +858,9 @@ class plotter :
             for i in range(1, self.histos[suff+'FitAC'+c].GetNbinsX()+1): 
                 for j in range(1, self.histos[suff+'FitAC'+c].GetNbinsY()+1):
                     valCentral = self.histos[suff+'FitAC'+c].GetBinContent(i,j)
+                    if valCentral==0.0 : 
+                        valCentral =1
+                        print("WARNING: null fit prediction")
                     self.histos[suff+'FitErr'+c].SetBinContent(i,j, self.histos[suff+'FitErr'+c].GetBinError(i,j)/abs(valCentral))
                     self.histos[suff+'FitErrPDF'+c].SetBinContent(i,j,self.histos[suff+'FitErrPDF'+c].GetBinError(i,j)/abs(valCentral))
                     self.histos[suff+'FitErrScale'+c].SetBinContent(i,j,self.histos[suff+'FitErrScale'+c].GetBinError(i,j)/abs(valCentral))
@@ -397,6 +876,9 @@ class plotter :
             self.histos[suff+'FitErrScaley'+c] = self.histos[suff+'FitBandScaley'+c].Clone('FitErrScaley'+c) 
             for i in range(1, self.histos[suff+'FitACy'+c].GetNbinsX()+1): 
                 valCentral = self.histos[suff+'FitACy'+c].GetBinContent(i)
+                if valCentral==0.0 : 
+                        valCentral =1
+                        print("WARNING: null fit prediction")
                 self.histos[suff+'FitErry'+c].SetBinContent(i, self.histos[suff+'FitErry'+c].GetBinError(i)/abs(valCentral))
                 self.histos[suff+'FitErrPDFy'+c].SetBinContent(i,self.histos[suff+'FitErrPDFy'+c].GetBinError(i)/abs(valCentral))
                 self.histos[suff+'FitErrScaley'+c].SetBinContent(i,self.histos[suff+'FitErrScaley'+c].GetBinError(i)/abs(valCentral))
@@ -411,6 +893,9 @@ class plotter :
             self.histos[suff+'FitErrScaleqt'+c] = self.histos[suff+'FitBandScaleqt'+c].Clone('FitErrScaleqt'+c) 
             for i in range(1, self.histos[suff+'FitAC'+c].GetNbinsY()+1):
                 valCentral = self.histos[suff+'FitACqt'+c].GetBinContent(i)
+                if valCentral==0.0 : 
+                        valCentral =1
+                        print("WARNING: null fit prediction")
                 self.histos[suff+'FitErrqt'+c].SetBinContent(i, self.histos[suff+'FitErrqt'+c].GetBinError(i)/abs(valCentral))
                 self.histos[suff+'FitErrPDFqt'+c].SetBinContent(i,self.histos[suff+'FitErrPDFqt'+c].GetBinError(i)/abs(valCentral))
                 self.histos[suff+'FitErrScaleqt'+c].SetBinContent(i,self.histos[suff+'FitErrScaleqt'+c].GetBinError(i)/abs(valCentral))
@@ -429,11 +914,13 @@ class plotter :
                 self.histos[suff+'FitRatioScale'+d+c] = self.histos[suff+'FitBandScale'+c].Clone('FitRatioScale'+c) 
             for i in range(1, self.histos[suff+'FitAC'+c].GetNbinsX()+1): 
                 for j in range(1, self.histos[suff+'FitAC'+c].GetNbinsY()+1):
-                    if not "unpol" in c:   
-                        valCentral = self.histos[suff+'MC'+c].GetBinContent(i,j)
-                    else :
-                        valCentral = self.histos[suff+'MC'+'mapTot'].GetBinContent(i,j)
-                        valCentral= valCentral/self.lumi
+                    # if not "unpol" in c:   
+                    valCentral = self.histos[suff+'MC'+c].GetBinContent(i,j)
+                    if valCentral==0.0 : 
+                        valCentral =1
+                        print("WARNING: null fit prediction")
+                    # else :
+                        # valCentral = self.histos[suff+'MC'+'mapTot'].GetBinContent(i,j)
                     self.histos[suff+'FitRatioAC'+c].SetBinContent(i,j, self.histos[suff+'FitRatioAC'+c].GetBinContent(i,j)/valCentral)
                     self.histos[suff+'FitRatio'+c].SetBinContent(i,j, self.histos[suff+'FitRatio'+c].GetBinContent(i,j)/valCentral)
                     self.histos[suff+'FitRatioPDF'+c].SetBinContent(i,j,self.histos[suff+'FitRatioPDF'+c].GetBinContent(i,j)/valCentral)
@@ -460,11 +947,13 @@ class plotter :
                 self.histos[suff+'FitRatioPDF'+'y'+d+c] = self.histos[suff+'FitBandPDF'+'y'+c].Clone('FitRatioPDF'+c) 
                 self.histos[suff+'FitRatioScale'+'y'+d+c] = self.histos[suff+'FitBandScale'+'y'+c].Clone('FitRatioScale'+c) 
             for i in range(1, self.histos[suff+'FitAC'+c].GetNbinsX()+1): 
-                if not "unpol" in c:   
-                    valCentral = self.histos[suff+'MC'+'y'+c].GetBinContent(i)
-                else :
-                    valCentral = self.histos[suff+'MC'+'y'+'mapTot'].GetBinContent(i)
-                    valCentral= valCentral/self.lumi
+                # if not "unpol" in c:   
+                valCentral = self.histos[suff+'MC'+'y'+c].GetBinContent(i)
+                if valCentral==0.0 : 
+                        valCentral =1
+                        print("WARNING: null fit prediction")
+                # else :
+                    # valCentral = self.histos[suff+'MC'+'y'+'mapTot'].GetBinContent(i)
                 self.histos[suff+'FitRatioAC'+'y'+c].SetBinContent(i, self.histos[suff+'FitRatioAC'+'y'+c].GetBinContent(i)/valCentral)
                 self.histos[suff+'FitRatio'+'y'+c].SetBinContent(i, self.histos[suff+'FitRatio'+'y'+c].GetBinContent(i)/valCentral)
                 self.histos[suff+'FitRatioPDF'+'y'+c].SetBinContent(i,self.histos[suff+'FitRatioPDF'+'y'+c].GetBinContent(i)/valCentral)
@@ -492,11 +981,13 @@ class plotter :
                 self.histos[suff+'FitRatioPDF'+'qt'+d+c] = self.histos[suff+'FitBandPDF'+'qt'+c].Clone('FitRatioPDF'+c) 
                 self.histos[suff+'FitRatioScale'+'qt'+d+c] = self.histos[suff+'FitBandScale'+'qt'+c].Clone('FitRatioScale'+c) 
             for i in range(1, self.histos[suff+'FitAC'+c].GetNbinsY()+1): 
-                if not "unpol" in c:   
-                    valCentral = self.histos[suff+'MC'+'qt'+c].GetBinContent(i)
-                else :
-                    valCentral = self.histos[suff+'MC'+'qt'+'mapTot'].GetBinContent(i)
-                    valCentral= valCentral/self.lumi
+                # if not "unpol" in c:   
+                valCentral = self.histos[suff+'MC'+'qt'+c].GetBinContent(i)
+                if valCentral==0.0 : 
+                    valCentral =1
+                    print("WARNING: null fit prediction")
+                # else :
+                    # valCentral = self.histos[suff+'MC'+'qt'+'mapTot'].GetBinContent(i)
                 self.histos[suff+'FitRatioAC'+'qt'+c].SetBinContent(i, self.histos[suff+'FitRatioAC'+'qt'+c].GetBinContent(i)/valCentral)
                 self.histos[suff+'FitRatio'+'qt'+c].SetBinContent(i, self.histos[suff+'FitRatio'+'qt'+c].GetBinContent(i)/valCentral)
                 self.histos[suff+'FitRatioPDF'+'qt'+c].SetBinContent(i,self.histos[suff+'FitRatioPDF'+'qt'+c].GetBinContent(i)/valCentral)
@@ -526,14 +1017,23 @@ class plotter :
                         for y2 in self.yArr[:-1] : 
                             indexUNR_X = self.yArr.index(float(y1))*(len(self.qtArr)-1)+self.qtArr.index(float(q1))
                             indexUNR_Y = self.yArr.index(float(y2))*(len(self.qtArr)-1)+self.qtArr.index(float(q2))
-                            nameX = 'y_'+str(self.yArr.index(y1)+1)+'_qt_'+str(self.qtArr.index(q1)+1)+'_'+c
-                            nameY = 'y_'+str(self.yArr.index(y2)+1)+'_qt_'+str(self.qtArr.index(q2)+1)+'_'+c
-                            corrVal = self.histos[suff+'corrMat'].GetBinContent(self.histos[suff+'corrMat'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'].GetYaxis().FindBin(nameY))
-                            covVal = self.histos[suff+'covMat'].GetBinContent(self.histos[suff+'corrMat'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'].GetYaxis().FindBin(nameY))
-                            self.histos[suff+'corrMat'+c].SetBinContent(indexUNR_X,indexUNR_Y,corrVal)
-                            self.histos[suff+'covMat'+c].SetBinContent(indexUNR_X,indexUNR_Y,covVal)
+                            if not self.helXsec :
+                                nameX = 'y_'+str(self.yArr.index(y1)+1)+'_qt_'+str(self.qtArr.index(q1)+1)+'_'+c
+                                nameY = 'y_'+str(self.yArr.index(y2)+1)+'_qt_'+str(self.qtArr.index(q2)+1)+'_'+c
+                            else :
+                                nameX = 'helXsecs'+c+'_y_'+str(self.yArr.index(y1)+1)+'_qt_'+str(self.qtArr.index(q1)+1)+'_pmaskedexp'
+                                nameY = 'helXsecs'+c+'_y_'+str(self.yArr.index(y2)+1)+'_qt_'+str(self.qtArr.index(q2)+1)+'_pmaskedexp'
+                            try :
+                                corrVal = self.histos[suff+'corrMat'].GetBinContent(self.histos[suff+'corrMat'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'].GetYaxis().FindBin(nameY))
+                                covVal = self.histos[suff+'covMat'].GetBinContent(self.histos[suff+'corrMat'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'].GetYaxis().FindBin(nameY))
+                            except :
+                                print("WARNING: missing matrices")
+                                corrVal =0
+                                covVal= 0
+                            self.histos[suff+'corrMat'+c].SetBinContent(indexUNR_X+1,indexUNR_Y+1,corrVal)
+                            self.histos[suff+'covMat'+c].SetBinContent(indexUNR_X+1,indexUNR_Y+1,covVal)
                             
-        for i in range(1, self.histos[suff+'FitACA0'].GetNbinsX()+1): #loop over y bins
+        for i in range(1, self.histos[suff+'FitAC'+self.coeffList[0]].GetNbinsX()+1): #loop over y bins
             self.histos[suff+'corrMat'+'y'+str(i)] = ROOT.TH2D(suff+'corrMat_y{c}'.format(c=i), suff+'corrMat_y{c}'.format(c=i), len(self.unrolledAQt)-1, array('f',self.unrolledAQt), len(self.unrolledAQt)-1, array('f',self.unrolledAQt))
             self.histos[suff+'covMat'+'y'+str(i)] = ROOT.TH2D(suff+'covMat_y{c}'.format(c=i), suff+'covMat_y{c}'.format(c=i), len(self.unrolledAQt)-1, array('f',self.unrolledAQt), len(self.unrolledAQt)-1, array('f',self.unrolledAQt))
             for q1 in self.qtArr[:-1]: 
@@ -542,14 +1042,23 @@ class plotter :
                         for c2 in self.coeffArr[:-1] : 
                             indexUNR_X = self.coeffArr.index(float(c1))*(len(self.qtArr)-1)+self.qtArr.index(float(q1))
                             indexUNR_Y = self.coeffArr.index(float(c2))*(len(self.qtArr)-1)+self.qtArr.index(float(q2))
-                            nameX = 'y_'+str(i)+'_qt_'+str(self.qtArr.index(q1)+1)+'_'+self.coeffList[self.coeffArr.index(c1)]
-                            nameY = 'y_'+str(i)+'_qt_'+str(self.qtArr.index(q2)+1)+'_'+self.coeffList[self.coeffArr.index(c2)]
-                            corrVal = self.histos[suff+'corrMat'].GetBinContent(self.histos[suff+'corrMat'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'].GetYaxis().FindBin(nameY))
-                            covVal = self.histos[suff+'covMat'].GetBinContent(self.histos[suff+'corrMat'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'].GetYaxis().FindBin(nameY))
-                            self.histos[suff+'corrMat'+'y'+str(i)].SetBinContent(indexUNR_X,indexUNR_Y,corrVal)
-                            self.histos[suff+'covMat'+'y'+str(i)].SetBinContent(indexUNR_X,indexUNR_Y,covVal)
+                            if not self.helXsec : 
+                                nameX = 'y_'+str(i)+'_qt_'+str(self.qtArr.index(q1)+1)+'_'+self.coeffList[self.coeffArr.index(c1)]
+                                nameY = 'y_'+str(i)+'_qt_'+str(self.qtArr.index(q2)+1)+'_'+self.coeffList[self.coeffArr.index(c2)]
+                            else :
+                                nameX = 'helXsecs'+self.coeffList[self.coeffArr.index(c1)]+'_y_'+str(i)+'_qt_'+str(self.qtArr.index(q1)+1)+'_pmaskedexp'
+                                nameY = 'helXsecs'+self.coeffList[self.coeffArr.index(c2)]+'_y_'+str(i)+'_qt_'+str(self.qtArr.index(q2)+1)+'_pmaskedexp'
+                            try :
+                                corrVal = self.histos[suff+'corrMat'].GetBinContent(self.histos[suff+'corrMat'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'].GetYaxis().FindBin(nameY))
+                                covVal = self.histos[suff+'covMat'].GetBinContent(self.histos[suff+'corrMat'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'].GetYaxis().FindBin(nameY))
+                            except :
+                                print("WARNING: missing matrices")
+                                corrVal =0
+                                covVal= 0
+                            self.histos[suff+'corrMat'+'y'+str(i)].SetBinContent(indexUNR_X+1,indexUNR_Y+1,corrVal)
+                            self.histos[suff+'covMat'+'y'+str(i)].SetBinContent(indexUNR_X+1,indexUNR_Y+1,covVal)
         
-        for j in range(1, self.histos[suff+'FitACA0'].GetNbinsY()+1): #loop over qt bins
+        for j in range(1, self.histos[suff+'FitAC'+self.coeffList[0]].GetNbinsY()+1): #loop over qt bins
             self.histos[suff+'corrMat'+'qt'+str(j)] = ROOT.TH2D(suff+'corrMat_qt{c}'.format(c=j), suff+'corrMat_qt{c}'.format(c=j), len(self.unrolledAY)-1, array('f',self.unrolledAY), len(self.unrolledAY)-1, array('f',self.unrolledAY))
             self.histos[suff+'covMat'+'qt'+str(j)] = ROOT.TH2D(suff+'covMat_qt{c}'.format(c=j), suff+'covMat_qt{c}'.format(c=j), len(self.unrolledAY)-1, array('f',self.unrolledAY), len(self.unrolledAY)-1, array('f',self.unrolledAY))
             for y1 in self.yArr[:-1]: 
@@ -558,12 +1067,21 @@ class plotter :
                         for c2 in self.coeffArr[:-1] : 
                             indexUNR_X = self.coeffArr.index(float(c1))*(len(self.yArr)-1)+self.yArr.index(float(y1))
                             indexUNR_Y = self.coeffArr.index(float(c2))*(len(self.yArr)-1)+self.yArr.index(float(y2))
-                            nameX = 'y_'+str(self.yArr.index(y1)+1)+'_qt_'+str(j)+'_'+self.coeffList[self.coeffArr.index(c1)]
-                            nameY = 'y_'+str(self.yArr.index(y2)+1)+'_qt_'+str(j)+'_'+self.coeffList[self.coeffArr.index(c2)]
-                            corrVal = self.histos[suff+'corrMat'].GetBinContent(self.histos[suff+'corrMat'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'].GetYaxis().FindBin(nameY))
-                            covVal = self.histos[suff+'covMat'].GetBinContent(self.histos[suff+'corrMat'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'].GetYaxis().FindBin(nameY))
-                            self.histos[suff+'corrMat'+'qt'+str(j)].SetBinContent(indexUNR_X,indexUNR_Y,corrVal)
-                            self.histos[suff+'covMat'+'qt'+str(j)].SetBinContent(indexUNR_X,indexUNR_Y,covVal)        
+                            if not self.helXsec : 
+                                nameX = 'y_'+str(self.yArr.index(y1)+1)+'_qt_'+str(j)+'_'+self.coeffList[self.coeffArr.index(c1)]
+                                nameY = 'y_'+str(self.yArr.index(y2)+1)+'_qt_'+str(j)+'_'+self.coeffList[self.coeffArr.index(c2)]
+                            else :
+                                nameX = 'helXsecs'+self.coeffList[self.coeffArr.index(c1)]+'_y_'+str(self.yArr.index(y1)+1)+'_qt_'+str(j)+'_pmaskedexp'
+                                nameY = 'helXsecs'+self.coeffList[self.coeffArr.index(c2)]+'_y_'+str(self.yArr.index(y2)+1)+'_qt_'+str(j)+'_pmaskedexp'
+                            try :
+                                corrVal = self.histos[suff+'corrMat'].GetBinContent(self.histos[suff+'corrMat'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'].GetYaxis().FindBin(nameY))
+                                covVal = self.histos[suff+'covMat'].GetBinContent(self.histos[suff+'corrMat'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'].GetYaxis().FindBin(nameY))
+                            except :
+                                print("WARNING: missing matrices")
+                                corrVal =0
+                                covVal= 0
+                            self.histos[suff+'corrMat'+'qt'+str(j)].SetBinContent(indexUNR_X+1,indexUNR_Y+1,corrVal)
+                            self.histos[suff+'covMat'+'qt'+str(j)].SetBinContent(indexUNR_X+1,indexUNR_Y+1,covVal)        
         
         #---------------------- build the covariance and correlation matrices Y and Qt trend --------- #
         # for c in self.coeffDict:# y large, qt fine        
@@ -591,12 +1109,21 @@ class plotter :
                     for c2 in self.coeffArr[:-1] : 
                         indexUNR_X = self.coeffArr.index(float(c1))*(len(self.yArr)-1)+self.yArr.index(float(y1))
                         indexUNR_Y = self.coeffArr.index(float(c2))*(len(self.yArr)-1)+self.yArr.index(float(y2))
-                        nameX = 'y_'+str(self.yArr.index(y1)+1)+'_helmeta_'+self.coeffList[self.coeffArr.index(c1)]
-                        nameY = 'y_'+str(self.yArr.index(y2)+1)+'_helmeta_'+self.coeffList[self.coeffArr.index(c2)]
-                        corrVal = self.histos[suff+'corrMat'+'Integrated'].GetBinContent(self.histos[suff+'corrMat'+'Integrated'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'+'Integrated'].GetYaxis().FindBin(nameY))
-                        covVal = self.histos[suff+'covMat'+'Integrated'].GetBinContent(self.histos[suff+'corrMat'+'Integrated'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'+'Integrated'].GetYaxis().FindBin(nameY))
-                        self.histos[suff+'corrMat'+'Integrated'+'y'].SetBinContent(indexUNR_X,indexUNR_Y,corrVal)
-                        self.histos[suff+'covMat'+'Integrated'+'y'].SetBinContent(indexUNR_X,indexUNR_Y,covVal)
+                        if not self.helXsec :  
+                            nameX = 'y_'+str(self.yArr.index(y1)+1)+'_helmeta_'+self.coeffList[self.coeffArr.index(c1)]
+                            nameY = 'y_'+str(self.yArr.index(y2)+1)+'_helmeta_'+self.coeffList[self.coeffArr.index(c2)]
+                        else :
+                            nameX = 'helXsecs'+self.coeffList[self.coeffArr.index(c1)]+'_y_'+str(self.yArr.index(y1)+1)+'_sumxsec'
+                            nameY = 'helXsecs'+self.coeffList[self.coeffArr.index(c2)]+'_y_'+str(self.yArr.index(y2)+1)+'_sumxsec'
+                        try :
+                            corrVal = self.histos[suff+'corrMat'+'Integrated'].GetBinContent(self.histos[suff+'corrMat'+'Integrated'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'+'Integrated'].GetYaxis().FindBin(nameY))
+                            covVal = self.histos[suff+'covMat'+'Integrated'].GetBinContent(self.histos[suff+'corrMat'+'Integrated'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'+'Integrated'].GetYaxis().FindBin(nameY))
+                        except :
+                                print("WARNING: missing matrices")
+                                corrVal =0
+                                covVal= 0
+                        self.histos[suff+'corrMat'+'Integrated'+'y'].SetBinContent(indexUNR_X+1,indexUNR_Y+1,corrVal)
+                        self.histos[suff+'covMat'+'Integrated'+'y'].SetBinContent(indexUNR_X+1,indexUNR_Y+1,covVal)
         
         
         self.histos[suff+'corrMat'+'Integrated'+'qt'] = ROOT.TH2D(suff+'corrMat_Integrated_qt', suff+'corrMat_Integrated_qt', len(self.unrolledAQt)-1, array('f',self.unrolledAQt), len(self.unrolledAQt)-1, array('f',self.unrolledAQt))
@@ -607,13 +1134,201 @@ class plotter :
                     for c2 in self.coeffArr[:-1] : 
                         indexUNR_X = self.coeffArr.index(float(c1))*(len(self.qtArr)-1)+self.qtArr.index(float(q1))
                         indexUNR_Y = self.coeffArr.index(float(c2))*(len(self.qtArr)-1)+self.qtArr.index(float(q2))
-                        nameX = 'qt_'+str(self.qtArr.index(q1)+1)+'_helmeta_'+self.coeffList[self.coeffArr.index(c1)]
-                        nameY = 'qt_'+str(self.qtArr.index(q2)+1)+'_helmeta_'+self.coeffList[self.coeffArr.index(c2)]
-                        corrVal = self.histos[suff+'corrMat'+'Integrated'].GetBinContent(self.histos[suff+'corrMat'+'Integrated'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'+'Integrated'].GetYaxis().FindBin(nameY))
-                        covVal = self.histos[suff+'covMat'+'Integrated'].GetBinContent(self.histos[suff+'corrMat'+'Integrated'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'+'Integrated'].GetYaxis().FindBin(nameY))
-                        self.histos[suff+'corrMat'+'Integrated'+'qt'].SetBinContent(indexUNR_X,indexUNR_Y,corrVal)
-                        self.histos[suff+'covMat'+'Integrated'+'qt'].SetBinContent(indexUNR_X,indexUNR_Y,covVal)
+                        if not self.helXsec : 
+                            nameX = 'qt_'+str(self.qtArr.index(q1)+1)+'_helmeta_'+self.coeffList[self.coeffArr.index(c1)]
+                            nameY = 'qt_'+str(self.qtArr.index(q2)+1)+'_helmeta_'+self.coeffList[self.coeffArr.index(c2)]
+                        else :
+                            nameX = 'helXsecs'+self.coeffList[self.coeffArr.index(c1)]+'_qt_'+str(self.qtArr.index(q1)+1)+'_sumxsec'
+                            nameY = 'helXsecs'+self.coeffList[self.coeffArr.index(c2)]+'_qt_'+str(self.qtArr.index(q2)+1)+'_sumxsec'
+                        try :
+                            corrVal = self.histos[suff+'corrMat'+'Integrated'].GetBinContent(self.histos[suff+'corrMat'+'Integrated'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'+'Integrated'].GetYaxis().FindBin(nameY))
+                            covVal = self.histos[suff+'covMat'+'Integrated'].GetBinContent(self.histos[suff+'corrMat'+'Integrated'].GetXaxis().FindBin(nameX),self.histos[suff+'corrMat'+'Integrated'].GetYaxis().FindBin(nameY))
+                        except :
+                                print("WARNING: missing matrices")
+                                corrVal =0
+                                covVal= 0
+                        self.histos[suff+'corrMat'+'Integrated'+'qt'].SetBinContent(indexUNR_X+1,indexUNR_Y+1,corrVal)
+                        self.histos[suff+'covMat'+'Integrated'+'qt'].SetBinContent(indexUNR_X+1,indexUNR_Y+1,covVal)
         
+        
+        #------------------------ build the impact plots ----------------------------------- #
+        
+        if impact :
+            impactVals = {}
+            
+            skipDiffImpact = False
+            try : 
+                for qty in range(1, self.histos[suff+'impact2D'+'group'+'UNR'].GetNbinsX()+1):    
+                    impBin = self.histos[suff+'impact2D'+'group'+'UNR'].GetXaxis().GetBinLabel(qty)          
+                    for g in range(1, self.histos[suff+'impact2D'+'group'+'UNR'].GetNbinsY()+1):
+                        nuiGroup=self.histos[suff+'impact2D'+'group'+'UNR'].GetYaxis().GetBinLabel(g)
+                        impactVals[impBin+nuiGroup] = self.histos[suff+'impact2D'+'group'+'UNR'].GetBinContent(qty, g)
+            except :
+                skipDiffImpact = True
+                print('missing differential impact')
+                
+            skipIntImpact = False
+            try : 
+                for qty in range(1, self.histos[suff+'impact2D'+'group'+'int'].GetNbinsX()+1):    
+                    impBin = self.histos[suff+'impact2D'+'group'+'int'].GetXaxis().GetBinLabel(qty)          
+                    for g in range(1, self.histos[suff+'impact2D'+'group'+'int'].GetNbinsY()+1):
+                        nuiGroup=self.histos[suff+'impact2D'+'group'+'int'].GetYaxis().GetBinLabel(g)
+                        impactVals[impBin+nuiGroup] = self.histos[suff+'impact2D'+'group'+'int'].GetBinContent(qty, g)
+            except :
+                skipIntImpact = True
+                print('missing integrated impact')
+            
+            skipMassImpact = False
+            try :    
+                for g in range(1,self.histos[suff+'impact2D'+'group'+'mass'].GetNbinsY()+1):
+                    nuiGroup=self.histos[suff+'impact2D'+'group'+'mass'].GetYaxis().GetBinLabel(g)
+                    impactVals['mass'+nuiGroup] = self.histos[suff+'impact2D'+'group'+'mass'].GetBinContent(1, g)
+            except :
+                skipMassImpact = True
+                print('missing mass impact')
+            
+            ###### This for rebin only if variable width histogram
+            # unp = self.coeffList[-1]
+            # varWidth_X = False 
+            # for i in range(1, len(self.yArr)-1) :
+            #         for j in range(i+1,len(self.yArr)) :
+            #             if abs(self.histos[suff+'FitAC'+unp].GetXaxis().GetBinWidth(j)-self.histos[suff+'FitAC'+unp].GetXaxis().GetBinWidth(i))>0.0001:
+            #                 varWidth_X = True
+            #                 break
+            # varWidth_Y = False
+            # for i in range(1, len(self.qtArr)-1) :
+            #     for j in range(i+1,len(self.qtArr)) :
+            #         if abs(self.histos[suff+'FitAC'+unp].GetYaxis().GetBinWidth(j)-self.histos[suff+'FitAC'+unp].GetYaxis().GetBinWidth(i))>0.0001:
+            #             varWidth_Y = True
+            #             break
+            # varWidth_qt = False
+            # for i in range(1, len(self.qtArr)-1) :
+            #     for j in range(i+1,len(self.qtArr)) :
+            #         if abs(self.histos[suff+'FitACqt'+unp].GetXaxis().GetBinWidth(j)-self.histos[suff+'FitACqt'+unp].GetXaxis().GetBinWidth(i))>0.0001:
+            #             varWidth_qt = True
+            #             break
+            # varWidth_y = False
+            # for i in range(1, len(self.yArr)-1) :
+            #     for j in range(i+1,len(self.yArr)) :
+            #         if abs(self.histos[suff+'FitACy'+unp].GetXaxis().GetBinWidth(j)-self.histos[suff+'FitACy'+unp].GetXaxis().GetBinWidth(i))>0.0001:
+            #             varWidth_y = True
+            #             break
+            
+                     
+            for c in self.coeffDict: 
+                for nui in self.nuisanceDict:
+                    
+                    self.histos[suff+'impact'+'UNR'+c+nui] = ROOT.TH1D('impact_'+c+'_'+nui+'_UNRqty', 'impact_'+c+'_'+nui+'_UNRqty', len(self.unrolledQtY)-1, array('f',self.unrolledQtY))
+                    for q in range(1, len(self.qtArr)) :
+                        if skipDiffImpact : continue 
+                        for y in range(1, len(self.yArr)): 
+                            indexUNRqty = (q-1)*(len(self.yArr)-1)+y
+                            if not self.helXsec : impBin = 'y_'+str(y)+'_qt_'+str(q)+'_'+c
+                            else : impBin = 'helXsecs'+c+'_'+'y_'+str(y)+'_qt_'+str(q)+'_pmaskedexp'                            
+                            # else : impBin = 'helXsecs'+c+'_'+'y_'+str(y)+'_qt_'+str(q)+'_mu'  #josh debug     
+                            relImp =   abs(impactVals[impBin+nui])
+                            relImp = relImp/abs(self.histos[suff+'FitAC'+c].GetBinContent(y, q))                   
+                            # if ('unpol' in c or self.helXsec ) and varWidth_X : 
+                            #     relImp = relImp/self.histos[suff+'FitAC'+c].GetXaxis().GetBinWidth(y) 
+                            # if ('unpol' in c or self.helXsec ) and varWidth_Y : 
+                            #     relImp = relImp/self.histos[suff+'FitAC'+c].GetYaxis().GetBinWidth(q)  
+                            if 'unpol' in c  or self.helXsec :
+                                relImp = relImp/(self.lumi*3./16./math.pi)
+                                relImp = relImp/self.histos[suff+'FitAC'+c].GetYaxis().GetBinWidth(q)/self.histos[suff+'FitAC'+c].GetXaxis().GetBinWidth(y)   
+                            # if self.helXsec : relImp = abs(impactVals[impBin+nui]) #josh debug 
+                            self.histos[suff+'impact'+'UNR'+c+nui].SetBinContent(indexUNRqty,relImp)
+            
+                    self.histos[suff+'impact'+'y'+c+nui] = ROOT.TH1D('impact_'+c+'_'+nui+'_y', 'impact_'+c+'_'+nui+'_y', len(self.yArr)-1, array('f',self.yArr))
+                    for y in range(1, len(self.yArr)):   
+                        if skipIntImpact : continue  
+                        if not self.helXsec :  impBin = 'y_'+str(y)+'_helmeta_'+c
+                        else : impBin = 'helXsecs'+c+'_'+'y_'+str(y)+'_sumxsec'
+                        relImp = abs(impactVals[impBin+nui]/self.histos[suff+'FitACy'+c].GetBinContent(y))
+                        # relImp = abs(impactVals[impBin+nui])
+                        # if ('unpol' in c or self.helXsec ) and varWidth_y : 
+                        #     relImp = relImp/self.histos[suff+'FitACy'+c].GetXaxis().GetBinWidth(y) 
+                        if 'unpol' in c  or self.helXsec :
+                            relImp = relImp/(self.lumi*3./16./math.pi) 
+                            relImp = relImp/self.histos[suff+'FitACy'+c].GetXaxis().GetBinWidth(y)  
+                        self.histos[suff+'impact'+'y'+c+nui].SetBinContent(y,relImp)
+                    
+                    self.histos[suff+'impact'+'qt'+c+nui] = ROOT.TH1D('impact_'+c+'_'+nui+'_qt', 'impact_'+c+'_'+nui+'_qt', len(self.qtArr)-1, array('f',self.qtArr))
+                    for qt in range(1, len(self.qtArr)) :
+                        if skipIntImpact : continue  
+                        if not self.helXsec :  impBin = 'qt_'+str(qt)+'_helmeta_'+c
+                        else : impBin = 'helXsecs'+c+'_'+'qt_'+str(qt)+'_sumxsec'
+                        relImp = abs(impactVals[impBin+nui]/self.histos[suff+'FitACqt'+c].GetBinContent(qt))
+                        # relImp = abs(impactVals[impBin+nui])
+                        # if ('unpol' in c or self.helXsec ) and varWidth_qt : 
+                        #     relImp = relImp/self.histos[suff+'FitACqt'+c].GetXaxis().GetBinWidth(qt) 
+                        if 'unpol' in c  or self.helXsec :
+                            relImp = relImp/(self.lumi*3./16./math.pi) 
+                            relImp = relImp/self.histos[suff+'FitACqt'+c].GetXaxis().GetBinWidth(qt) 
+                        self.histos[suff+'impact'+'qt'+c+nui].SetBinContent(qt,relImp)
+            
+            #print("WARNING: used hardcoded value of the Wmass for the impact, mW=",self.mass," GeV")    
+            print("WARNING: used hardcoded value of the up/down mass variation (50 MeV)")    
+            for nui in self.nuisanceDict:
+                self.histos[suff+'impact'+'mass'+nui] = ROOT.TH1D('impact_mass_'+nui, 'impact_mass_'+nui, 1, 0,1)
+                if skipMassImpact : continue   
+                # relImp = abs(impactVals['mass'+nui]/self.histos[suff+'mass'].GetBinContent(1))
+                # relImp = abs(impactVals['mass'+nui]/self.mass)
+                relImp = abs(impactVals['mass'+nui]*50) #in MeV, since the weight is +/- is 50MeV.
+                self.histos[suff+'impact'+'mass'+nui].SetBinContent(1,relImp) 
+                self.histos[suff+'impact'+'mass'+nui].SetBinError(1,0.0000000001) 
+            
+            
+            # print("DEBUG impact (sum in quadrature")
+            # sumOfPdf = 0.
+            # labelX = self.histos[suff+'impact2D'+'UNR'].GetXaxis().GetBinLabel(2)
+            # unpol_divider = self.histos[suff+'FitAC'+'unpolarizedxsec'].GetBinContent(1, 2)/self.histos[suff+'FitAC'+'unpolarizedxsec'].GetYaxis().GetBinWidth(2)/(self.lumi*3./16./math.pi)
+            # # unpol_divider=1
+            # for y in range(0,self.histos[suff+'impact2D'+'UNR'].GetNbinsY()+1) :
+            #     labelY = self.histos[suff+'impact2D'+'UNR'].GetYaxis().GetBinLabel(y)
+            #     val = self.histos[suff+'impact2D'+'UNR'].GetBinContent(2,y)
+            #     val = val/unpol_divider
+            #     # if "unclustEn" in labelY or "jes" in labelY:
+            #     if "Pdf" in labelY:
+            #         sumOfPdf = sumOfPdf+val**2
+            #         # sumOfPdf = sumOfPdf+abs(val)
+            #         # print(y, labelY,labelX,val)
+            # sumOfPdf = math.sqrt(sumOfPdf)
+            # valGroupPdf = self.histos[suff+'impact2D'+'group'+'UNR'].GetBinContent(self.histos[suff+'impact2D'+'group'+'UNR'].GetXaxis().FindBin(labelX),self.histos[suff+'impact2D'+'group'+'UNR'].GetYaxis().FindBin("pdfs"))
+            # # print("sum of PDF=",sumOfPdf) 
+            # # print("grouped=",valGroupPdf/unpol_divider)
+            # # print("value",  self.histos[suff+'impact'+'UNR'+'unpolarizedxsec'+'pdfs'].GetBinContent(7))
+            
+            # print("DEBUG impact: max pdf") #josh debug
+            # for x in range(1,self.histos[suff+'impact2D'+'UNR'].GetNbinsX()+1) :
+            #     labelX = self.histos[suff+'impact2D'+'UNR'].GetXaxis().GetBinLabel(x)
+            #     if not 'A4' in labelX : continue
+            #     maxCounter=0 
+            #     maxBinY = 0
+            #     maxBinqT=0 
+            #     maxName = ''
+            #     quadSum = 0
+            #     for x2 in range(1,self.histos[suff+'impact2D'+'UNR'].GetNbinsY()+1) :
+            #         labelY = self.histos[suff+'impact2D'+'UNR'].GetYaxis().GetBinLabel(x2)
+            #         if "Pdf" in labelY: 
+            #             impVal = abs(self.histos[suff+'impact2D'+'UNR'].GetBinContent(x,x2)  )
+            #             y = int(labelX.split('_')[1])
+            #             qt = int(labelX.split('_')[3])
+            #             impVal = impVal/abs(self.histos[suff+'FitAC'+'A4'].GetBinContent(y, qt))  
+            #             quadSum+=impVal**2
+            #             # if labelY=='LHEPdfWeightHess3'  : print("inside", impVal, maxCounter)
+            #             if abs(impVal) > maxCounter :
+            #                 maxCounter = abs(impVal)
+            #                 maxBinqtY = labelX
+            #                 maxName = labelY
+            #             refVal = abs(self.histos[suff+'impact2D'+'UNR'].GetBinContent(x,self.histos[suff+'impact2D'+'UNR'].GetYaxis().FindBin("LHEPdfWeightHess3")))
+            #             refVal = abs(refVal/self.histos[suff+'FitAC'+'A4'].GetBinContent(y, qt))   
+            #             # refVal = (MCVal - refVal)**2/(MCVal**2)   
+            #             if labelX=='y_1_qt_1_A4' :
+            #                 print(labelX, labelY, impVal,impVal*abs(self.histos[suff+'FitAC'+'A4'].GetBinContent(y, qt)), x,x2, y, qt, self.histos[suff+'FitAC'+'A4'].GetBinContent(y, qt))
+            #     print("Impact: name=",maxName, "value=", maxCounter, "bin qty=", maxBinqtY, "hess3=", refVal, "quadSum=",math.sqrt(quadSum))#"val3/val=",refVal/maxCounter)
+    
+                
+            
           
         #----------------------------------- CANVAS PREPARATION ---------------------------------------------------------------------------------          
             
@@ -648,18 +1363,20 @@ class plotter :
                 self.histos[suff+'FitAC'+'qt'+str(i)+c].Draw()
                 self.histos[suff+'FitAC'+'qt'+str(i)+c].GetYaxis().SetTitleSize(0.06)
                 self.histos[suff+'FitAC'+'qt'+str(i)+c].SetLabelSize(0.05,'y')
-                if not 'unpol' in c :
+                if not 'unpol' in c and not self.helXsec:
                     # self.histos[suff+'FitAC'+'qt'+str(i)+c].GetYaxis().SetRangeUser(-4,4)
                     self.histos[suff+'FitAC'+'qt'+str(i)+c].GetYaxis().SetTitle(c)
+                elif self.helXsec:
+                     self.histos[suff+'FitAC'+'qt'+str(i)+c].GetYaxis().SetTitle('d#sigma_'+c+'/dq_{T}^{W} [fb/GeV]')
                 else :
-                    self.histos[suff+'FitAC'+'qt'+str(i)+c].GetYaxis().SetTitle('#sigma^{U+L} [fb]')
+                    self.histos[suff+'FitAC'+'qt'+str(i)+c].GetYaxis().SetTitle('d#sigma^{U+L}/dq_{T}^{W} [fb/GeV]')
                     maxvalMain = self.histos[suff+'FitAC'+'qt'+str(i)+c].GetMaximum()
                     self.histos[suff+'FitAC'+'qt'+str(i)+c].GetYaxis().SetRangeUser(0,maxvalMain*1.5)
                 self.histos[suff+'FitBand'+'qt'+str(i)+c].SetFillColor(ROOT.kOrange)
                 self.histos[suff+'FitBand'+'qt'+str(i)+c].SetFillStyle(0)
                 self.histos[suff+'FitBand'+'qt'+str(i)+c].SetLineColor(ROOT.kOrange)
                 self.histos[suff+'FitBand'+'qt'+str(i)+c].SetLineWidth(2)
-                self.histos[suff+'FitAC'+'qt'+str(i)+c].GetYaxis().SetTitleOffset(0.7)
+                self.histos[suff+'FitAC'+'qt'+str(i)+c].GetYaxis().SetTitleOffset(0.8)
                 self.histos[suff+'FitAC'+'qt'+str(i)+c].GetXaxis().SetTitleOffset(3)
                 self.histos[suff+'FitAC'+'qt'+str(i)+c].GetXaxis().SetLabelOffset(3)
                 self.histos[suff+'FitBand'+'qt'+str(i)+c].DrawCopy("E2 same")
@@ -778,18 +1495,20 @@ class plotter :
                 self.histos[suff+'FitAC'+'y'+str(j)+c].Draw()
                 self.histos[suff+'FitAC'+'y'+str(j)+c].GetYaxis().SetTitleSize(0.06)
                 self.histos[suff+'FitAC'+'y'+str(j)+c].SetLabelSize(0.05,'y')
-                if not 'unpol' in c :
+                if not 'unpol' in c and not self.helXsec:
                     # self.histos[suff+'FitAC'+'y'+str(j)+c].GetYaxis().SetRangeUser(-4,4)
                     self.histos[suff+'FitAC'+'y'+str(j)+c].GetYaxis().SetTitle(c)
+                elif self.helXsec:
+                    self.histos[suff+'FitAC'+'y'+str(j)+c].GetYaxis().SetTitle('d#sigma_'+c+'/dY_{W} [fb]')
                 else :
-                    self.histos[suff+'FitAC'+'y'+str(j)+c].GetYaxis().SetTitle('#sigma^{U+L} [fb]')
+                    self.histos[suff+'FitAC'+'y'+str(j)+c].GetYaxis().SetTitle('d#sigma^{U+L}/dY_{W} [fb]')
                     maxvalMain = self.histos[suff+'FitAC'+'y'+str(j)+c].GetMaximum()
                     self.histos[suff+'FitAC'+'y'+str(j)+c].GetYaxis().SetRangeUser(0,maxvalMain*1.5)
                 self.histos[suff+'FitBand'+'y'+str(j)+c].SetFillColor(ROOT.kOrange)#kMagenta-7)
                 self.histos[suff+'FitBand'+'y'+str(j)+c].SetFillStyle(0)
                 self.histos[suff+'FitBand'+'y'+str(j)+c].SetLineColor(ROOT.kOrange)#kMagenta-7)
                 self.histos[suff+'FitBand'+'y'+str(j)+c].SetLineWidth(2)
-                self.histos[suff+'FitAC'+'y'+str(j)+c].GetYaxis().SetTitleOffset(0.7)
+                self.histos[suff+'FitAC'+'y'+str(j)+c].GetYaxis().SetTitleOffset(0.8)
                 self.histos[suff+'FitAC'+'y'+str(j)+c].GetXaxis().SetTitleOffset(3)
                 self.histos[suff+'FitAC'+'y'+str(j)+c].GetXaxis().SetLabelOffset(3)
                 self.histos[suff+'FitBand'+'y'+str(j)+c].DrawCopy("E2 same")
@@ -896,6 +1615,9 @@ class plotter :
                 self.histos[suff+'FitRatioScale'+'UNRqty'+d+c] = ROOT.TH1F(suff+'_coeff_UNRqty_RatioScale'+d+c,suff+'_coeff_UNRqty_RatioScale'+d+c,len(self.unrolledQtY)-1, array('f',self.unrolledQtY))
             if aposteriori!='' :
                 self.histos[suff+'apo'+'UNRqty'+c] = ROOT.TH1F(suff+'_apo_UNRqty'+c,suff+'_apo_UNRqty'+c,len(self.unrolledQtY)-1, array('f',self.unrolledQtY))
+            if toy !='' :
+                self.histos[suff+'FitAC'+'UNRqty'+c+'toy'] = ROOT.TH1F(suff+'FitAC'+'UNRqty'+c+'toy',suff+'FitAC'+'UNRqty'+c+'toy',len(self.unrolledQtY)-1, array('f',self.unrolledQtY))
+                
             
             for q in self.qtArr[:-1] :
                 for y in self.yArr[:-1] :
@@ -922,8 +1644,13 @@ class plotter :
                     if aposteriori!='' :
                         self.histos[suff+'apo'+'UNRqty'+c].SetBinContent(indexUNRqty+1,self.histos[suff+'apo'+c].GetBinContent(self.yArr.index(y)+1,self.qtArr.index(q)+1))
                         self.histos[suff+'apo'+'UNRqty'+c].SetBinError(indexUNRqty+1,self.histos[suff+'apo'+c].GetBinError(self.yArr.index(y)+1,self.qtArr.index(q)+1))
+                    
+                    if toy !='' :
+                        self.histos[suff+'FitAC'+'UNRqty'+c+'toy'].SetBinContent(indexUNRqty+1,self.histos[suff+'FitAC'+c+'toy'].GetBinContent(self.yArr.index(y)+1,self.qtArr.index(q)+1))
+                        self.histos[suff+'FitAC'+'UNRqty'+c+'toy'].SetBinError(indexUNRqty+1,self.histos[suff+'FitAC'+c+'toy'].GetBinError(self.yArr.index(y)+1,self.qtArr.index(q)+1))
 
                     if self.yArr.index(y)==0 :
+                        # print("unrbin=",indexUNRqty+1, "binq=",q)
                         self.histos[suff+'FitAC'+'UNRqty'+c].GetXaxis().SetNdivisions(-1)
                         self.histos[suff+'FitAC'+'UNRqty'+c].GetXaxis().SetBinLabel(indexUNRqty+1,"q_{T}^{W}#in[%.0f,%.0f]" % (q, self.qtArr[self.qtArr.index(q)+1]))
                         self.histos[suff+'FitAC'+'UNRqty'+c].GetXaxis().ChangeLabel(indexUNRqty+1,340,0.03)
@@ -936,11 +1663,13 @@ class plotter :
             # self.histos[suff+'FitAC'+'UNRqty'+c].GetXaxis().SetTitle('fine binning: Y_{W} 0#rightarrow 2.4')
             # self.histos[suff+'FitAC'+'UNRqty'+c].GetXaxis().SetTitleOffset(1.45)
             self.histos[suff+'FitAC'+'UNRqty'+c].GetYaxis().SetTitleSize(0.06)
-            if not 'unpol' in c :
+            if not 'unpol' in c and not self.helXsec:
                 # self.histos[suff+'FitAC'+'UNRqty'+c].GetYaxis().SetRangeUser(-4,4)
                 self.histos[suff+'FitAC'+'UNRqty'+c].GetYaxis().SetTitle(c)
+            elif self.helXsec:
+                self.histos[suff+'FitAC'+'UNRqty'+c].GetYaxis().SetTitle('d#sigma_'+c+'/dq_{T}^{W}dY_{W} [fb/GeV]')
             else :
-                self.histos[suff+'FitAC'+'UNRqty'+c].GetYaxis().SetTitle('#sigma^{U+L} [fb]')
+                self.histos[suff+'FitAC'+'UNRqty'+c].GetYaxis().SetTitle('d#sigma^{U+L}/dq_{T}^{W}dY_{W} [fb/GeV]')
                 maxvalMain = self.histos[suff+'FitAC'+'UNRqty'+c].GetMaximum()
                 self.histos[suff+'FitAC'+'UNRqty'+c].GetYaxis().SetRangeUser(0,maxvalMain*1.5)
             self.histos[suff+'FitAC'+'UNRqty'+c].SetLineWidth(2)
@@ -952,7 +1681,7 @@ class plotter :
             self.histos[suff+'FitAC'+'UNRqty'+c].SetLineColor(1)
             self.histos[suff+'FitAC'+'UNRqty'+c].SetMarkerStyle(20)
             self.histos[suff+'FitAC'+'UNRqty'+c].SetMarkerSize(0.5)
-            self.histos[suff+'FitAC'+'UNRqty'+c].GetYaxis().SetTitleOffset(0.7)
+            self.histos[suff+'FitAC'+'UNRqty'+c].GetYaxis().SetTitleOffset(0.8)
             self.histos[suff+'FitAC'+'UNRqty'+c].GetXaxis().SetTitleOffset(3)
             self.histos[suff+'FitAC'+'UNRqty'+c].GetXaxis().SetLabelOffset(3)
             self.histos[suff+'FitAC'+'UNRqty'+c].SetLabelSize(0.05,'y')
@@ -970,6 +1699,7 @@ class plotter :
             self.histos[suff+'FitRatioAC'+'UNRqty'+c].SetTitleSize(0.12,'x')
             self.histos[suff+'FitRatioAC'+'UNRqty'+c].SetLabelSize(0.15,'x')
             self.histos[suff+'FitRatioAC'+'UNRqty'+c].SetLabelOffset(0.03,'x')
+            self.histos[suff+'FitRatioAC'+'UNRqty'+c].LabelsOption("d")
             self.histos[suff+'FitRatioAC'+'UNRqty'+c].SetStats(0)
             self.histos[suff+'FitRatioAC'+'UNRqty'+c].GetXaxis().SetTitle('fine binning: Y_{W} 0#rightarrow 2.4')
             for d in self.dirList :
@@ -1024,6 +1754,15 @@ class plotter :
                 self.histos[suff+'apo'+'UNRqty'+c].SetLineWidth(5)
                 self.histos[suff+'apo'+'UNRqty'+c].SetMarkerStyle(20)
                 self.histos[suff+'apo'+'UNRqty'+c].Draw("EX0 same")
+            
+            if toy!='' :
+                self.histos[suff+'FitAC'+'UNRqty'+c+'toy'].SetLineColor(ROOT.kViolet+1)
+                self.histos[suff+'FitAC'+'UNRqty'+c+'toy'].SetFillStyle(0)
+                self.histos[suff+'FitAC'+'UNRqty'+c+'toy'].SetLineWidth(3)
+                self.histos[suff+'FitAC'+'UNRqty'+c+'toy'].SetMarkerStyle(2)
+                self.histos[suff+'FitAC'+'UNRqty'+c+'toy'].SetMarkerColor(ROOT.kViolet)
+                self.histos[suff+'FitAC'+'UNRqty'+c+'toy'].Draw("E2 same")
+            
             self.leg[suff+'FitAC'+'UNRqty'+c].Draw("same")                   
 
             self.canvas['pr'+suff+'FitAC'+'UNRqty'+c].cd()
@@ -1043,6 +1782,8 @@ class plotter :
             self.leg[suff+'FitAC'+'UNRqty'+c].SetNColumns(2)
             if aposteriori!='' :
                     self.leg[suff+'FitAC'+'UNRqty'+c].AddEntry(self.histos[suff+'apo'+'UNRqty'+c], "Post-fit-regularized")
+            if toy!='' :
+                    self.leg[suff+'FitAC'+'UNRqty'+c].AddEntry(self.histos[suff+'FitAC'+'UNRqty'+c+'toy'], "MC toys  #mu#pm#sigma")
                     
             # self.histos[suff+'FitBandPDF'+'UNRqty'+c].DrawCopy('E2 same')
             # self.histos[suff+'FitBandPDF'+'UNRqty'+c].SetFillStyle(3004)
@@ -1066,7 +1807,8 @@ class plotter :
                 self.histos[suff+'FitRatioScale'+'UNRyqt'+d+c] = ROOT.TH1F(suff+'_coeff_UNRyqt_RatioScale'+d+c,suff+'_coeff_UNRyqt_RatioScale'+d+c,len(self.unrolledYQt)-1, array('f',self.unrolledYQt))
             if aposteriori!='' :
                 self.histos[suff+'apo'+'UNRyqt'+c] = ROOT.TH1F(suff+'_apo_UNRyqt'+c,suff+'_apo_UNRyqt'+c,len(self.unrolledYQt)-1, array('f',self.unrolledYQt))
-
+            if toy !='' :
+                self.histos[suff+'FitAC'+'UNRyqt'+c+'toy'] = ROOT.TH1F(suff+'FitAC'+'UNRyqt'+c+'toy',suff+'FitAC'+'UNRyqt'+c+'toy',len(self.unrolledYQt)-1, array('f',self.unrolledYQt))
             
             for y in self.yArr[:-1] :
                 for q in self.qtArr[:-1] :
@@ -1093,6 +1835,10 @@ class plotter :
                     if aposteriori!='' :
                         self.histos[suff+'apo'+'UNRyqt'+c].SetBinContent(indexUNRyqt+1,self.histos[suff+'apo'+c].GetBinContent(self.yArr.index(y)+1,self.qtArr.index(q)+1))
                         self.histos[suff+'apo'+'UNRyqt'+c].SetBinError(indexUNRyqt+1,self.histos[suff+'apo'+c].GetBinError(self.yArr.index(y)+1,self.qtArr.index(q)+1))
+                        
+                    if toy !='' :
+                        self.histos[suff+'FitAC'+'UNRyqt'+c+'toy'].SetBinContent(indexUNRyqt+1,self.histos[suff+'FitAC'+c+'toy'].GetBinContent(self.yArr.index(y)+1,self.qtArr.index(q)+1))
+                        self.histos[suff+'FitAC'+'UNRyqt'+c+'toy'].SetBinError(indexUNRyqt+1,self.histos[suff+'FitAC'+c+'toy'].GetBinError(self.yArr.index(y)+1,self.qtArr.index(q)+1))
 
                     if self.qtArr.index(q)==0 :
                         self.histos[suff+'FitAC'+'UNRyqt'+c].GetXaxis().SetNdivisions(-1)
@@ -1107,11 +1853,13 @@ class plotter :
             # self.histos[suff+'FitAC'+'UNRyqt'+c].GetXaxis().SetTitle('fine binning: q_{T}^{W} 0#rightarrow 32 GeV')
             # self.histos[suff+'FitAC'+'UNRyqt'+c].GetXaxis().SetTitleOffset(1.45) 
             self.histos[suff+'FitAC'+'UNRyqt'+c].GetYaxis().SetTitleSize(0.06)
-            if not 'unpol' in c :
+            if not 'unpol' in c and not self.helXsec:
                 # self.histos[suff+'FitAC'+'UNRyqt'+c].GetYaxis().SetRangeUser(-4,4)
                 self.histos[suff+'FitAC'+'UNRyqt'+c].GetYaxis().SetTitle(c)
+            elif self.helXsec:
+                self.histos[suff+'FitAC'+'UNRyqt'+c].GetYaxis().SetTitle('d#sigma_'+c+'/dq_{T}^{W}dY_{W} [fb/GeV]')
             else :
-                self.histos[suff+'FitAC'+'UNRyqt'+c].GetYaxis().SetTitle('#sigma^{U+L} [fb]')
+                self.histos[suff+'FitAC'+'UNRyqt'+c].GetYaxis().SetTitle('d#sigma^{U+L}/dq_{T}^{W}dY_{W} [fb/GeV]')
                 maxvalMain = self.histos[suff+'FitAC'+'UNRyqt'+c].GetMaximum()
                 self.histos[suff+'FitAC'+'UNRyqt'+c].GetYaxis().SetRangeUser(0,maxvalMain*1.5)
             self.histos[suff+'FitAC'+'UNRyqt'+c].SetLineWidth(2)
@@ -1123,7 +1871,7 @@ class plotter :
             self.histos[suff+'FitAC'+'UNRyqt'+c].SetLineColor(1)
             self.histos[suff+'FitAC'+'UNRyqt'+c].SetMarkerStyle(20)
             self.histos[suff+'FitAC'+'UNRyqt'+c].SetMarkerSize(0.5)
-            self.histos[suff+'FitAC'+'UNRyqt'+c].GetYaxis().SetTitleOffset(0.7)
+            self.histos[suff+'FitAC'+'UNRyqt'+c].GetYaxis().SetTitleOffset(0.8)
             self.histos[suff+'FitAC'+'UNRyqt'+c].GetXaxis().SetTitleOffset(3)
             self.histos[suff+'FitAC'+'UNRyqt'+c].GetXaxis().SetLabelOffset(3)
             self.histos[suff+'FitAC'+'UNRyqt'+c].SetLabelSize(0.05,'y')
@@ -1141,6 +1889,7 @@ class plotter :
             self.histos[suff+'FitRatioAC'+'UNRyqt'+c].SetTitleSize(0.12,'x')
             self.histos[suff+'FitRatioAC'+'UNRyqt'+c].SetLabelSize(0.15,'x')
             self.histos[suff+'FitRatioAC'+'UNRyqt'+c].SetLabelOffset(0.03,'x')
+            self.histos[suff+'FitRatioAC'+'UNRyqt'+c].LabelsOption("d")
             self.histos[suff+'FitRatioAC'+'UNRyqt'+c].SetStats(0)
             self.histos[suff+'FitRatioAC'+'UNRyqt'+c].GetXaxis().SetTitle('fine binning: q_{T}^{W} 0#rightarrow 32 GeV')
             for d in self.dirList :
@@ -1197,6 +1946,14 @@ class plotter :
                 self.histos[suff+'apo'+'UNRyqt'+c].SetMarkerStyle(20)
                 self.histos[suff+'apo'+'UNRyqt'+c].Draw("EX0 same")
             
+            if toy!='' :
+                self.histos[suff+'FitAC'+'UNRyqt'+c+'toy'].SetLineColor(ROOT.kViolet+1)
+                self.histos[suff+'FitAC'+'UNRyqt'+c+'toy'].SetFillStyle(0)
+                self.histos[suff+'FitAC'+'UNRyqt'+c+'toy'].SetLineWidth(3)
+                self.histos[suff+'FitAC'+'UNRyqt'+c+'toy'].SetMarkerStyle(2)
+                self.histos[suff+'FitAC'+'UNRyqt'+c+'toy'].SetMarkerColor(ROOT.kViolet)
+                self.histos[suff+'FitAC'+'UNRyqt'+c+'toy'].Draw("E2 same")
+            
             self.leg[suff+'FitAC'+'UNRyqt'+c].Draw("same")                   
 
             self.canvas['pr'+suff+'FitAC'+'UNRyqt'+c].cd()
@@ -1215,6 +1972,8 @@ class plotter :
             self.leg[suff+'FitAC'+'UNRyqt'+c].AddEntry(self.histos[suff+'FitRatioScale'+'UNRyqt'+'up'+c], self.groupedSystColors['LHEScaleWeightVars'][1])
             if aposteriori!='' :
                 self.leg[suff+'FitAC'+'UNRyqt'+c].AddEntry(self.histos[suff+'apo'+'UNRyqt'+c], "Post-fit-regularized")
+            if toy!='' :
+                self.leg[suff+'FitAC'+'UNRyqt'+c].AddEntry(self.histos[suff+'FitAC'+'UNRyqt'+c+'toy'], "MC toys  #mu#pm#sigma")
             
             # self.histos[suff+'FitBandPDF'+'UNRyqt'+c].DrawCopy('E2 same')
             # self.histos[suff+'FitBandPDF'+'UNRyqt'+c].SetFillStyle(3004)
@@ -1250,24 +2009,35 @@ class plotter :
             self.histos[suff+'FitAC'+'qt'+c].Draw()
             self.histos[suff+'FitAC'+'qt'+c].GetYaxis().SetTitleSize(0.06)
             self.histos[suff+'FitAC'+'qt'+c].SetLabelSize(0.05,'y')
-            if not 'unpol' in c :
+            if not 'unpol' in c and not self.helXsec:
                 # self.histos[suff+'FitAC'+'qt'+c].GetYaxis().SetRangeUser(-4,4)
                 self.histos[suff+'FitAC'+'qt'+c].GetYaxis().SetTitle(c)
+            elif self.helXsec:
+                self.histos[suff+'FitAC'+'qt'+c].GetYaxis().SetTitle('d#sigma_'+c+'/dq_{T} [fb/GeV]')
             else :
-                 self.histos[suff+'FitAC'+'qt'+c].GetYaxis().SetTitle('#sigma^{U+L} [fb]')
+                 self.histos[suff+'FitAC'+'qt'+c].GetYaxis().SetTitle('d#sigma^{U+L}/dq_{T} [fb/GeV]')
                  maxvalMain = self.histos[suff+'FitAC'+'qt'+c].GetMaximum()
                  self.histos[suff+'FitAC'+'qt'+c].GetYaxis().SetRangeUser(0,maxvalMain*1.5)
             self.histos[suff+'FitBand'+'qt'+c].SetFillColor(ROOT.kOrange)
             self.histos[suff+'FitBand'+'qt'+c].SetFillStyle(0)
             self.histos[suff+'FitBand'+'qt'+c].SetLineColor(ROOT.kOrange)
             self.histos[suff+'FitBand'+'qt'+c].SetLineWidth(2)
-            self.histos[suff+'FitAC'+'qt'+c].GetYaxis().SetTitleOffset(0.7)
+            self.histos[suff+'FitAC'+'qt'+c].GetYaxis().SetTitleOffset(0.8)
             self.histos[suff+'FitAC'+'qt'+c].GetXaxis().SetTitleOffset(3)
             self.histos[suff+'FitAC'+'qt'+c].GetXaxis().SetLabelOffset(3)
             self.histos[suff+'FitBand'+'qt'+c].DrawCopy("E2 same")
             self.histos[suff+'FitBand'+'qt'+c].SetFillStyle(3001)
             self.histos[suff+'FitBand'+'qt'+c].Draw("E2 same")
             self.histos[suff+'FitAC'+'qt'+c].DrawCopy("same") #to have foreground
+            
+            if toy!='' :
+                self.histos[suff+'FitAC'+'qt'+c+'toy'].SetLineColor(ROOT.kViolet+1)
+                self.histos[suff+'FitAC'+'qt'+c+'toy'].SetFillStyle(0)
+                self.histos[suff+'FitAC'+'qt'+c+'toy'].SetLineWidth(3)
+                self.histos[suff+'FitAC'+'qt'+c+'toy'].SetMarkerStyle(2)
+                self.histos[suff+'FitAC'+'qt'+c+'toy'].SetMarkerColor(ROOT.kViolet)
+                self.histos[suff+'FitAC'+'qt'+c+'toy'].Draw("E2 same")
+            
             self.leg[suff+'FitAC'+'qt'+c].Draw("same")
 
             self.canvas['pr'+suff+'FitAC'+'qt'+c].cd()
@@ -1317,7 +2087,9 @@ class plotter :
             self.leg[suff+'FitAC'+'qt'+c].AddEntry(self.histos[suff+'FitBand'+'qt'+c], "MC Syst. Unc.")
             self.leg[suff+'FitAC'+'qt'+c].AddEntry(self.histos[suff+'FitRatioPDF'+'qt'+'up'+c], self.groupedSystColors['LHEPdfWeightVars'][1])
             self.leg[suff+'FitAC'+'qt'+c].AddEntry(self.histos[suff+'FitRatioScale'+'qt'+'up'+c], self.groupedSystColors['LHEScaleWeightVars'][1])
-            self.leg[suff+'FitAC'+'qt'+c].SetNColumns(2)    
+            self.leg[suff+'FitAC'+'qt'+c].SetNColumns(2) 
+            if toy!='' :   
+                self.leg[suff+'FitAC'+'qt'+c].AddEntry(self.histos[suff+'FitAC'+'qt'+c+'toy'], "MC toys  #mu#pm#sigma")
             # self.histos[suff+'FitBandPDF'+'qt'+c].SetFillColor(self.groupedSystColors['LHEPdfWeightVars'][0])
             # self.histos[suff+'FitBandPDF'+'qt'+c].SetFillStyle(0)
             # self.histos[suff+'FitBandPDF'+'qt'+c].SetLineColor(self.groupedSystColors['LHEPdfWeightVars'][0])
@@ -1359,24 +2131,35 @@ class plotter :
             self.histos[suff+'FitAC'+'y'+c].Draw()
             self.histos[suff+'FitAC'+'y'+c].GetYaxis().SetTitleSize(0.06)
             self.histos[suff+'FitAC'+'y'+c].SetLabelSize(0.05,'y')
-            if not 'unpol' in c :
+            if not 'unpol' in c and not self.helXsec:
                 # self.histos[suff+'FitAC'+'y'+c].GetYaxis().SetRangeUser(-4,4)
                 self.histos[suff+'FitAC'+'y'+c].GetYaxis().SetTitle(c)
+            elif self.helXsec:
+                self.histos[suff+'FitAC'+'y'+c].GetYaxis().SetTitle('d#sigma_'+c+'/dY_{W} [fb]')
             else :
-                self.histos[suff+'FitAC'+'y'+c].GetYaxis().SetTitle('#sigma^{U+L} [fb]')
+                self.histos[suff+'FitAC'+'y'+c].GetYaxis().SetTitle('d#sigma^{U+L}/dY_{W} [fb]')
                 maxvalMain = self.histos[suff+'FitAC'+'y'+c].GetMaximum()
                 self.histos[suff+'FitAC'+'y'+c].GetYaxis().SetRangeUser(0,maxvalMain*1.5)
             self.histos[suff+'FitBand'+'y'+c].SetFillColor(ROOT.kOrange)#kMagenta-7)
             self.histos[suff+'FitBand'+'y'+c].SetFillStyle(0)
             self.histos[suff+'FitBand'+'y'+c].SetLineColor(ROOT.kOrange)#kMagenta-7)
             self.histos[suff+'FitBand'+'y'+c].SetLineWidth(2)
-            self.histos[suff+'FitAC'+'y'+c].GetYaxis().SetTitleOffset(0.7)
+            self.histos[suff+'FitAC'+'y'+c].GetYaxis().SetTitleOffset(0.8)
             self.histos[suff+'FitAC'+'y'+c].GetXaxis().SetTitleOffset(3)
             self.histos[suff+'FitAC'+'y'+c].GetXaxis().SetLabelOffset(3)
             self.histos[suff+'FitBand'+'y'+c].DrawCopy("E2 same")
             self.histos[suff+'FitBand'+'y'+c].SetFillStyle(3001)
             self.histos[suff+'FitBand'+'y'+c].Draw("E2 same")
             self.histos[suff+'FitAC'+'y'+c].DrawCopy("same") #to have foreground
+                        
+            if toy!='' :
+                self.histos[suff+'FitAC'+'y'+c+'toy'].SetLineColor(ROOT.kViolet+1)
+                self.histos[suff+'FitAC'+'y'+c+'toy'].SetFillStyle(0)
+                self.histos[suff+'FitAC'+'y'+c+'toy'].SetLineWidth(3)
+                self.histos[suff+'FitAC'+'y'+c+'toy'].SetMarkerStyle(2)
+                self.histos[suff+'FitAC'+'y'+c+'toy'].SetMarkerColor(ROOT.kViolet)
+                self.histos[suff+'FitAC'+'y'+c+'toy'].Draw("E2 same")
+                
             self.leg[suff+'FitAC'+'y'+c].Draw("same")
             
             self.canvas['pr'+suff+'FitAC'+'y'+c].cd()
@@ -1427,7 +2210,8 @@ class plotter :
             self.leg[suff+'FitAC'+'y'+c].AddEntry(self.histos[suff+'FitRatioPDF'+'y'+'up'+c], self.groupedSystColors['LHEPdfWeightVars'][1])
             self.leg[suff+'FitAC'+'y'+c].AddEntry(self.histos[suff+'FitRatioScale'+'y'+'up'+c], self.groupedSystColors['LHEScaleWeightVars'][1])
             self.leg[suff+'FitAC'+'y'+c].SetNColumns(2)    
-            
+            if toy!='' :   
+                self.leg[suff+'FitAC'+'y'+c].AddEntry(self.histos[suff+'FitAC'+'y'+c+'toy'], "MC toys  #mu#pm#sigma")
             # self.histos[suff+'FitBandPDF'+'y'+c].SetFillColor(self.groupedSystColors['LHEPdfWeightVars'][0])#kMagenta-7)
             # self.histos[suff+'FitBandPDF'+'y'+c].SetFillStyle(0)
             # self.histos[suff+'FitBandPDF'+'y'+c].SetLineColor(self.groupedSystColors['LHEPdfWeightVars'][0])#kMagenta-7)
@@ -1519,6 +2303,7 @@ class plotter :
                         self.histos[suff+'FitErr'+'UNRqty'+c].GetXaxis().SetNdivisions(-1)
                         self.histos[suff+'FitErr'+'UNRqty'+c].GetXaxis().SetBinLabel(indexUNRqty+1,"q_{T}^{W}#in[%.0f,%.0f]" % (q, self.qtArr[self.qtArr.index(q)+1]))
                         self.histos[suff+'FitErr'+'UNRqty'+c].GetXaxis().ChangeLabel(indexUNRqty+1,340,0.03)    
+                        self.histos[suff+'FitErr'+'UNRqty'+c].GetXaxis().LabelsOption("d")
             self.histos[suff+'FitErr'+'UNRqty'+c].SetTitle(suff+' '+c+", unrolled q_{T}(Y) ")
             self.histos[suff+'FitErr'+'UNRqty'+c].GetXaxis().SetTitle('fine binning: Y_{W} 0#rightarrow 2.4')
             self.histos[suff+'FitErr'+'UNRqty'+c].GetXaxis().SetTitleOffset(1.45)
@@ -1561,6 +2346,8 @@ class plotter :
                     if self.qtArr.index(q)==0 :
                         self.histos[suff+'FitErr'+'UNRyqt'+c].GetXaxis().SetNdivisions(-1)
                         self.histos[suff+'FitErr'+'UNRyqt'+c].GetXaxis().SetBinLabel(indexUNRyqt+1,"Y_{W}#in[%.1f,%.1f]" % (y, self.yArr[self.yArr.index(y)+1]))
+                        self.histos[suff+'FitErr'+'UNRyqt'+c].GetXaxis().ChangeLabel(indexUNRyqt+1,340,0.03)
+                        self.histos[suff+'FitErr'+'UNRyqt'+c].GetXaxis().LabelsOption("d")
             self.histos[suff+'FitErr'+'UNRyqt'+c].SetTitle(suff+' '+c+", unrolled Y(q_{T}) ")
             self.histos[suff+'FitErr'+'UNRyqt'+c].GetXaxis().SetTitle('fine binning: q_{T}^{W} 0#rightarrow 32 GeV')
             self.histos[suff+'FitErr'+'UNRyqt'+c].GetXaxis().SetTitleOffset(1.45)
@@ -1647,7 +2434,7 @@ class plotter :
             if mtx == 'cov' : htitle = 'Covariance'
             
             for c in self.coeffDict:
-                self.canvas[suff+mtx+'Mat'+c] = ROOT.TCanvas(suff+'_'+mtx+'Mat_'+c,suff+'_'+mtx+'Mat_'+c,1200,900)
+                self.canvas[suff+mtx+'Mat'+c] = ROOT.TCanvas(suff+'_c_'+mtx+'Mat_'+c,suff+'_'+mtx+'Mat_'+c,1200,900)
                 self.canvas[suff+mtx+'Mat'+c].cd()
                 self.canvas[suff+mtx+'Mat'+c].SetGridx()
                 self.canvas[suff+mtx+'Mat'+c].SetGridy()
@@ -1667,12 +2454,13 @@ class plotter :
                             self.histos[suff+mtx+'Mat'+c].GetXaxis().SetNdivisions(-1)
                             self.histos[suff+mtx+'Mat'+c].GetXaxis().SetBinLabel(indexUNR+1,"Y_{W}#in[%.1f,%.1f]" % (y, self.yArr[self.yArr.index(y)+1]))
                             self.histos[suff+mtx+'Mat'+c].GetXaxis().ChangeLabel(indexUNR+1,340,0.03)
+                            self.histos[suff+mtx+'Mat'+c].GetXaxis().LabelsOption("d")
                             self.histos[suff+mtx+'Mat'+c].GetYaxis().SetNdivisions(-1)
                             self.histos[suff+mtx+'Mat'+c].GetYaxis().SetBinLabel(indexUNR+1,"Y_{W}#in[%.1f,%.1f]" % (y, self.yArr[self.yArr.index(y)+1]))
                             self.histos[suff+mtx+'Mat'+c].GetYaxis().ChangeLabel(indexUNR+1,340,0.03)
                 
-            for i in range(1, self.histos[suff+'FitACA0'].GetNbinsX()+1): #loop over y bins
-                self.canvas[suff+mtx+'Mat'+'y'+str(i)] = ROOT.TCanvas(suff+'_'+mtx+'Mat_'+'y'+str(i),suff+'_'+mtx+'Mat_'+'y'+str(i),1200,900)
+            for i in range(1, self.histos[suff+'FitAC'+self.coeffList[0]].GetNbinsX()+1): #loop over y bins
+                self.canvas[suff+mtx+'Mat'+'y'+str(i)] = ROOT.TCanvas(suff+'_c_'+mtx+'Mat_'+'y'+str(i),suff+'_'+mtx+'Mat_'+'y'+str(i),1200,900)
                 self.canvas[suff+mtx+'Mat'+'y'+str(i)].cd()
                 self.canvas[suff+mtx+'Mat'+'y'+str(i)].SetGridx()
                 self.canvas[suff+mtx+'Mat'+'y'+str(i)].SetGridy()
@@ -1695,13 +2483,14 @@ class plotter :
                             self.histos[suff+mtx+'Mat'+'y'+str(i)].GetXaxis().SetNdivisions(-1)
                             self.histos[suff+mtx+'Mat'+'y'+str(i)].GetXaxis().SetBinLabel(indexUNR+1,coeffName)
                             self.histos[suff+mtx+'Mat'+'y'+str(i)].GetXaxis().ChangeLabel(indexUNR+1,340,0.03)
+                            self.histos[suff+mtx+'Mat'+'y'+str(i)].GetXaxis().LabelsOption("d")
                             self.histos[suff+mtx+'Mat'+'y'+str(i)].GetYaxis().SetNdivisions(-1)
                             self.histos[suff+mtx+'Mat'+'y'+str(i)].GetYaxis().SetBinLabel(indexUNR+1,coeffName)
                             self.histos[suff+mtx+'Mat'+'y'+str(i)].GetYaxis().ChangeLabel(indexUNR+1,340,0.03)
             
             
-            for j in range(1, self.histos[suff+'FitACA0'].GetNbinsY()+1): #loop over qt bins
-                self.canvas[suff+mtx+'Mat'+'qt'+str(j)] = ROOT.TCanvas(suff+'_'+mtx+'Mat_'+'qt'+str(j),suff+'_'+mtx+'Mat_'+'qt'+str(j),1200,900)
+            for j in range(1, self.histos[suff+'FitAC'+self.coeffList[0]].GetNbinsY()+1): #loop over qt bins
+                self.canvas[suff+mtx+'Mat'+'qt'+str(j)] = ROOT.TCanvas(suff+'_c_'+mtx+'Mat_'+'qt'+str(j),suff+'_'+mtx+'Mat_'+'qt'+str(j),1200,900)
                 self.canvas[suff+mtx+'Mat'+'qt'+str(j)].cd()
                 self.canvas[suff+mtx+'Mat'+'qt'+str(j)].SetGridx()
                 self.canvas[suff+mtx+'Mat'+'qt'+str(j)].SetGridy()
@@ -1724,13 +2513,14 @@ class plotter :
                             self.histos[suff+mtx+'Mat'+'qt'+str(j)].GetXaxis().SetNdivisions(-1)
                             self.histos[suff+mtx+'Mat'+'qt'+str(j)].GetXaxis().SetBinLabel(indexUNR+1,coeffName)
                             self.histos[suff+mtx+'Mat'+'qt'+str(j)].GetXaxis().ChangeLabel(indexUNR+1,340,0.03)
+                            self.histos[suff+mtx+'Mat'+'qt'+str(j)].GetXaxis().LabelsOption("d")
                             self.histos[suff+mtx+'Mat'+'qt'+str(j)].GetYaxis().SetNdivisions(-1)
                             self.histos[suff+mtx+'Mat'+'qt'+str(j)].GetYaxis().SetBinLabel(indexUNR+1,coeffName)
                             self.histos[suff+mtx+'Mat'+'qt'+str(j)].GetYaxis().ChangeLabel(indexUNR+1,340,0.03)
             
             
             #---------------------------- Canvas integrated correlation matrices ------------------------ 
-            self.canvas[suff+mtx+'Mat'+'Integrated'+'y'] = ROOT.TCanvas(suff+'_'+mtx+'Mat_'+'Integrated_'+'y',suff+'_'+mtx+'Mat_'+'Integrated_'+'y',1200,900)
+            self.canvas[suff+mtx+'Mat'+'Integrated'+'y'] = ROOT.TCanvas(suff+'_c_'+mtx+'Mat_'+'Integrated_'+'y',suff+'_'+mtx+'Mat_'+'Integrated_'+'y',1200,900)
             self.canvas[suff+mtx+'Mat'+'Integrated'+'y'].cd()
             self.canvas[suff+mtx+'Mat'+'Integrated'+'y'].SetGridx()
             self.canvas[suff+mtx+'Mat'+'Integrated'+'y'].SetGridy()
@@ -1753,12 +2543,13 @@ class plotter :
                         self.histos[suff+mtx+'Mat'+'Integrated'+'y'].GetXaxis().SetNdivisions(-1)
                         self.histos[suff+mtx+'Mat'+'Integrated'+'y'].GetXaxis().SetBinLabel(indexUNR+1,coeffName)
                         self.histos[suff+mtx+'Mat'+'Integrated'+'y'].GetXaxis().ChangeLabel(indexUNR+1,340,0.03)
+                        self.histos[suff+mtx+'Mat'+'Integrated'+'y'].GetXaxis().LabelsOption("d")
                         self.histos[suff+mtx+'Mat'+'Integrated'+'y'].GetYaxis().SetNdivisions(-1)
                         self.histos[suff+mtx+'Mat'+'Integrated'+'y'].GetYaxis().SetBinLabel(indexUNR+1,coeffName)
                         self.histos[suff+mtx+'Mat'+'Integrated'+'y'].GetYaxis().ChangeLabel(indexUNR+1,340,0.03)
             
                     
-            self.canvas[suff+mtx+'Mat'+'Integrated'+'qt'] = ROOT.TCanvas(suff+'_'+mtx+'Mat_'+'Integrated_'+'qt',suff+'_'+mtx+'Mat_'+'Integrated_'+'qt',1200,900)
+            self.canvas[suff+mtx+'Mat'+'Integrated'+'qt'] = ROOT.TCanvas(suff+'_c_'+mtx+'Mat_'+'Integrated_'+'qt',suff+'_'+mtx+'Mat_'+'Integrated_'+'qt',1200,900)
             self.canvas[suff+mtx+'Mat'+'Integrated'+'qt'].cd()
             self.canvas[suff+mtx+'Mat'+'Integrated'+'qt'].SetGridx()
             self.canvas[suff+mtx+'Mat'+'Integrated'+'qt'].SetGridy()
@@ -1781,11 +2572,241 @@ class plotter :
                         self.histos[suff+mtx+'Mat'+'Integrated'+'qt'].GetXaxis().SetNdivisions(-1)
                         self.histos[suff+mtx+'Mat'+'Integrated'+'qt'].GetXaxis().SetBinLabel(indexUNR+1,coeffName)
                         self.histos[suff+mtx+'Mat'+'Integrated'+'qt'].GetXaxis().ChangeLabel(indexUNR+1,340,0.03)
+                        self.histos[suff+mtx+'Mat'+'Integrated'+'qt'].GetXaxis().LabelsOption("d")
                         self.histos[suff+mtx+'Mat'+'Integrated'+'qt'].GetYaxis().SetBinLabel(indexUNR+1,coeffName)
                         self.histos[suff+mtx+'Mat'+'Integrated'+'qt'].GetYaxis().SetNdivisions(-1)
                         self.histos[suff+mtx+'Mat'+'Integrated'+'qt'].GetYaxis().ChangeLabel(indexUNR+1,340,0.03)
         
+        
+        #---------------------------- Canvas impact plots ------------------------
+        if impact :
+            for c in self.coeffDict:
 
+                self.histos[suff+'impact'+'UNR'+c]=ROOT.THStack(suff+'_impact_UNRqty'+c,suff+'_impact_UNRqty'+c)
+                hempty = ROOT.TH1D(suff+'_impact_UNRqty'+c+'empty', suff+'_impact_UNRqty'+c+'empty', len(self.unrolledQtY)-1, array('f',self.unrolledQtY))
+                self.histos[suff+'impact'+'UNR'+c].SetHistogram(hempty)        
+                self.leg[suff+'impact'+'UNR'+c] = ROOT.TLegend(0.3,0.15,0.85,0.35)
+                self.leg[suff+'impact'+'UNR'+c].SetNColumns(5)
+
+                for nui in self.nuisanceDict: 
+                    self.histos[suff+'impact'+'UNR'+c+nui].SetLineColor(self.nuisanceDict[nui][0])
+                    self.histos[suff+'impact'+'UNR'+c+nui].SetMarkerColor(self.nuisanceDict[nui][0])
+                    self.histos[suff+'impact'+'UNR'+c+nui].SetMarkerStyle(self.nuisanceDict[nui][2])
+                    self.histos[suff+'impact'+'UNR'+c+nui].SetMarkerSize(1.)
+                    self.histos[suff+'impact'+'UNR'+c+nui].SetLineWidth(2)
+                    self.leg[suff+'impact'+'UNR'+c].AddEntry( self.histos[suff+'impact'+'UNR'+c+nui], self.nuisanceDict[nui][1])
+                    self.histos[suff+'impact'+'UNR'+c].Add( self.histos[suff+'impact'+'UNR'+c+nui], 'lp')
+                
+                self.histos[suff+'impact'+'UNR'+c].SetTitle(suff+' '+c+", unrolled q_{T}(Y) ")
+                self.histos[suff+'impact'+'UNR'+c].GetXaxis().SetTitle('fine binning: Y_{W} 0#rightarrow 2.4')
+                self.histos[suff+'impact'+'UNR'+c].GetXaxis().SetTitleOffset(1.45)
+                self.histos[suff+'impact'+'UNR'+c].GetYaxis().SetTitle('Relative Impact')
+                hempty.SetStats(0)
+                for q in self.qtArr[:-1] :
+                    for y in self.yArr[:-1] :
+                        indexUNRqty = self.qtArr.index(float(q))*(len(self.yArr)-1)+self.yArr.index(float(y))
+                        if self.yArr.index(y)==0 :
+                            self.histos[suff+'impact'+'UNR'+c].GetXaxis().SetNdivisions(-1)
+                            self.histos[suff+'impact'+'UNR'+c].GetXaxis().SetBinLabel(indexUNRqty+1,"q_{T}^{W}#in[%.0f,%.0f]" % (q, self.qtArr[self.qtArr.index(q)+1]))
+                            self.histos[suff+'impact'+'UNR'+c].GetXaxis().ChangeLabel(indexUNRqty+1,340,0.03)    
+                            self.histos[suff+'impact'+'UNR'+c].GetXaxis().LabelsOption("d")
+                self.canvas[suff+'impact'+'UNR'+c]=ROOT.TCanvas(suff+'_c_impact_UNRqty'+c,suff+'_c_impact_UNRqty'+c,1200,900)
+                self.canvas[suff+'impact'+'UNR'+c].cd()
+                self.canvas[suff+'impact'+'UNR'+c].SetLogy()
+                self.canvas[suff+'impact'+'UNR'+c].SetGridy()
+                self.canvas[suff+'impact'+'UNR'+c].SetGridx()
+                self.histos[suff+'impact'+'UNR'+c].Draw('nostack')
+                self.leg[suff+'impact'+'UNR'+c].Draw("same")
+                
+                
+                
+                self.histos[suff+'impact'+'y'+c]=ROOT.THStack(suff+'_impact_y'+c,suff+'_impact_y'+c)
+                hempty = ROOT.TH1D(suff+'_impact_y'+c+'empty', suff+'_impact_y'+c+'empty', len(self.yArr)-1, array('f',self.yArr))
+                self.histos[suff+'impact'+'y'+c].SetHistogram(hempty)        
+                self.leg[suff+'impact'+'y'+c] = ROOT.TLegend(0.3,0.15,0.85,0.35)
+                self.leg[suff+'impact'+'y'+c].SetNColumns(5)
+                for nui in self.nuisanceDict: 
+                    self.histos[suff+'impact'+'y'+c+nui].SetLineColor(self.nuisanceDict[nui][0])
+                    self.histos[suff+'impact'+'y'+c+nui].SetMarkerColor(self.nuisanceDict[nui][0])
+                    self.histos[suff+'impact'+'y'+c+nui].SetMarkerStyle(self.nuisanceDict[nui][2])
+                    self.histos[suff+'impact'+'y'+c+nui].SetMarkerSize(1.)
+                    self.histos[suff+'impact'+'y'+c+nui].SetLineWidth(2)
+                    self.leg[suff+'impact'+'y'+c].AddEntry( self.histos[suff+'impact'+'y'+c+nui], self.nuisanceDict[nui][1])
+                    self.histos[suff+'impact'+'y'+c].Add( self.histos[suff+'impact'+'y'+c+nui], 'lp')
+                self.histos[suff+'impact'+'y'+c].SetTitle(suff+' '+c+", q_{T}^{W} integrated ")
+                self.histos[suff+'impact'+'y'+c].GetXaxis().SetTitle('Y_{W}')
+                # self.histos[suff+'impact'+'y'+c].GetXaxis().SetTitleOffset(1.45)
+                self.histos[suff+'impact'+'y'+c].GetYaxis().SetTitle('Relative Impact')
+                hempty.SetStats(0)
+                self.canvas[suff+'impact'+'y'+c]=ROOT.TCanvas(suff+'_c_impact_y'+c,suff+'_c_impact_y'+c,1200,900)
+                self.canvas[suff+'impact'+'y'+c].cd()
+                self.canvas[suff+'impact'+'y'+c].SetLogy()
+                self.canvas[suff+'impact'+'y'+c].SetGridy()
+                self.canvas[suff+'impact'+'y'+c].SetGridx()
+                self.histos[suff+'impact'+'y'+c].Draw('nostack')
+                self.leg[suff+'impact'+'y'+c].Draw("same")
+                
+                
+                self.histos[suff+'impact'+'qt'+c]=ROOT.THStack(suff+'_impact_qt'+c,suff+'_impact_qt'+c)
+                hempty = ROOT.TH1D(suff+'_impact_qt'+c+'empty', suff+'_impact_qt'+c+'empty', len(self.qtArr)-1, array('f',self.qtArr))
+                self.histos[suff+'impact'+'qt'+c].SetHistogram(hempty)           
+                self.leg[suff+'impact'+'qt'+c] = ROOT.TLegend(0.3,0.15,0.85,0.35)
+                self.leg[suff+'impact'+'qt'+c].SetNColumns(5)
+                for nui in self.nuisanceDict: 
+                    self.histos[suff+'impact'+'qt'+c+nui].SetLineColor(self.nuisanceDict[nui][0])
+                    self.histos[suff+'impact'+'qt'+c+nui].SetMarkerColor(self.nuisanceDict[nui][0])
+                    self.histos[suff+'impact'+'qt'+c+nui].SetMarkerStyle(self.nuisanceDict[nui][2])
+                    self.histos[suff+'impact'+'qt'+c+nui].SetMarkerSize(1.)
+                    self.histos[suff+'impact'+'qt'+c+nui].SetLineWidth(2)
+                    self.leg[suff+'impact'+'qt'+c].AddEntry( self.histos[suff+'impact'+'qt'+c+nui], self.nuisanceDict[nui][1])
+                    self.histos[suff+'impact'+'qt'+c].Add( self.histos[suff+'impact'+'qt'+c+nui], 'lp')
+                self.histos[suff+'impact'+'qt'+c].SetTitle(suff+' '+c+", Y_{W} integrated ")
+                self.histos[suff+'impact'+'qt'+c].GetXaxis().SetTitle('q_{T}^{W} [GeV]')
+                # self.histos[suff+'impact'+'qt'+c].GetXaxis().SetTitleOffset(1.45)
+                self.histos[suff+'impact'+'qt'+c].GetYaxis().SetTitle('Relative Impact')
+                hempty.SetStats(0)
+                self.canvas[suff+'impact'+'qt'+c]=ROOT.TCanvas(suff+'_c_impact_qt'+c,suff+'_c_impact_qt'+c,1200,900)
+                self.canvas[suff+'impact'+'qt'+c].cd()
+                self.canvas[suff+'impact'+'qt'+c].SetLogy()
+                self.canvas[suff+'impact'+'qt'+c].SetGridy()
+                self.canvas[suff+'impact'+'qt'+c].SetGridx()
+                self.histos[suff+'impact'+'qt'+c].Draw('nostack')
+                self.leg[suff+'impact'+'qt'+c].Draw("same")
+            
+            self.histos[suff+'impact'+'mass']=ROOT.THStack(suff+'_impact_mass',suff+'_impact_mass')
+            hempty = ROOT.TH1D(suff+'_impact_mass'+'empty', suff+'_impact_mass'+'empty', 1, 0,1)
+            self.histos[suff+'impact'+'mass'].SetHistogram(hempty)        
+            self.leg[suff+'impact'+'mass'] = ROOT.TLegend(0.75,0.1,0.98,0.9)
+            # self.leg[suff+'impact'+'mass'].SetNColumns(1)
+            for nui in self.nuisanceDict: 
+                self.histos[suff+'impact'+'mass'+nui].SetLineColor(self.nuisanceDict[nui][0])
+                self.histos[suff+'impact'+'mass'+nui].SetMarkerColor(self.nuisanceDict[nui][0])
+                self.histos[suff+'impact'+'mass'+nui].SetMarkerStyle(self.nuisanceDict[nui][2])
+                # self.histos[suff+'impact'+'mass'+nui].SetMarkerSize(1.)
+                self.histos[suff+'impact'+'mass'+nui].SetLineWidth(4)
+                self.leg[suff+'impact'+'mass'].AddEntry( self.histos[suff+'impact'+'mass'+nui], self.nuisanceDict[nui][1])
+                self.histos[suff+'impact'+'mass'].Add( self.histos[suff+'impact'+'mass'+nui], 'lp')
+            self.histos[suff+'impact'+'mass'].GetXaxis().SetBinLabel(1,'mass')
+            self.histos[suff+'impact'+'mass'].GetXaxis().SetLabelSize(0.08)
+            self.histos[suff+'impact'+'mass'].GetYaxis().SetMoreLogLabels(1)
+            self.histos[suff+'impact'+'mass'].SetTitle(suff+' mass')
+            self.histos[suff+'impact'+'mass'].GetXaxis().SetTitle('')
+            # self.histos[suff+'impact'+'mass'].GetXaxis().SetTitleOffset(1.45)
+            self.histos[suff+'impact'+'mass'].GetYaxis().SetTitle('Impact [MeV]')
+            hempty.SetStats(0)
+            self.canvas[suff+'impact'+'mass']=ROOT.TCanvas(suff+'_c_impact_mass',suff+'_c_impact_mass',600,900)
+            self.canvas[suff+'impact'+'mass'].cd()
+            self.canvas[suff+'impact'+'mass'].SetLogy()
+            self.canvas[suff+'impact'+'mass'].SetGridy()
+            self.canvas[suff+'impact'+'mass'].SetGridx()
+            self.canvas[suff+'impact'+'mass'].SetLeftMargin(0.13)
+            self.canvas[suff+'impact'+'mass'].SetRightMargin(0.28)
+            self.histos[suff+'impact'+'mass'].Draw('nostack E1')
+            self.leg[suff+'impact'+'mass'].Draw("same")
+            
+            
+        
+        #------------------------canvas nuisance plots-------------------#  
+        for nuiDict_key, nuiDict_val in self.NuiConstrDict.items() :
+            self.histos[suff+'NuiConstr'+nuiDict_key].SetTitle("Nuisance parameters "+ nuiDict_key)
+            self.histos[suff+'NuiConstr'+nuiDict_key].GetYaxis().SetTitle("#theta-#theta^{0}")
+            self.histos[suff+'NuiConstr'+nuiDict_key].SetLineWidth(3)
+            self.histos[suff+'NuiConstr'+nuiDict_key].SetStats(0)  
+            if 'other' in nuiDict_key or 'all' in nuiDict_key :
+                self.histos[suff+'NuiConstr'+nuiDict_key].SetLabelSize(0.03,'x')
+            else :
+                self.histos[suff+'NuiConstr'+nuiDict_key].SetLabelSize(0.015,'x')
+            self.canvas[suff+'NuiConstr'+nuiDict_key]=ROOT.TCanvas(suff+'c_NuiConstr_'+nuiDict_key,suff+'c_NuiConstr_'+nuiDict_key,1200,900)
+            self.canvas[suff+'NuiConstr'+nuiDict_key].cd()
+            self.canvas[suff+'NuiConstr'+nuiDict_key].SetGridx()
+            self.canvas[suff+'NuiConstr'+nuiDict_key].SetGridy()
+            if 'all' in nuiDict_key :
+                self.canvas[suff+'NuiConstr'+nuiDict_key].SetBottomMargin(0.15)
+            self.histos[suff+'NuiConstr'+nuiDict_key].Draw("EX0")
+        
+        if toy !='' :
+            #---------------------------- Canvas pulls - unrolled: qt large, y small canvas (only unrolled produced for pulls) ------------------------------------
+            for c in self.coeffDict:
+                self.histos[suff+'FitAC'+'UNRqty'+c+'toyPull'] = ROOT.TH1F(suff+'_coeff_toyPull_UNRqty'+c,suff+'_coeff_toyPull_UNRqty'+c,len(self.unrolledQtY)-1, array('f',self.unrolledQtY))
+                for q in self.qtArr[:-1] :
+                    for y in self.yArr[:-1] :
+                        indexUNRqty = self.qtArr.index(float(q))*(len(self.yArr)-1)+self.yArr.index(float(y))
+                        self.histos[suff+'FitAC'+'UNRqty'+c+'toyPull'].SetBinContent(indexUNRqty+1,self.histos[suff+'FitAC'+c+'toyPull'].GetBinContent(self.yArr.index(y)+1,self.qtArr.index(q)+1))
+                        self.histos[suff+'FitAC'+'UNRqty'+c+'toyPull'].SetBinError(indexUNRqty+1,self.histos[suff+'FitAC'+c+'toyPull'].GetBinError(self.yArr.index(y)+1,self.qtArr.index(q)+1))
+                        if self.yArr.index(y)==0 :
+                            self.histos[suff+'FitAC'+'UNRqty'+c+'toyPull'].GetXaxis().SetNdivisions(-1)
+                            self.histos[suff+'FitAC'+'UNRqty'+c+'toyPull'].GetXaxis().SetBinLabel(indexUNRqty+1,"q_{T}^{W}#in[%.0f,%.0f]" % (q, self.qtArr[self.qtArr.index(q)+1]))
+                            self.histos[suff+'FitAC'+'UNRqty'+c+'toyPull'].GetXaxis().ChangeLabel(indexUNRqty+1,340,0.03)    
+                            self.histos[suff+'FitAC'+'UNRqty'+c+'toyPull'].GetXaxis().LabelsOption("d")  
+                self.histos[suff+'FitAC'+'UNRqty'+c+'toyPull'].SetTitle("toyPulls pulls compared to gen (mean) "+suff+' '+c+", unrolled q_{T}(Y) ")
+                self.histos[suff+'FitAC'+'UNRqty'+c+'toyPull'].GetXaxis().SetTitle('fine binning: Y_{W} 0#rightarrow 2.4')
+                self.histos[suff+'FitAC'+'UNRqty'+c+'toyPull'].GetXaxis().SetTitleOffset(1.45)
+                self.histos[suff+'FitAC'+'UNRqty'+c+'toyPull'].GetYaxis().SetTitle("(toy_{i}-gen)/#sigma_{toy_{i}}")
+                self.histos[suff+'FitAC'+'UNRqty'+c+'toyPull'].SetLineWidth(3)
+                self.histos[suff+'FitAC'+'UNRqty'+c+'toyPull'].SetStats(0)
+                self.histos[suff+'FitAC'+'UNRqty'+c+'toyPull'].SetLineColor(self.groupedSystColors['Nominal'][0])
+
+                self.canvas[suff+'FitAC'+'UNRqty'+c+'toyPull'] = ROOT.TCanvas(suff+'_c_toyPull_UNRqty'+c,suff+'_c_toyPull_UNRqty'+c,1200,900)
+                self.canvas[suff+'FitAC'+'UNRqty'+c+'toyPull'].cd()
+                self.canvas[suff+'FitAC'+'UNRqty'+c+'toyPull'].SetGridx()
+                self.canvas[suff+'FitAC'+'UNRqty'+c+'toyPull'].SetGridy()
+                self.histos[suff+'FitAC'+'UNRqty'+c+'toyPull'].Draw()
+                
+                #---------------------------- Canvas pulls - unrolled: y large, qt small canvas  (only unrolled produced for pulls) ------------------------------------
+                self.histos[suff+'FitAC'+'UNRyqt'+c+'toyPull'] = ROOT.TH1F(suff+'_coeff_toyPull_UNRyqt'+c,suff+'_coeff_toyPull_UNRyqt'+c,len(self.unrolledQtY)-1, array('f',self.unrolledQtY))
+                for y in self.yArr[:-1] :
+                    for q in self.qtArr[:-1] :
+                        indexUNRyqt = self.yArr.index(float(y))*(len(self.qtArr)-1)+self.qtArr.index(float(q))
+                        self.histos[suff+'FitAC'+'UNRyqt'+c+'toyPull'].SetBinContent(indexUNRyqt+1,self.histos[suff+'FitAC'+c+'toyPull'].GetBinContent(self.yArr.index(y)+1,self.qtArr.index(q)+1))
+                        self.histos[suff+'FitAC'+'UNRyqt'+c+'toyPull'].SetBinError(indexUNRyqt+1,self.histos[suff+'FitAC'+c+'toyPull'].GetBinError(self.yArr.index(y)+1,self.qtArr.index(q)+1))
+                        if self.qtArr.index(q)==0 :
+                            self.histos[suff+'FitAC'+'UNRyqt'+c+'toyPull'].GetXaxis().SetNdivisions(-1)
+                            self.histos[suff+'FitAC'+'UNRyqt'+c+'toyPull'].GetXaxis().SetBinLabel(indexUNRyqt+1,"Y_{W}#in[%.1f,%.1f]" % (y, self.yArr[self.yArr.index(y)+1]))
+                            self.histos[suff+'FitAC'+'UNRyqt'+c+'toyPull'].GetXaxis().ChangeLabel(indexUNRyqt+1,340,0.03)
+                            self.histos[suff+'FitAC'+'UNRyqt'+c+'toyPull'].GetXaxis().LabelsOption("d")
+                self.histos[suff+'FitAC'+'UNRyqt'+c+'toyPull'].SetTitle("toyPulls pulls compared to gen (mean) "+suff+' '+c+", unrolled Y(q_{T}) ")
+                self.histos[suff+'FitAC'+'UNRyqt'+c+'toyPull'].GetXaxis().SetTitle('fine binning: q_{T}^{W} 0#rightarrow 32 GeV')
+                self.histos[suff+'FitAC'+'UNRyqt'+c+'toyPull'].GetXaxis().SetTitleOffset(1.45)
+                self.histos[suff+'FitAC'+'UNRyqt'+c+'toyPull'].GetYaxis().SetTitle("(toy_{i}-gen)/#sigma_{toy_{i}}")
+                self.histos[suff+'FitAC'+'UNRyqt'+c+'toyPull'].SetLineWidth(3)
+                self.histos[suff+'FitAC'+'UNRyqt'+c+'toyPull'].SetStats(0)
+                self.histos[suff+'FitAC'+'UNRyqt'+c+'toyPull'].SetLineColor(self.groupedSystColors['Nominal'][0])
+
+                self.canvas[suff+'FitAC'+'UNRyqt'+c+'toyPull'] = ROOT.TCanvas(suff+'_c_toyPull_UNRyqt'+c,suff+'_c_toyPull_UNRyqt'+c,1200,900)
+                self.canvas[suff+'FitAC'+'UNRyqt'+c+'toyPull'].cd()
+                self.canvas[suff+'FitAC'+'UNRyqt'+c+'toyPull'].SetGridx()
+                self.canvas[suff+'FitAC'+'UNRyqt'+c+'toyPull'].SetGridy()
+                self.histos[suff+'FitAC'+'UNRyqt'+c+'toyPull'].Draw()
+                
+            
+                #--------------- Canvas pulls QT only canvas -------------------#
+                self.canvas[suff+'FitAC'+'qt'+c+'toyPull'] = ROOT.TCanvas(suff+"_c_QT_{}_toyPull".format(c),suff+"_c_QT_{}_toyPull".format(c),1200,900)
+                self.canvas[suff+'FitAC'+'qt'+c+'toyPull'].SetGridx()
+                self.canvas[suff+'FitAC'+'qt'+c+'toyPull'].SetGridy()
+                self.histos[suff+'FitAC'+'qt'+c+'toyPull'].SetTitle("toyPulls pulls compared to gen (mean) "+ suff+' '+c+", Y integrated")
+                self.canvas[suff+'FitAC'+'qt'+c+'toyPull'].cd()
+                self.histos[suff+'FitAC'+'qt'+c+'toyPull'].GetXaxis().SetTitle('q_{T}^{W} [GeV]')
+                self.histos[suff+'FitAC'+'qt'+c+'toyPull'].GetYaxis().SetTitle("(toy_{i}-gen)/#sigma_{toy_{i}}")
+                self.histos[suff+'FitAC'+'qt'+c+'toyPull'].SetLineWidth(3)
+                self.histos[suff+'FitAC'+'qt'+c+'toyPull'].SetStats(0)
+                self.histos[suff+'FitAC'+'qt'+c+'toyPull'].Draw()
+                self.histos[suff+'FitAC'+'qt'+c+'toyPull'].SetLineColor(self.groupedSystColors['Nominal'][0])
+                    
+                    
+                #--------------- Canvas pulls Y only canvas -------------------#
+                self.canvas[suff+'FitAC'+'y'+c+'toyPull'] = ROOT.TCanvas(suff+"_c_Y_{}_toyPull".format(c),suff+"_c_Y_{}_toyPull".format(c),1200,900)
+                self.canvas[suff+'FitAC'+'y'+c+'toyPull'].SetGridx()
+                self.canvas[suff+'FitAC'+'y'+c+'toyPull'].SetGridy()
+                self.histos[suff+'FitAC'+'y'+c+'toyPull'].SetTitle("toyPulls pulls compared to gen (mean) "+ suff+' '+c+",  q_{T} integrated")
+                self.canvas[suff+'FitAC'+'y'+c+'toyPull'].cd()
+                self.histos[suff+'FitAC'+'y'+c+'toyPull'].GetXaxis().SetTitle('Y_{W}')
+                self.histos[suff+'FitAC'+'y'+c+'toyPull'].GetYaxis().SetTitle("(toy_{i}-gen)/#sigma_{toy_{i}}")
+                self.histos[suff+'FitAC'+'y'+c+'toyPull'].SetLineWidth(3)
+                self.histos[suff+'FitAC'+'y'+c+'toyPull'].SetStats(0)
+                self.histos[suff+'FitAC'+'y'+c+'toyPull'].Draw()
+                self.histos[suff+'FitAC'+'y'+c+'toyPull'].SetLineColor(self.groupedSystColors['Nominal'][0])
+                
+            
             
         
         
@@ -1969,18 +2990,21 @@ class plotter :
             self.leg['comp'+'FitErr'+'y'+c].Draw("same")
             
 
-    def makeRootOutput(self,outFileName,SAVE, suffList, comparison) :
-
-        outFile = ROOT.TFile(outFileName+".root", "recreate")
+    def makeRootOutput(self,outFileName,SAVE, suffList, comparison,toy,impact) :
+        
+        if not self.helXsec :
+            outFile = ROOT.TFile(outFileName+".root", "recreate")
+        else :
+             outFile = ROOT.TFile(outFileName+"_helXsec.root", "recreate")
         outFile.cd()
         dirFinalDict = {}
 
         for suff in suffList : 
             dirFinalDict['coeff2D'+suff] = outFile.mkdir('coeff2D_'+suff)
             dirFinalDict['coeff2D'+suff].cd()
-            for hel in self.hels:
-                self.histos[suff+'FitHel'+hel].Write()
-                self.histos[suff+'FitHel'+hel+'norm'].Write()
+            # for hel in self.hels:
+            #     self.histos[suff+'FitHel'+hel].Write()
+            #     self.histos[suff+'FitHel'+hel+'norm'].Write()
             for c in self.coeffDict:
                 self.histos[suff+'FitAC'+c].Write()
                 self.histos[suff+'FitACqt'+c].Write()
@@ -2012,15 +3036,64 @@ class plotter :
             dirFinalDict['matrices'+suff] = outFile.mkdir('matrices_'+suff)
             dirFinalDict['matrices'+suff].cd()
             for mtx in ['corr','cov'] :
-                self.histos[suff+mtx+'Mat'].Write()
+                try : 
+                    self.histos[suff+mtx+'Mat'].Write()
+                except :
+                    print("missing total matrix in writing")
                 for c in self.coeffDict:
                     self.canvas[suff+mtx+'Mat'+c].Write()
-                for i in range(1, self.histos[suff+'FitACA0'].GetNbinsX()+1):
+                for i in range(1, self.histos[suff+'FitAC'+self.coeffList[0]].GetNbinsX()+1):
                     self.canvas[suff+mtx+'Mat'+'y'+str(i)].Write()
-                for j in range(1, self.histos[suff+'FitACA0'].GetNbinsY()+1):
+                for j in range(1, self.histos[suff+'FitAC'+self.coeffList[0]].GetNbinsY()+1):
                     self.canvas[suff+mtx+'Mat'+'qt'+str(j)].Write()
                 self.canvas[suff+mtx+'Mat'+'Integrated'+'qt'].Write()
                 self.canvas[suff+mtx+'Mat'+'Integrated'+'y'].Write()
+            
+            dirFinalDict['nuisance'+suff] = outFile.mkdir('nuisance_'+suff)
+            dirFinalDict['nuisance'+suff].cd()
+            for nuiDict_key, nuiDict_val in self.NuiConstrDict.items() :
+                self.canvas[suff+'NuiConstr'+nuiDict_key].Write()
+            self.histos[suff+'mass'].Write()
+
+            
+            
+            
+            if impact :
+                dirFinalDict['impact'+suff] = outFile.mkdir('impact_'+suff)
+                dirFinalDict['impact'+suff].cd()
+                for c in self.coeffDict :
+                    self.canvas[suff+'impact'+'UNR'+c].Write()
+                    self.canvas[suff+'impact'+'y'+c].Write()
+                    self.canvas[suff+'impact'+'qt'+c].Write()
+                self.canvas[suff+'impact'+'mass'].Write()
+            
+            if toy!='' :
+                dirFinalDict['toys'+suff] = outFile.mkdir('toys'+suff)
+                dirFinalDict['toys'+suff].cd()
+                self.histos[suff+'mass'+'toy'].Write()
+                self.histos[suff+'mass'+'toyPull'].Write()
+                for c in self.coeffDict:
+                    for i in range(1, self.histos[suff+'FitAC'+c].GetNbinsX()+1):
+                        for j in range(1, self.histos[suff+'FitAC'+c].GetNbinsY()+1):
+                            self.histos[suff+'FitAC'+c+'toy'+'y'+str(i)+'_qt'+str(j)].Write()
+                            self.histos[suff+'FitAC'+c+'toyPull'+'y'+str(i)+'_qt'+str(j)].Write()
+                    for i in range(1, self.histos[suff+'FitAC'+c].GetNbinsX()+1):
+                        self.histos[suff+'FitACy'+c+'toy'+'y'+str(i)].Write()
+                        self.histos[suff+'FitACy'+c+'toyPull'+'y'+str(i)].Write()
+                    for j in range(1, self.histos[suff+'FitAC'+c].GetNbinsY()+1):
+                        self.histos[suff+'FitACqt'+c+'toy'+'qt'+str(j)].Write()
+                        self.histos[suff+'FitACqt'+c+'toyPull'+'qt'+str(j)].Write()
+                
+                dirFinalDict['toys_summary_'+suff] = outFile.mkdir('toys_summary_'+suff)
+                dirFinalDict['toys_summary_'+suff].cd()
+                self.histos[suff+'mass'+'toy'+'mean'].Write()
+                self.histos[suff+'mass'+'toyPull'+'mean'].Write()
+                for c in self.coeffDict:
+                    self.canvas[suff+'FitAC'+'UNRqty'+c+'toyPull'].Write()
+                    self.canvas[suff+'FitAC'+'UNRyqt'+c+'toyPull'].Write()
+                    self.canvas[suff+'FitAC'+'y'+c+'toyPull'].Write()
+                    self.canvas[suff+'FitAC'+'qt'+c+'toyPull'].Write()
+            
                 
                   
         if comparison :
@@ -2059,7 +3132,10 @@ class plotter :
     def getQtArr(self) :
         return self.qtArr
     
-def saver(rootInput, suffList, comparison,coeffDict,yArr,qtArr) :
+def saver(rootInput, suffList, comparison,coeffDict,yArr,qtArr,helXsec=False) :
+    if helXsec : 
+        print("saved plot not implemented for helicity x section")
+        return 
     
     if not os.path.exists(rootInput): os.system("mkdir -p " + rootInput)
     FitFile = ROOT.TFile.Open(rootInput+'.root')
@@ -2106,12 +3182,23 @@ def saver(rootInput, suffList, comparison,coeffDict,yArr,qtArr) :
                 can = FitFile.Get('matrices_'+suff+'/'+suff+'_'+mtx+'Mat_Integrated_'+nn)
                 can.SaveAs(rootInput+'/'+can.GetTitle()+'.pdf')
                 can.SaveAs(rootInput+'/'+can.GetTitle()+'.png')
+        
+        if impact :
+            for c in coeffDict:
+                for name in ['UNR','y','qt'] :
+                    can = FitFile.Get('impact_'+suff+'/'+suff+'impact_'+name+c)
+                    can.SaveAs(rootInput+'/'+can.GetTitle()+'.pdf')
+                    can.SaveAs(rootInput+'/'+can.GetTitle()+'.png')
+            can = FitFile.Get('impact_'+suff+'/'+suff+'impact_mass')
+            can.SaveAs(rootInput+'/'+can.GetTitle()+'.pdf')
+            can.SaveAs(rootInput+'/'+can.GetTitle()+'.png')        
+            
                 
                 
                 
 ###############################################################################################################################
 #
-#  usage: python plotter_fitResult.py -o OUTNAME -f /scratchnvme/emanca/wproperties-analysis/Fit/fit_Wplus.root -u 1 -c 1 -s 1
+#  usage: python plotter_fitResult.py --output fitPlots_Wplus --fitFile fit_Wplus_reco.root --suff reco --input ../../../analysisOnGen/genInput_Wplus.root --impact 1
 #
 #  all the parameters are described below, but some note:
 #  --uncorrelate: it should be set to True accordingly to theory prescription (31 Scale variation in total)
@@ -2121,14 +3208,16 @@ def saver(rootInput, suffList, comparison,coeffDict,yArr,qtArr) :
        
 parser = argparse.ArgumentParser("")
 
-parser.add_argument('-o','--output', type=str, default='fitResult',help="name of the output file")
-parser.add_argument('-f','--fitFile', type=str, default='fit_Wplus.root',help="name of the fit result root file. If comparison active the name must be: NAME.root, NAME_reco.root")
+parser.add_argument('-o','--output', type=str, default='fitResult_Wplus',help="name of the output file")
+parser.add_argument('-f','--fitFile', type=str, default='fit_Wplus.root',help="name of the fit result root file. Always plus charge must be given. If comparison active the name must be: NAME.root, NAME_reco.root")
 parser.add_argument('-i','--input', type=str, default='../analysisOnGen/genInput_Wplus.root',help="name of the input root file")
 parser.add_argument('-u','--uncorrelate', type=int, default=True,help="if true uncorrelate num and den of Angular Coeff in MC scale variation")
-parser.add_argument('-c','--comparison', type=int, default=True,help="comparison between reco and gen fit")
+parser.add_argument('-c','--comparison', type=int, default=False,help="comparison between reco and gen fit")
 parser.add_argument('-s','--save', type=int, default=False,help="save .png and .pdf canvas")
 parser.add_argument('-l','--suffList', type=str, default='',nargs='*', help="list of suff to be processed in the form: gen,reco")
 parser.add_argument('-a','--aposteriori', type=str, default='',help="name of the aposteriori fit file, if empty not plotted")
+parser.add_argument('-t','--toy', type=str, default='',help="name of the toys fit file, if empty not plotted")
+parser.add_argument('-m','--impact', type=int, default=False,help="use the fitFile to produce also the impact plots (the required histos must be filled in the fit)")
 
 
 args = parser.parse_args()
@@ -2140,14 +3229,30 @@ COMP = args.comparison
 SAVE= args.save
 SUFFL =args.suffList
 APO = args.aposteriori
+TOY = args.toy
+IMPACT = args.impact
 
+plusOnly=True
+if plusOnly :
+    signList = ['plus']
+else :
+    signList = ['plus', 'minus']
 
-p=plotter()
-p.AngCoeffPlots(inputFile=INPUT, fitFile=FITFILE, uncorrelate=UNCORR,suff=SUFFL[0],aposteriori=APO)
-if COMP :
-    recoFit = FITFILE.replace('.root', '_'+str(SUFFL[1])+'.root')
-    p.AngCoeffPlots(inputFile=INPUT, fitFile=recoFit, uncorrelate=UNCORR, suff=SUFFL[1])
-    p.GenRecoComparison(suffGen='gen', suffReco='reco')
-p.makeRootOutput(outFileName=OUTPUT, SAVE=SAVE,suffList=SUFFL,comparison=COMP)
-if SAVE :
-    saver(rootInput=OUTPUT,suffList=SUFFL,comparison=COMP,coeffDict=p.getCoeffDict(),yArr=p.getYArr(),qtArr=p.getQtArr())
+for s in signList : 
+    FITFILE_s = FITFILE.replace('plus',s)
+    INPUT_s = INPUT.replace('plus',s)
+    OUTPUT_s = OUTPUT.replace('plus',s)
+    APO_s = APO.replace('plus',s)
+    
+    for helXsec in [False,True] :
+        if helXsec : APO_s = '' #we do not regularize helXsec, but Ai
+
+        p=plotter(helXsec=helXsec)
+        p.AngCoeffPlots(inputFile=INPUT_s, fitFile=FITFILE_s, uncorrelate=UNCORR,suff=SUFFL[0],aposteriori=APO_s,toy=TOY,impact=IMPACT)
+        if COMP :
+            recoFit = FITFILE_s.replace('.root', '_'+str(SUFFL[1])+'.root')
+            p.AngCoeffPlots(inputFile=INPUT_s, fitFile=recoFit, uncorrelate=UNCORR, suff=SUFFL[1])
+            p.GenRecoComparison(suffGen='gen', suffReco='reco')
+        p.makeRootOutput(outFileName=OUTPUT_s, SAVE=SAVE,suffList=SUFFL,comparison=COMP,toy=TOY, impact = IMPACT)
+        if SAVE :
+            saver(rootInput=OUTPUT_s,suffList=SUFFL,comparison=COMP,coeffDict=p.getCoeffDict(),yArr=p.getYArr(),qtArr=p.getQtArr())

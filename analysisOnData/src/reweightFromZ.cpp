@@ -24,6 +24,11 @@ RNode reweightFromZ::run(RNode d)
             return _hY->GetBinContent(bin);
     };
 
+    if(!_WJets) {
+        auto d1 = d.Define("Wpt_dress", "GenV_dress[0]").Define("Wrap_dress", "GenV_dress[1]")
+                   .Define("weightPt", getWeightPt, {"Wpt_dress"}).Define("weightY", getWeightY, {"Wrap_dress"});
+        return d1;
+        }
     auto d1 = d.Define("weightPt", getWeightPt, {"Wpt_dress"}).Define("weightY", getWeightY, {"Wrap_dress"});
 
     return d1;

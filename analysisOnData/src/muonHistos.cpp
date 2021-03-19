@@ -24,11 +24,11 @@ RNode muonHistos::bookNominalhistos(RNode df)
   _h2Group.emplace_back(hpT);
 
   TH2weightsHelper helperEta(std::string("Mu1_eta"), std::string(" ; muon #{eta}; muon charge "), _etaArr.size() - 1, _etaArr, _chargeArr.size() - 1, _chargeArr, _syst_name);
-  auto heta = df.Filter(_filter).Book<float, float, float, ROOT::VecOps::RVec<float>>(std::move(helperEta), {"Mu1_eta", "Mu1_charge", "weight", _syst_weight});
+  auto heta = df.Filter(_filter).Filter("Mu1_pt>25.0 && Mu1_pt<55.0").Book<float, float, float, ROOT::VecOps::RVec<float>>(std::move(helperEta), {"Mu1_eta", "Mu1_charge", "weight", _syst_weight});
   _h2Group.emplace_back(heta);
 
   TH2weightsHelper helperMT(std::string("MT"), std::string(" ; M_{T} (Rochester corr./smear MET); muon charge "), _MTArr.size() -1, _MTArr, _chargeArr.size() - 1, _chargeArr, _syst_name);
-  auto hMt = df.Filter(_filter).Book<float, float, float, ROOT::VecOps::RVec<float>>(std::move(helperMT), {"MT", "Mu1_charge", "weight", _syst_weight});
+  auto hMt = df.Filter(_filter).Filter("Mu1_pt>25.0 && Mu1_pt<55.0").Book<float, float, float, ROOT::VecOps::RVec<float>>(std::move(helperMT), {"MT", "Mu1_charge", "weight", _syst_weight});
   _h2Group.emplace_back(hMt);
 
   return df;
@@ -43,10 +43,10 @@ RNode muonHistos::bookptCorrectedhistos(RNode df)
 
     //Only this is not affected//Name of the histo will change, but the nominal column will be plotted
   TH2weightsHelper helper_Eta(std::string("Mu1_eta" + _colvarvec[i]), std::string(" ; muon #{eta}; muon charge "), _etaArr.size() - 1, _etaArr, _chargeArr.size() - 1, _chargeArr, _syst_name);
-  _h2Group.emplace_back( df.Filter(_filtervec[i]).Book<float, float, float, ROOT::VecOps::RVec<float>>(std::move(helper_Eta), {"Mu1_eta", "Mu1_charge", "weight", "Nom"}) );
+  _h2Group.emplace_back( df.Filter(_filtervec[i]).Filter("Mu1_pt>25.0 && Mu1_pt<55.0").Book<float, float, float, ROOT::VecOps::RVec<float>>(std::move(helper_Eta), {"Mu1_eta", "Mu1_charge", "weight", "Nom"}) );
 
     TH2weightsHelper helper_MT(std::string("MT" + _colvarvec[i]), std::string(" ; M_{T} (Rochester corr./smear MET); muon charge "), _MTArr.size() -1, _MTArr, _chargeArr.size() - 1, _chargeArr, _syst_name);
-    _h2Group.emplace_back(df.Filter(_filtervec[i]).Book<float, float, float, ROOT::VecOps::RVec<float>>(std::move(helper_MT), {"MT" + _colvarvec[i], "Mu1_charge", "weight", "Nom"}));
+    _h2Group.emplace_back(df.Filter(_filtervec[i]).Filter("Mu1_pt>25.0 && Mu1_pt<55.0").Book<float, float, float, ROOT::VecOps::RVec<float>>(std::move(helper_MT), {"MT" + _colvarvec[i], "Mu1_charge", "weight", "Nom"}));
   }
   return df;
 }
@@ -60,11 +60,11 @@ RNode muonHistos::bookJMEvarhistos(RNode df)
     _h2Group.emplace_back(df.Filter(_filtervec[i]).Book<float, float, float, ROOT::VecOps::RVec<float>>(std::move(helper_Pt), {"Mu1_pt", "Mu1_charge", "weight", "Nom"}));
 
   TH2weightsHelper helper_Eta(std::string("Mu1_eta" + _colvarvec[i]), std::string(" ; muon #{eta}; muon charge "), _etaArr.size() - 1, _etaArr, _chargeArr.size() - 1, _chargeArr, _syst_name);
-  _h2Group.emplace_back( df.Filter(_filtervec[i]).Book<float, float, float, ROOT::VecOps::RVec<float>>(std::move(helper_Eta), {"Mu1_eta", "Mu1_charge", "weight", "Nom"}) );
+  _h2Group.emplace_back( df.Filter(_filtervec[i]).Filter("Mu1_pt>25.0 && Mu1_pt<55.0").Book<float, float, float, ROOT::VecOps::RVec<float>>(std::move(helper_Eta), {"Mu1_eta", "Mu1_charge", "weight", "Nom"}) );
 
   //Only this column is affected
     TH2weightsHelper helper_MT(std::string("MT" + _colvarvec[i]), std::string(" ; M_{T} (Rochester corr./smear MET); muon charge "), _MTArr.size() -1, _MTArr, _chargeArr.size() - 1, _chargeArr, _syst_name);
-    _h2Group.emplace_back(df.Filter(_filtervec[i]).Book<float, float, float, ROOT::VecOps::RVec<float>>(std::move(helper_MT), {"MT" + _colvarvec[i], "Mu1_charge", "weight", "Nom"}));
+    _h2Group.emplace_back(df.Filter(_filtervec[i]).Filter("Mu1_pt>25.0 && Mu1_pt<55.0").Book<float, float, float, ROOT::VecOps::RVec<float>>(std::move(helper_MT), {"MT" + _colvarvec[i], "Mu1_charge", "weight", "Nom"}));
   }
   return df;
 }
@@ -74,10 +74,8 @@ void muonHistos::setAxisarrays()
   
   for (int i = 0; i < 61; i++)
     _pTArr[i] = 25. + i*(55.-25.)/60.;
-  /*
   for (int i = 0; i < 49; i++)
     _etaArr[i] = -2.4 + i * (4.8) / 48; //eta -2.4 to 2.4
-  */
   for (int i = 0; i < 31; i++)
     _MTArr[i] = 0. + i*(150.-0.)/30;
   for (int i = 0; i < 3; i++)

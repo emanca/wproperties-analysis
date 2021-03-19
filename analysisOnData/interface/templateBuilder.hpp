@@ -18,14 +18,19 @@ private:
 
   std::vector<std::string> helXsecs = {"L", "I", "T", "A", "P", "7", "8", "9", "UL"};
   
-  const int nBinsY = 6;
-  const int nBinsQt = 8;
   const int nBinsEta = 48;
   const int nBinsPt = 60;
   const int nBinsCharge = 2;
   std::vector<float> _pTArr = std::vector<float>(61);
   std::vector<float> _etaArr = std::vector<float>(49);
-  std::vector<float> _yArr = std::vector<float>(7);
+  // std::vector<float> _yArr = std::vector<float>(7);
+  std::vector<float> _yArr = {0, 0.4, 0.8, 1.2, 1.6, 2.0, 2.4};
+  // std::vector<float> _qTArr = {0., 4., 8., 12., 16., 20., 24., 28., 32.};
+  // std::vector<float> _qTArr = {0.,   3.1,  5.,   7.,   9.4, 12.4, 16.5, 22.3, 32.};  //quantile
+  std::vector<float> _qTArr = {0., 2., 4., 6.,8.,   10,   12., 16., 22, 32.}; //2 GeV
+  
+  const int nBinsY = _yArr.size()-1;
+  const int nBinsQt = _qTArr.size()-1;
 
 public:
   templateBuilder(std::string filter, std::string weight, std::vector<std::string> syst_name, std::string syst_weight, HistoCategory hcat, std::string colvar = "")
@@ -57,6 +62,7 @@ public:
   RNode bookptCorrectedhistos(RNode);
   RNode bookJMEvarhistos(RNode);
   RNode bookWeightVariatedhistos(RNode d);
+  RNode bookWeightVariatedhistosVariedCoeff(RNode d);
   RNode run(RNode) override;
   void setAxisarrays();
   std::vector<std::string> stringMultiplication(const std::vector<std::string> &v1, const std::vector<std::string> &v2);
@@ -70,6 +76,17 @@ public:
 
     return products;
   
+  }
+
+static ROOT::VecOps::RVec<float> vecMultiplicationVariedCoeff(const ROOT::VecOps::RVec<float> &v1, ROOT::VecOps::RVec<ROOT::VecOps::RVec<float>> &v2) {
+    ROOT::VecOps::RVec<float> products;
+    
+    products.reserve(v1.size() * v2[0].size());
+    for (long unsigned int v=0; v!=v1.size(); v++)
+      for (auto e2 : v2[v])
+        products.push_back(v1[v] * e2);
+   
+    return products;
   }
 };
 

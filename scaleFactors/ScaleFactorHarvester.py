@@ -294,6 +294,7 @@ def SFHarvester_OTF(fileDict) :
 #####################################################################################################################
 #
 #   AUTHOR: V. Bertacchi (06/2020)
+#   THIS DOCUMENTATION IS OUTDATED (10/2/2021)
 #
 #   USAGE: python SaleFactorHarvester.py (--output_name) (--saveRatio) (--syst)
 #   
