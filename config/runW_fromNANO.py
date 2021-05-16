@@ -82,7 +82,7 @@ def main():
         xsec = samples[sample]['xsec']
         fvec=ROOT.vector('string')()
         for d in direc:
-            targetDir='{}/{}/'.format(inDir, d)
+            targetDir='{}/{}/merged/'.format(inDir, d)
             for f in os.listdir(targetDir):#check the directory
                 if not f.endswith('.root'): continue
                 inputFile=targetDir+f
