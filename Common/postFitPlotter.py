@@ -4,6 +4,7 @@ import sys
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import mplhep as hep
 sys.path.append('data/')
 from binning import ptBins, etaBins, mTBins, isoBins, chargeBins, yBins, qtBins
@@ -14,6 +15,10 @@ yBins = np.array(yBins[:threshold_y+1])
 qtBins = np.array(qtBins[:threshold_qt+1])
 yBinsC = 0.5*(yBins[1:]+yBins[:-1])
 qtBinsC = 0.5*(qtBins[1:]+qtBins[:-1])
+etaBins = np.array(etaBins)
+ptBins = np.array(ptBins)
+etaBinsC = 0.5*(etaBins[1:]+etaBins[:-1])
+ptBinsC = 0.5*(ptBins[1:]+ptBins[:-1])
 
 helXsecs = ['L', 'I', 'T', 'A', 'P','7','8', '9','UL']
 

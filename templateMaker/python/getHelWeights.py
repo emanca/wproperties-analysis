@@ -7,33 +7,26 @@ from math import pi, sqrt
 
 class getHelWeights(module):
    
-    def __init__(self, syst = ""):
+    def __init__(self, era,syst = ""):
         self.syst = syst
         if not syst == "":
             self.syst = "_"+syst
-        print(self.syst)
+        self.era=era
         pass
       
 
     def run(self,d):
 
-        file_preVFP = '/scratchnvme/emanca/wproperties-analysis/config/outputW_preVFP/WPlusJetsToMuNu_helweights.hdf5'
-        file_postVFP = '/scratchnvme/emanca/wproperties-analysis/config/outputW_postVFP/WPlusJetsToMuNu_helweights.hdf5'
+        file_in = '/scratchnvme/emanca/wproperties-analysis/config/halfptBins_{}/WPlusJetsToMuNu_helweights.hdf5'.format(self.era)
 
-        f_preVFP = h5py.File(file_preVFP, mode='r+')
-        f_postVFP = h5py.File(file_postVFP, mode='r+')
+        f = h5py.File(file_in, mode='r+')
+        
+        htot = f['totxsecs'+self.syst][:]
+        h = f['xsecs'+self.syst][:]
 
-        # merge pre and post VFP xsecs
-        htot_preVFP = f_preVFP['totxsecs'+self.syst][:]
-        htot_postVFP = f_postVFP['totxsecs'+self.syst][:]
-        h_preVFP = f_preVFP['xsecs'+self.syst][:]
-        h_postVFP = f_postVFP['xsecs'+self.syst][:]
+        yBins = f['edges_totxsecs_0'][:]
+        qtBins = f['edges_totxsecs_1'][:]
 
-        yBins = f_preVFP['edges_totxsecs_0'][:]
-        qtBins = f_preVFP['edges_totxsecs_1'][:]
-
-        htot = htot_preVFP+htot_postVFP
-        h = h_preVFP+h_postVFP
         # shape h: y, qt, weights, pdf
         # shape tot: y, qt, pdf
         factors = np.array([[20./3., 1./10],[5.,0.],[20.,0.],[4.,0.],[4.,0.],[5.,0.],[5.,0.],[4.,0.],[1.,0.]])

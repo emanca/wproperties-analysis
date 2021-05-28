@@ -15,7 +15,7 @@ from RDFtree import RDFtree
 sys.path.append('python/')
 from getLumiWeight import getLumiWeight
 from binning import ptBins, etaBins, mTBins, etaBins, isoBins, chargeBins, yBins, qtBins, cosThetaBins, phiBins
-from externals import filePt, fileY, fileSF, fileSFul
+from externals import fileSFul
 
 # matplotlib stuff
 plt.style.use([hep.style.ROOT])
@@ -31,13 +31,13 @@ ROOT.ROOT.EnableImplicitMT(48)
 outputDir = 'PLOTS'
 inputFile = '/scratchnvme/wmass/NanoAOD2016-UL/postNanoDec2020/WplusJetsToMuNu_preVFP_addVars/merged/*.root'
 
-luminosityN = 19.3
+luminosityN = 35.9
 sumwclipped = 5895502305412.54
 
-p = RDFtree(outputDir = outputDir, inputFile = inputFile, outputFile="test.root", pretend=False)
-p.branch(nodeToStart='input', nodeToEnd='defs', modules=[ROOT.lumiWeight(xsec=11572.19, sumwclipped=sumwclipped, targetLumi = luminosityN), ROOT.customizeforUL(True,True), ROOT.genDefinitions()])
-p.Histogram(columns = ["Wrap_preFSR_abs","Vpt_preFSR","CStheta_preFSR","CSphi_preFSR","lumiweight"], types = ['float']*5,node='defs',histoname=ROOT.string("xsecs"), bins = [yBins,qtBins,cosThetaBins,phiBins])
-p.gethdf5Output()
+# p = RDFtree(outputDir = outputDir, inputFile = inputFile, outputFile="test.root", pretend=False)
+# p.branch(nodeToStart='input', nodeToEnd='defs', modules=[ROOT.lumiWeight(xsec=11572.19, sumwclipped=sumwclipped, targetLumi = luminosityN), ROOT.customizeforUL(True,True), ROOT.genDefinitions()])
+# p.Histogram(columns = ["Wrap_preFSR_abs","Vpt_preFSR","CStheta_preFSR","CSphi_preFSR","lumiweight"], types = ['float']*5,node='defs',histoname=ROOT.string("xsecs"), bins = [yBins,qtBins,cosThetaBins,phiBins])
+# p.gethdf5Output()
 
 fewk = h5py.File('PLOTS/test.hdf5', mode='r+')
 hFullAcc = np.array(fewk['xsecs'][:].reshape((len(yBins)-1,len(qtBins)-1, len(cosThetaBins)-1, len(phiBins)-1),order='F'),order='C')

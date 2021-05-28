@@ -47,7 +47,7 @@ RNode defineHarmonics::run(RNode d)
   auto d1 = d.Define("harmonicsVec", getHarmonicsVec, {"CStheta_preFSR", "CSphi_preFSR"})
                 .Define("nharmonicsVec", "harmonicsVec.size()")
                 .Define("harmonicsVec_LHEPdfWeight", vecMultiplication, {"harmonicsVec", "LHEPdfWeight"})
-                .Define("nharmonicsVec_LHEPdfWeight", "harmonicsVec_LHEPdfWeight.size()");
+                .Define("harmonicsVec_LHEScaleWeight", vecMultiplication, {"harmonicsVec", "LHEScaleWeight"});
 
   return d1;
 }

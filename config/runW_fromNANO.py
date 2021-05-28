@@ -13,7 +13,7 @@ from RDFtree import RDFtree
 
 sys.path.append('{}/Common/data'.format(FWKBASE))
 from genSumW import sumwDictpreVFP, sumwDictpostVFP
-from samples_2016_ulV2 import samplespreVFP, samplespostVFP
+from samples_2016_ulCentral import samplespreVFP, samplespostVFP
 
 ROOT.gSystem.Load('{}/nanotools/bin/libNanoTools.so'.format(FWKBASE))
 sys.path.append('../nanotools')
@@ -37,7 +37,7 @@ def RDFprocess(fvec, outputDir, sample, xsec, systType, sumw, era, pretendJob, h
     if not helWeights: 
         resultNode = wSelectionSequence(postnano, systType, endNode, era)
         if sample =="WPlusJetsToMuNu":
-            resultNode = wSelectionDifferentialSequence(resultNode)
+            resultNode = wSelectionDifferentialSequence(resultNode,era)
     else: resultNode = wSelectionHelWeightsSequence(postnano, endNode)
     
     return resultNode
@@ -48,7 +48,8 @@ def main():
     parser.add_argument('-p', '--pretend',type=bool, default=False, help="run over a small number of event")
     parser.add_argument('-r', '--report',type=bool, default=False, help="Prints the cut flow report for all named filters")
     parser.add_argument('-o', '--outputDir',type=str, default='outputW', help="output dir name")
-    parser.add_argument('-i', '--inputDir',type=str, default='/scratchnvme/wmass/NANOMAY2021/', help="input dir name")    
+    # parser.add_argument('-i', '--inputDir',type=str, default='/scratchnvme/wmass/NANOMAY2021/', help="input dir name")    
+    parser.add_argument('-i', '--inputDir',type=str, default='/scratchnvme/wmass/', help="input dir name")
     parser.add_argument('-e', '--era',type=str, default='preVFP', help="either (preVFP|postVFP)")    
     parser.add_argument('-helWeights', '--helWeights',type=bool, default=False, help="derive helicity weights for reweighting")    
 
@@ -59,7 +60,7 @@ def main():
     outputDir = args.outputDir+"_"+era
     helWeights = args.helWeights
     ##Add era to input dir
-    inDir+=era
+    # inDir+=era
     if pretendJob:
         print("Running a test job over a few events")
     else:
@@ -77,7 +78,7 @@ def main():
         if helWeights:
             if not 'WPlusJetsToMuNu' in sample or 'WMinusJetsToMuNu' in sample: continue
         print('analysing sample: %s'%sample)
-        # if not ("WPlusJetsToMuNu" in sample or "WPlusJetsToTauNu" in sample): continue
+        if not "WPlusJetsToMuNu" in sample: continue
         direc = samples[sample]['dir']
         xsec = samples[sample]['xsec']
         fvec=ROOT.vector('string')()
@@ -104,7 +105,7 @@ def main():
     for sample in samples:
         if helWeights:
             if not 'WPlusJetsToMuNu' in sample or 'WMinusJetsToMuNu' in sample: continue
-        # if not ("WPlusJetsToMuNu" in sample or "WPlusJetsToTauNu" in sample): continue
+        if not "WPlusJetsToMuNu" in sample: continue
         print(sample)
         RDFtreeDict = RDFtrees[sample].getObjects()
         if args.report: cutFlowreportDict[sample] = RDFtrees[sample].getCutFlowReport('defs')
@@ -119,7 +120,7 @@ def main():
     for sample in samples:
         if helWeights:
             if not 'WPlusJetsToMuNu' in sample or 'WMinusJetsToMuNu' in sample: continue
-        # if not ("WPlusJetsToMuNu" in sample or "WPlusJetsToTauNu" in sample): continue
+        if not "WPlusJetsToMuNu" in sample: continue
         print(sample)
         RDFtrees[sample].gethdf5Output()
         if args.report: cutFlowreportDict[sample].Print()
