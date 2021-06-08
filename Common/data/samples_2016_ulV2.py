@@ -164,4 +164,28 @@ samplespostVFP = {
     }, 
 }
 
+wsignalNLO_preVFP={
+     "WJetsToLNu_0J": {
+         "nsyst": 1, 
+         "xsec": 60890.0, 
+         "dir": ["WJetsToLNu_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8"]
+     },
+     "WJetsToLNu_1J": {
+         "nsyst": 1, 
+         "xsec": 12790.0, 
+         "dir": ["WJetsToLNu_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8"]
+     },
+}
 
+wsignalNLO_postVFP={
+     "WJetsToLNu_0J": {
+         "nsyst": 1, 
+         "xsec": 60890.0, 
+         "dir": ["WJetsToLNu_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8"]
+     },
+     "WJetsToLNu_1J": {
+         "nsyst": 1, 
+         "xsec": 12790.0, 
+         "dir": ["WJetsToLNu_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8"]
+     },
+}
