@@ -7,17 +7,17 @@ samplespreVFP = {
     "DYJetsToMuMu_M50": {
         "nsyst": 2, 
         "xsec": 1976.17, 
-        "dir": ["DYJetsToMuMu_preVFP0", "DYJetsToMuMu_preVFP1","DYJetsToMuMu_preVFP2","DYJetsToMuMu_preVFP3"]
+        "dir": ["DYJetsToMuMu"]
     }, 
     "DYJetsToTauTau_M50": {
         "nsyst": 2, 
         "xsec": 0.5802*1976.17, 
-        "dir": ["DYJetsToTauTau_preVFP0","DYJetsToTauTau_preVFP1"]
+        "dir": ["DYJetsToTauTau"]
     }, 
     "WPlusJetsToMuNu": {
         "nsyst": 2, 
         "xsec": 11572.19, 
-        "dir": ["WPlusToMuNu_preVFP0", "WPlusToMuNu_preVFP1"]
+        "dir": ["WPlusToMuNu"]
     },
     #"WMinusJetsToMuNu": {
     #    "nsyst": 2, 
@@ -27,7 +27,7 @@ samplespreVFP = {
     "WPlusJetsToTauNu": {
         "nsyst": 2, 
         "xsec": 0.17394*11572.19, 
-        "dir": ["WPlusToTauNu_preVFP0"]
+        "dir": ["WPlusToTauNu"]
     },
     #"WMinusJetsToTauNu": {
     #    "nsyst": 2, 
@@ -95,17 +95,17 @@ samplespostVFP = {
     "DYJetsToMuMu_M50": {
         "nsyst": 2, 
         "xsec": 1976.17, 
-        "dir": ["DYJetsToMuMu_postVFP0", "DYJetsToMuMu_postVFP1", "DYJetsToMuMu_postVFP2"]
+        "dir": ["DYJetsToMuMu"]
     }, 
     "DYJetsToTauTau_M50": {
         "nsyst": 2, 
         "xsec": 0.5802*1976.17, 
-        "dir": ["DYJetsToTauTau_postVFP0", "DYJetsToTauTau_postVFP1"]
+        "dir": ["DYJetsToTauTau"]
     }, 
     "WPlusJetsToMuNu": {
         "nsyst": 2, 
         "xsec": 11572.19, 
-        "dir": ["WPlusToMuNu_postVFP0", "WPlusToMuNu_postVFP1"]
+        "dir": ["WPlusToMuNu"]
     },
     #"WMinusJetsToMuNu": {
     #    "nsyst": 2, 
@@ -115,7 +115,7 @@ samplespostVFP = {
     "WPlusJetsToTauNu": {
         "nsyst": 2, 
         "xsec": 0.17394*11572.19, 
-        "dir": ["WPlusToTauNu_postVFP0"]
+        "dir": ["WPlusToTauNu"]
     },
    # "WMinusJetsToTauNu": {
    #     "nsyst": 2, 
@@ -164,4 +164,28 @@ samplespostVFP = {
     }, 
 }
 
+wsignalNLO_preVFP={
+     "WJetsToLNu_0J": {
+         "nsyst": 1, 
+         "xsec": 60890.0, 
+         "dir": ["WJetsToLNu_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8"]
+     },
+     "WJetsToLNu_1J": {
+         "nsyst": 1, 
+         "xsec": 12790.0, 
+         "dir": ["WJetsToLNu_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8"]
+     },
+}
 
+wsignalNLO_postVFP={
+     "WJetsToLNu_0J": {
+         "nsyst": 1, 
+         "xsec": 60890.0, 
+         "dir": ["WJetsToLNu_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8"]
+     },
+     "WJetsToLNu_1J": {
+         "nsyst": 1, 
+         "xsec": 12790.0, 
+         "dir": ["WJetsToLNu_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8"]
+     },
+}
