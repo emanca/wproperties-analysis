@@ -20,3 +20,4 @@ float deltaR2(float eta1, float phi1, float eta2, float phi2);
 float deltaPhi(float phi1, float phi2);
 bool hasTriggerMatch(const float mueta, const float muphi, const RVec<float> &TrigObj_eta, const RVec<float> &TrigObj_phi);
 float getValFromTH2(const TH2 &h, const float &x, const float &y);
+float getErrFromTH2(const TH2 &h, const float &x, const float &y);

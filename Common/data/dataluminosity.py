@@ -11,3 +11,5 @@ lumiperEra = { "B" : 5.824235614,
 lumi_preVFP=float(lumiperEra['B']+lumiperEra['C']+lumiperEra['D']+lumiperEra['E']+lumiperEra['F'])
 lumi_postVFP=float(lumiperEra['F_postVFP']+lumiperEra['G']+lumiperEra['H'])
 lumi_total2016=lumi_preVFP+lumi_postVFP
+
+# print(lumi_preVFP,lumi_postVFP)

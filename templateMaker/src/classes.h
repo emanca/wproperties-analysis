@@ -11,6 +11,7 @@
 #include "lumiWeight.hpp"
 #include "getZmass.hpp"
 #include "SF_ul.hpp"
+#include "SFprod.hpp"
 #include "zSelection.hpp"
 #include "zVetoMuons.hpp"
 #include "zHistosROOT.hpp"

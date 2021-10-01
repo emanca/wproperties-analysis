@@ -6,6 +6,8 @@ import json
 #fileSFul = ROOT.TFile.Open("../Common/data/allSFs_eta0p1.root")
 #Easter bunny SF
 fileSFul = ROOT.TFile.Open("../Common/data/2021-03-31_allSFs.root")
+# SF prod
+# ileSFul = ROOT.TFile.Open("../Common/data/scaleFactorProduct_31Mar2021.root")
 
 
 #fileSF = ROOT.TFile.Open("../Common/data/ScaleFactors_OnTheFly.root")

@@ -7,30 +7,40 @@ from math import pi, sqrt
 
 class getMassWeights(module):
    
-    def __init__(self, syst = ""):
+    def __init__(self, era):
+        self.era=era
         pass
       
     def run(self,d):
+        if self.era=="preVFP":
+            @ROOT.Numba.Declare(["RVec<float>"], "RVec<float>")
+            def getMassWeights(fullvec): # corresponding to a variation of 50 MeV
+                red = np.zeros((2,),dtype='float32')
+                red[0]=fullvec[15]
+                red[1]=fullvec[5]
+                return red
+            @ROOT.Numba.Declare(["float"], "RVec<float>")
+            def getBWMassWeights(genMass): # corresponding to a variation of 50 MeV
+                (m0, gamma) = (80.351812293789408, 2.0904310808144846)
+                offset = [-0.05,0.050]
+                weights = np.zeros((2,),dtype='float32')
+                for i,off in enumerate(offset):
+                    newmass = m0 + off
+                    s_hat = np.power(genMass,2)
+                    weights[i] = (np.power(s_hat - m0*m0,2) + np.power(gamma*m0,2)) / (np.power(s_hat - newmass*newmass,2) + np.power(gamma*newmass,2))
+                return weights
 
-        @ROOT.Numba.Declare(["RVec<float>"], "RVec<float>")
-        def getMassWeights(fullvec): # corresponding to a variation of 50 MeV
-            red = np.zeros((2,),dtype='float32')
-            red[0]=fullvec[16]
-            red[1]=fullvec[6]
-            return red
-        
-        @ROOT.Numba.Declare(["RVec<float>", "RVec<float>"], "RVec<float>")
-        def vecMultiplication (v1, v2):
-            products = np.zeros((v1.shape[0],v2.shape[0]),dtype='float32')
-            for i in range(products.shape[0]):
-              for j in range(products.shape[1]):
-                products[i,j] = v1[i]*v2[j]
-            return products.ravel()
-
+            @ROOT.Numba.Declare(["RVec<float>", "RVec<float>"], "RVec<float>")
+            def vecMultiplication (v1, v2):
+                products = np.zeros((v1.shape[0],v2.shape[0]),dtype='float32')
+                for i in range(products.shape[0]):
+                  for j in range(products.shape[1]):
+                    products[i,j] = v1[i]*v2[j]
+                return products.ravel()
         self.d = d
-        self.d = self.d.Define("massWeights","Numba::getMassWeights(LHEReweightingWeightCorrectMass)").Define("helmassWeights", "Numba::vecMultiplication(helWeights,massWeights)")\
-            .Define("nhelmassWeights", "helmassWeights.size()")
-        
+        self.d = self.d.Define("massWeights","Numba::getMassWeights(MEParamWeight)").Define("helmassweights","Numba::vecMultiplication(helWeights,massWeights)")
+        # self.d = self.d.Define("massWeights","Numba::getBWMassWeights(Vmass_preFSR)").Define("helmassweights","Numba::vecMultiplication(helWeights,massWeights)")
+
         return self.d
 
     def getTH1(self):

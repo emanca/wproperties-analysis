@@ -1,4 +1,5 @@
 #include "defineHarmonics.hpp"
+#include "functions.hpp"
 
 RNode defineHarmonics::run(RNode d)
 {
@@ -45,9 +46,9 @@ RNode defineHarmonics::run(RNode d)
   };
 
   auto d1 = d.Define("harmonicsVec", getHarmonicsVec, {"CStheta_preFSR", "CSphi_preFSR"})
-                .Define("nharmonicsVec", "harmonicsVec.size()")
+                // .Define("harmonicsVec_BWmassWeights", vecMultiplication, {"harmonicsVec", "BWmassWeights"})
                 .Define("harmonicsVec_LHEPdfWeight", vecMultiplication, {"harmonicsVec", "LHEPdfWeight"})
-                .Define("harmonicsVec_LHEScaleWeight", vecMultiplication, {"harmonicsVec", "LHEScaleWeight"});
-
+                .Define("harmonicsVec_LHEScaleWeight", vecMultiplication, {"harmonicsVec", "LHEScaleWeight"})
+                .Define("DeltaPhi", deltaPhi, {"CSphi_preFSR","Vphi_preFSR"});
   return d1;
 }

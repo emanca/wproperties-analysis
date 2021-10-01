@@ -32,7 +32,7 @@ def nanoSequence(rdftree, systType, sample, xsec, sumw, era):
         else: luminosityN = lumi_postVFP
         
         clip=False
-        if systType==2:
+        if sample=="WPlusJetsToMuNu": #add other relevant samples
             clip=True
 
         endNode='postnano'
