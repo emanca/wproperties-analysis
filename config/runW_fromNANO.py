@@ -13,12 +13,9 @@ from RDFtree import RDFtree
 
 sys.path.append('{}/Common/data'.format(FWKBASE))
 from genSumW import sumwDictpreVFP, sumwDictpostVFP
-from samples_2016_ulV2 import samplespreVFP, samplespostVFP
+# from samples_2016_ulCentral import samplespreVFP, samplespostVFP
+from samples_2016_ulV2 import samplespreVFP, samplespostVFP, wsignalNLO_preVFP, wsignalNLO_postVFP
 #from samples_2016_ul import samplespreVFP, samplespostVFP
-
-ROOT.gSystem.Load('{}/nanotools/bin/libNanoTools.so'.format(FWKBASE))
-sys.path.append('../nanotools')
-from nanoSequence import nanoSequence
 
 ROOT.gSystem.Load('{}/nanotools/bin/libNanoTools.so'.format(FWKBASE))
 sys.path.append('{}/nanotools'.format(FWKBASE))
@@ -29,6 +26,8 @@ from wSequence import wSelectionSequence, wSelectionHelWeightsSequence, wSelecti
 
 ROOT.gROOT.ProcessLine("gErrorIgnoreLevel = 2001;")
 
+eras = ["preVFP","postVFP"]
+
 def RDFprocess(fvec, outputDir, sample, xsec, systType, sumw, era, pretendJob, helWeights=False):
     print("processing ", sample)
     p = RDFtree(outputDir = outputDir, inputFile = fvec, outputFile="{}.root".format(sample if not helWeights else sample+'_helweights'), pretend=pretendJob)
@@ -37,9 +36,10 @@ def RDFprocess(fvec, outputDir, sample, xsec, systType, sumw, era, pretendJob, h
     #return postnano
     if not helWeights: 
         resultNode = wSelectionSequence(postnano, systType, endNode, era)
-        if sample =="WPlusJetsToMuNu":
-            resultNode = wSelectionDifferentialSequence(resultNode)
-    else: resultNode = wSelectionHelWeightsSequence(postnano, endNode)
+        # if sample =="WJetsToLNu_0J" or sample=='WJetsToLNu_1J' or sample=='WJetsToLNu_2J':
+        if sample =="WPlusJetsToMuNu" or sample=='WMinusJetsToMuNu':
+            resultNode = wSelectionDifferentialSequence(resultNode,era,sample)
+    else: resultNode = wSelectionHelWeightsSequence(postnano, endNode,era)
     
     return resultNode
 
@@ -50,82 +50,106 @@ def main():
     parser.add_argument('-r', '--report',type=bool, default=False, help="Prints the cut flow report for all named filters")
     parser.add_argument('-o', '--outputDir',type=str, default='outputW', help="output dir name")
     parser.add_argument('-i', '--inputDir',type=str, default='/scratchnvme/wmass/NANOJEC/', help="input dir name")    
-    parser.add_argument('-e', '--era',type=str, default='preVFP', help="either (preVFP|postVFP)")    
     parser.add_argument('-helWeights', '--helWeights',type=bool, default=False, help="derive helicity weights for reweighting")    
 
-    args = parser.parse_args()
-    pretendJob = args.pretend
-    inDir = args.inputDir
-    era=args.era
-    outputDir = args.outputDir+"_"+era
-    helWeights = args.helWeights
-    ##Add era to input dir
-    inDir+=era
-    if pretendJob:
-        print("Running a test job over a few events")
-    else:
-        print("Running on full dataset")
-    ROOT.ROOT.EnableImplicitMT(48)
     RDFtrees = {}
-    
-    samples = samplespreVFP
-    sumwClippedDict=sumwDictpreVFP
-    if era == 'postVFP': 
-        samples = samplespostVFP
-        sumwClippedDict=sumwDictpostVFP
+    args = parser.parse_args()
+    for era in eras:
+        pretendJob = args.pretend
+        inDir = args.inputDir
+        outputDir = args.outputDir+"_"+era
+        helWeights = args.helWeights
+        ##Add era to input dir
+        inDir+=era
+        if pretendJob:
+            print("Running a test job over a few events")
+        else:
+            print("Running on full dataset")
+        ROOT.ROOT.EnableImplicitMT(48)
+        RDFtrees[era] = {}
 
-    for sample in samples:
-        if helWeights:
-            if not 'WPlusJetsToMuNu' in sample or 'WMinusJetsToMuNu' in sample: continue
-        print('analysing sample: %s'%sample)
-        # if not ("WPlusJetsToMuNu" in sample or "WPlusJetsToTauNu" in sample): continue
-        direc = samples[sample]['dir']
-        xsec = samples[sample]['xsec']
-        fvec=ROOT.vector('string')()
-        for d in direc:
-            targetDir='{}/{}/'.format(inDir, d)
-            #for now  let's run on unmerged file.
-            for f in os.listdir(targetDir):#check the directory
-                if not f.endswith('.root'): continue
-                inputFile=targetDir+f
-                #print(f)
-                fvec.push_back(inputFile)
-        if fvec.empty():
-            print("No files found for directory:", samples[sample], " SKIPPING processing")
-            continue
-        systType = samples[sample]['nsyst']
-        sumw=1.
-        if not 'data' in sample:
-            sumw=sumwClippedDict[sample]
-        print(sample, sumw)
-        RDFtrees[sample] = RDFprocess(fvec, outputDir, sample, xsec, systType, sumw, era, pretendJob, helWeights)
-    #sys.exit(0)
+        samples = samplespreVFP
+        # samples = wsignalNLO_preVFP
+        sumwClippedDict=sumwDictpreVFP
+        if era == 'postVFP': 
+            # samples = wsignalNLO_postVFP
+            samples = samplespostVFP
+            sumwClippedDict= sumwDictpostVFP
+
+        for sample in samples:
+            if helWeights:
+                if not 'WPlusJetsToMuNu' in sample or 'WMinusJetsToMuNu' in sample: continue
+                # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
+            systType = samples[sample]['nsyst']
+            # if systType==0: continue #only process samples with pdfs
+            if not 'WPlusJetsToMuNu' in sample: continue
+            # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
+            direc = samples[sample]['dir']
+            xsec = samples[sample]['xsec']
+            fvec=ROOT.vector('string')()
+            for d in direc:
+                targetDir='{}/{}/'.format(inDir, d)
+                # mergedDir=targetDir+'merged/'
+                # if os.path.isdir(mergedDir):
+                #     targetDir=mergedDir
+                #for now  let's run on unmerged file.
+                for f in os.listdir(targetDir):#check the directory
+                    if not f.endswith('.root'): continue
+                    inputFile=targetDir+f
+                    #print(f)
+                    fvec.push_back(inputFile)
+            if fvec.empty():
+                print("No files found for directory:", samples[sample], " SKIPPING processing")
+                continue
+            sumw=1.
+            if not 'data' in sample:
+                sumw=sumwClippedDict[sample]
+            RDFtrees[era][sample] = RDFprocess(fvec, outputDir, sample, xsec, systType, sumw, era, pretendJob, helWeights)
+
     #now trigger all the event loops at the same time:
     objList = []
     cutFlowreportDict = {}
-    for sample in samples:
-        if helWeights:
-            if not 'WPlusJetsToMuNu' in sample or 'WMinusJetsToMuNu' in sample: continue
-        # if not ("WPlusJetsToMuNu" in sample or "WPlusJetsToTauNu" in sample): continue
-        print(sample)
-        RDFtreeDict = RDFtrees[sample].getObjects()
-        if args.report: cutFlowreportDict[sample] = RDFtrees[sample].getCutFlowReport('defs')
-        for node in RDFtreeDict:
-            objList.extend(RDFtreeDict[node])
-
+    for era in eras:
+        print(era, "merging objects")
+        sumwClippedDict=sumwDictpreVFP
+        
+        samples = samplespreVFP
+        # samples = wsignalNLO_preVFP
+        sumwClippedDict=sumwDictpreVFP
+        if era == 'postVFP': 
+            # samples = wsignalNLO_postVFP
+            samples = samplespostVFP
+            sumwClippedDict= sumwDictpostVFP
+        for sample in samples:
+            if helWeights:
+                if not 'WPlusJetsToMuNu' in sample or 'WMinusJetsToMuNu' in sample: continue
+                # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
+            systType = samples[sample]['nsyst']
+            # if systType==0: continue #only process samples with pdfs
+            if not 'WPlusJetsToMuNu' in sample: continue
+            # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
+            RDFtreeDict = RDFtrees[era][sample].getObjects()
+            if args.report: cutFlowreportDict[sample] = RDFtrees[era][sample].getCutFlowReport('defs')
+            for node in RDFtreeDict:
+                objList.extend(RDFtreeDict[node])
+    print("end merging objects")
     #magic happens here
     start = time.time()
+    print("triggering event loop...")
     ROOT.RDF.RunGraphs(objList)
     #now write the histograms:
-    
-    for sample in samples:
-        if helWeights:
-            if not 'WPlusJetsToMuNu' in sample or 'WMinusJetsToMuNu' in sample: continue
-        # if not ("WPlusJetsToMuNu" in sample or "WPlusJetsToTauNu" in sample): continue
-        print(sample)
-        RDFtrees[sample].gethdf5Output()
-        if args.report: cutFlowreportDict[sample].Print()
-        #RDFtrees[sample].saveGraph()
+    for era in eras:
+        for sample in samples:
+            if helWeights:
+                if not 'WPlusJetsToMuNu' in sample or 'WMinusJetsToMuNu' in sample: continue
+                # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
+            systType = samples[sample]['nsyst']
+            # if systType==0: continue #only process samples with pdfs
+            if not 'WPlusJetsToMuNu' in sample: continue
+            # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
+            RDFtrees[era][sample].gethdf5Output()
+            if args.report: cutFlowreportDict[sample].Print()
+            # RDFtrees[era][sample].saveGraph()
 
     print('all samples processed in {} s'.format(time.time()-start))
 

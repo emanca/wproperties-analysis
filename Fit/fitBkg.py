@@ -38,7 +38,7 @@ class fitUtils:
         for proc in self.processes:
             self.DC.exp[self.channel][proc] = -1.00
         self.DC.systs =  [] # <type 'list'>
-        ## list of [{bin : {process : [input file, path to shape, path to shape for uncertainty]}}]
+        # list of [{bin : {process : [input file, path to shape, path to shape for uncertainty]}}]
         aux = {} #each sys will have a separate aux dict
         aux[self.channel] = {}
         for i in range(48*30):
@@ -72,7 +72,7 @@ class fitUtils:
         # aux[self.channel]['fakesHighMt'] = 1.5
         # aux[self.channel]['ewk'] = 0.
         # self.DC.systs.append(('fakesNormHighMt', False, 'lnNNoConstraint', [], aux))
-        self.DC.groups = {'fakes': set(['fakeShapeBin{}'.format(i) for i in range(48*30)])}
+        # self.DC.groups = {'fakes': set(['fakeShapeBin{}'.format(i) for i in range(48*30)])}
         self.DC.shapeMap = 	{self.channel: {'*': [self.channel+'.root', '$PROCESS', '$PROCESS_$SYSTEMATIC']}}
         self.DC.hasShapes =  True # <type 'bool'>
         self.DC.flatParamNuisances =  {} # <type 'dict'>

@@ -80,9 +80,9 @@ samplespreVFP = {
     #     "dir": ["alternate/DYJetsToLL-M50"]
     # }, 
     # "WJetsToLNu_NLO": {
-    #     "nsyst": 1, 
-    #     "xsec": 60890.0, 
-    #     "dir": ["alternate/WJetsToLNu_madgraph"]
+    #     "nsyst": 2, 
+    #     "xsec": 55960.0, 
+    #     "dir": ["WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8"]
     # },
 }
 
@@ -161,31 +161,46 @@ samplespostVFP = {
         "nsyst": 1,  
         "xsec": 88.29, 
         "dir": ["TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8"]
-    }, 
+    },
+    # "WJetsToLNu_NLO": {
+    #     "nsyst": 2, 
+    #     "xsec": 55960., 
+    #     "dir": ["WJetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8"]
+    # },
 }
 
 wsignalNLO_preVFP={
      "WJetsToLNu_0J": {
-         "nsyst": 1, 
-         "xsec": 60890.0, 
+         "nsyst": 2, 
+         "xsec": 53290, 
          "dir": ["WJetsToLNu_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8"]
      },
      "WJetsToLNu_1J": {
-         "nsyst": 1, 
-         "xsec": 12790.0, 
+         "nsyst": 2, 
+         "xsec": 8938.0, 
+         "dir": ["WJetsToLNu_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8"]
+     },
+     "WJetsToLNu_2J": {
+         "nsyst": 2, 
+         "xsec": 3358.0, 
          "dir": ["WJetsToLNu_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8"]
      },
 }
 
 wsignalNLO_postVFP={
      "WJetsToLNu_0J": {
-         "nsyst": 1, 
-         "xsec": 60890.0, 
+         "nsyst": 2, 
+         "xsec": 53290, 
          "dir": ["WJetsToLNu_0J_TuneCP5_13TeV-amcatnloFXFX-pythia8"]
      },
      "WJetsToLNu_1J": {
-         "nsyst": 1, 
-         "xsec": 12790.0, 
+         "nsyst": 2, 
+         "xsec": 8963.0, 
+         "dir": ["WJetsToLNu_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8"]
+     },
+     "WJetsToLNu_2J": {
+         "nsyst": 2, 
+         "xsec": 3358.0, 
          "dir": ["WJetsToLNu_1J_TuneCP5_13TeV-amcatnloFXFX-pythia8"]
      },
 }

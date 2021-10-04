@@ -31,7 +31,7 @@ RNode CSvariableProducer::run(RNode d) {
 
     auto CSAxis = (p1.Vect().Unit()-p2.Vect().Unit()).Unit(); //quantise along axis that bisects the boosted beams
         
-    auto yAxis = (p1.Vect().Unit()).Cross((p2.Vect().Unit())); //other axes
+    auto yAxis = (p1.Vect().Unit()).Cross((-p2.Vect().Unit())); //other axes
     yAxis = yAxis.Unit();
     auto xAxis = yAxis.Cross(CSAxis);
     xAxis = xAxis.Unit();

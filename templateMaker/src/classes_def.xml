@@ -11,6 +11,7 @@
   <class name="lumiWeight"/>
   <class name="getZmass"/>
   <class name="SF_ul"/>
+  <class name="SFprod"/>
   <class name="zSelection"/>
   <class name="zVetoMuons"/>
   <class name="zHistosROOT"/>
