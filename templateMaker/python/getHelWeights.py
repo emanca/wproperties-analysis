@@ -7,16 +7,17 @@ from math import pi, sqrt
 
 class getHelWeights(module):
    
-    def __init__(self, era,syst = ""):
+    def __init__(self, era,helwtFile,syst = ""):
         self.syst = syst
         if not syst == "":
             self.syst = "_"+syst
         self.era=era
+        self.helwtFile=helwtFile
         pass
       
 
     def run(self,d):
-        file_in = '/scratchnvme/emanca/wproperties-analysis/config/powheg_acc_{}/WPlusJetsToMuNu_helweights.hdf5'.format(self.era)
+        file_in = self.helwtFile#'/scratchnvme/emanca/wproperties-analysis/config/powheg_acc_{}/WPlusJetsToMuNu_helweights.hdf5'.format(self.era)
         
         f = h5py.File(file_in, mode='r+')
         

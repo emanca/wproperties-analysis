@@ -8,15 +8,18 @@ from root_numpy import hist2array
 
 class reweightyqt(module):
    
-    def __init__(self, era):
+    def __init__(self, era, inFilehelwt, genInfoFile):
         self.era=era
+        self.inFilehelwt = inFilehelwt
+        self.genInfoFile = genInfoFile
         pass
       
 
     def run(self,d):
-
-        file_in = '/scratchnvme/emanca/wproperties-analysis/config/powheg_acc_{}/WPlusJetsToMuNu_helweights.hdf5'.format(self.era)
-        f = ROOT.TFile.Open('/scratchnvme/emanca/wproperties-analysis/Common/data/genInfo_syst.root')
+        #'/scratchnvme/emanca/wproperties-analysis/config/powheg_acc_{}/WPlusJetsToMuNu_helweights.hdf5'.format(self.era)
+        
+        file_in = self.inFilehelwt 
+        f = ROOT.TFile.Open(self.genInfoFile) #/scratchnvme/emanca/wproperties-analysis/Common/data/genInfo_syst.root')
 
         fin = h5py.File(file_in, mode='r+')
         

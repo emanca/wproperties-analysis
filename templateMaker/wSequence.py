@@ -11,7 +11,7 @@ sys.path.append('{}/RDFprocessor/framework'.format(FWKBASE))
 from RDFtree import RDFtree
 sys.path.append('{}/Common/data'.format(FWKBASE))
 from binning import ptBins, etaBins, mTBinsFull, mTBins,etaBins, isoBins, chargeBins, zmassBins, yBins, qtBins,metBins,pvBins, phiBins, cosThetaBins, qtBins_syst
-from externals import fileSFul
+from externals import fileSFul, fileSFPogTrk
 
 sys.path.append('{}/templateMaker/python'.format(FWKBASE))
 ROOT.gSystem.Load('{}/templateMaker/bin/libAnalysisOnData.so'.format(FWKBASE))
@@ -37,19 +37,17 @@ def wSelectionSequence(p, systType, nodetoStart, era):
         p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso"], types = ['float']*5,node='defs',histoname=ROOT.string('data_obs'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], variations = [])
     elif systType < 2: #this is MC with no PDF variations
         #falling back to old lumi weight computation
-        p.branch(nodeToStart = 'defs', nodeToEnd = 'defs', modules = [ROOT.recoDefinitions(True, False),ROOT.mtDefinitions(False,ptprefix="MET_pt", phiprefix="MET_phi"),ROOT.SFprod(fileSFul,era=era)])
+        p.branch(nodeToStart = 'defs', nodeToEnd = 'defs', modules = [ROOT.recoDefinitions(True, False),ROOT.mtDefinitions(False,ptprefix="MET_pt", phiprefix="MET_phi"),ROOT.SF_ul(fileSFul, fileSFPogTrk,era=era)])
         p.EventFilter(nodeToStart='defs', nodeToEnd='defs', evfilter="Mu1_hasTriggerMatch", filtername="{:20s}".format("mu1 trig matched"))
         p.EventFilter(nodeToStart='defs', nodeToEnd='defs', evfilter="Mu1_pt < 65.", filtername="{:20s}".format("mu1 pt-eta acceptance"))
         p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], variations = [])
         #p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight","SFvar"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk_SFvar'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], variations = [])
 
     else:
-        from reweightyqt import reweightyqt
-        from reweightcoeffs import reweightcoeffs
-        p.branch(nodeToStart = 'defs', nodeToEnd = 'defs', modules = [reweightyqt(era=era),ROOT.defineHarmonics(),reweightcoeffs(era=era),ROOT.recoDefinitions(True, False), ROOT.mtDefinitions(False,ptprefix="MET_pt", phiprefix="MET_phi"), ROOT.SF_ul(fileSFul,isZ=False,era=era)])
+        p.branch(nodeToStart = 'defs', nodeToEnd = 'defs', modules = [ROOT.defineHarmonics(),ROOT.recoDefinitions(True, False), ROOT.mtDefinitions(False,ptprefix="MET_pt", phiprefix="MET_phi"), ROOT.SF_ul(fileSFul, fileSFPogTrk,isZ=False,era=era)])
         p.EventFilter(nodeToStart='defs', nodeToEnd='defs', evfilter="Mu1_hasTriggerMatch", filtername="{:20s}".format("mu1 trig matched"))
         p.EventFilter(nodeToStart='defs', nodeToEnd='defs', evfilter="Mu1_pt < 65.", filtername="{:20s}".format("mu1 pt-eta acceptance"))
-        p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight","SF","yqtweight","coeffsweight"], types = ['float']*11,node='defs',histoname=ROOT.string('ewk'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins])
+        p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins])
         # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight","SFvar"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk_SFvar'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], variations = [])
         # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk_LHEPdfWeight'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], sample=("LHEPdfWeight",103))
         # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk_LHEScaleWeight'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], sample=("LHEScaleWeight",9))
@@ -62,7 +60,7 @@ def wSelectionHelWeightsSequence(p, nodetoStart,era):
     from reweightyqt import reweightyqt
     from reweightcoeffs import reweightcoeffs
     # here get angular coefficients
-    p.branch(nodeToStart=nodetoStart, nodeToEnd='defs', modules=[ROOT.defineHarmonics()]) #,reweightyqt(era=era),reweightycostheta(era=era),,getHelWeights(era=era,syst="",pseudodata=True)
+    p.branch(nodeToStart=nodetoStart, nodeToEnd='defs', modules=[ROOT.defineHarmonics()]) #,reweightyqt(era=era),reweightycostheta(era=era),getHelWeights(era=era,syst="",pseudodata=True)
     
     p.Histogram(columns = ["Vrap_preFSR_abs","Vpt_preFSR","lumiweight"], types = ['float']*3,node='defs',histoname=ROOT.string("xsecs"),bins=[yBins,qtBins], sample=('harmonicsVec',9))
     p.Histogram(columns = ["Vrap_preFSR_abs","Vpt_preFSR","lumiweight"], types = ['float']*3,node='defs',histoname=ROOT.string("totxsecs"),bins=[yBins,qtBins])
@@ -79,14 +77,20 @@ def wSelectionHelWeightsSequence(p, nodetoStart,era):
     p.Histogram(columns = ["Vrap_preFSR_abs","Vpt_preFSR","lumiweight"], types = ['float']*3,node='defs',histoname=ROOT.string("totxsecs_LHEScaleWeight"),bins=[yBins,qtBins], sample=("LHEScaleWeight",9))
     
     return p
+
 def wSelectionDifferentialSequence(p,era,sample):
     from getHelWeights import getHelWeights
     from reweightyqt import reweightyqt
     from reweightycostheta import reweightycostheta
     from getMassWeights import getMassWeights
     # here load angular coefficients and reweight
+    helWeightsrc='{}/Common/data/reweight/'.format(FWKBASE)
+    helWeightFile='{}/Common/data/reweight/powheg_acc_{}/WPlusJetsToMuNu_helweights.hdf5'.format(FWKBASE, era)
+    genInfo='{}/Common/data/reweight/genInfo_syst.root'.format(FWKBASE)
+    genCoeff='{}/Common/data/reweight/genInput_v7_syst_Wplus.root'.format(FWKBASE)
 
-    p.branch(nodeToStart='defs', nodeToEnd='templates', modules=[getHelWeights(era=era,syst=""),getMassWeights(era=era)])
+    p.branch(nodeToStart='defs', nodeToEnd='templates', modules=[getHelWeights(era=era,helwtFile=helWeightFile,syst=""),getMassWeights(era=era)])
+
     p.EventFilter(nodeToStart='templates', nodeToEnd='nominal', evfilter="Vrap_preFSR_abs<2.4 && Vpt_preFSR<60.", filtername="{:20s}".format("signal templ"))
 
     p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "Vrap_preFSR_abs","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*11,node='nominal',histoname=ROOT.string('signalTemplates'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,yBins,qtBins], sample=("helWeights",9))
