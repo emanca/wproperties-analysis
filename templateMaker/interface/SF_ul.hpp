@@ -35,7 +35,7 @@ public:
 	}
 	else if(era == "postVFP") {
 	  tag = "GtoH";
-	  _pogtrk = (TH1D*)_SFpogtrk->Get("muonPOGtrackingSF_preVFP");
+	  _pogtrk = (TH1D*)_SFpogtrk->Get("muonPOGtrackingSF_postVFP");
 	}
 	std::cout << "SF tag is " << tag << std::endl;
         _tracking = (TH2D *)_SF->Get("SF2D_tracking_" + tag + "_both");

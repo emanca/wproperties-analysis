@@ -83,13 +83,14 @@ def wSelectionDifferentialSequence(p,era,sample):
     from reweightyqt import reweightyqt
     from reweightycostheta import reweightycostheta
     from getMassWeights import getMassWeights
+    from reweightcoeffs import reweightcoeffs
     # here load angular coefficients and reweight
     helWeightsrc='{}/Common/data/reweight/'.format(FWKBASE)
     helWeightFile='{}/Common/data/reweight/powheg_acc_{}/WPlusJetsToMuNu_helweights.hdf5'.format(FWKBASE, era)
     genInfo='{}/Common/data/reweight/genInfo_syst.root'.format(FWKBASE)
     genCoeff='{}/Common/data/reweight/genInput_v7_syst_Wplus.root'.format(FWKBASE)
 
-    p.branch(nodeToStart='defs', nodeToEnd='templates', modules=[getHelWeights(era=era,helwtFile=helWeightFile,syst=""),getMassWeights(era=era)])
+    p.branch(nodeToStart='defs', nodeToEnd='templates', modules=[reweightyqt(era=era, inFilehelwt=helWeightFile, genInfoFile=genInfo),reweightcoeffs(era=era,helWtsrcdir=helWeightsrc,geninputF=genCoeff), getHelWeights(era=era,helwtFile=helWeightFile,syst=""),getMassWeights(era=era)])
 
     p.EventFilter(nodeToStart='templates', nodeToEnd='nominal', evfilter="Vrap_preFSR_abs<2.4 && Vpt_preFSR<60.", filtername="{:20s}".format("signal templ"))
 
@@ -106,7 +107,7 @@ def wSelectionDifferentialSequence(p,era,sample):
     p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SF","yqtweight","coeffsweight"], types = ['float']*12,node='lowacc',histoname=ROOT.string('lowacc_rew'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,qtBins_syst])
 
     # pdf-scale uncertainties for full templates
-    p.branch(nodeToStart='defs', nodeToEnd='LHEPdfWeight', modules=[getHelWeights(era=era,syst="LHEPdfWeight")])
+    p.branch(nodeToStart='defs', nodeToEnd='LHEPdfWeight', modules=[getHelWeights(era=era,helwtFile=helWeightFile,syst="LHEPdfWeight")])
     p.EventFilter(nodeToStart='LHEPdfWeight', nodeToEnd='LHEPdfWeight', evfilter="Vrap_preFSR_abs<2.4 && Vpt_preFSR<60.", filtername="{:20s}".format("signal templ"))
     p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "Vrap_preFSR_abs","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*11,node='LHEPdfWeight',histoname=ROOT.string('signalTemplates_LHEPdfWeight'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,yBins,qtBins], sample=("helWeights_LHEPdfWeight",9*103))
     # p.branch(nodeToStart='defs', nodeToEnd='LHEScaleWeight', modules=[getHelWeights(era=era,syst="LHEScaleWeight")])
