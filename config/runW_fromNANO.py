@@ -82,7 +82,7 @@ def main():
                 # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
             systType = samples[sample]['nsyst']
             # if systType==0: continue #only process samples with pdfs
-            if not 'WPlusJetsToMuNu' in sample: continue
+            if  'WPlusJetsToMuNu' not in sample and 'data' not in sample: continue
             # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
             direc = samples[sample]['dir']
             xsec = samples[sample]['xsec']
@@ -126,7 +126,7 @@ def main():
                 # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
             systType = samples[sample]['nsyst']
             # if systType==0: continue #only process samples with pdfs
-            if not 'WPlusJetsToMuNu' in sample: continue
+            if 'WPlusJetsToMuNu' not in sample and 'data' not in sample: continue
             # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
             RDFtreeDict = RDFtrees[era][sample].getObjects()
             if args.report: cutFlowreportDict[sample] = RDFtrees[era][sample].getCutFlowReport('defs')
@@ -145,7 +145,7 @@ def main():
                 # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
             systType = samples[sample]['nsyst']
             # if systType==0: continue #only process samples with pdfs
-            if not 'WPlusJetsToMuNu' in sample: continue
+            if 'WPlusJetsToMuNu' not in sample and 'data' not in sample: continue
             # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
             RDFtrees[era][sample].gethdf5Output()
             if args.report: cutFlowreportDict[sample].Print()
