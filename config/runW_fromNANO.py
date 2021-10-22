@@ -52,6 +52,8 @@ def main():
     parser.add_argument('-i', '--inputDir',type=str, default='/scratchnvme/wmass/NANOJEC/', help="input dir name")    
     parser.add_argument('-helWeights', '--helWeights',type=bool, default=False, help="derive helicity weights for reweighting")    
 
+    SList=['WPlusJetsToMuNu', 'WMinusJetsToMuNu', 'WPlusJetsToTauNu', 'WMinusJetsToTauNu']
+    #SList=['WMinusJetsToMuNu']
     RDFtrees = {}
     args = parser.parse_args()
     for era in eras:
@@ -59,6 +61,7 @@ def main():
         inDir = args.inputDir
         outputDir = args.outputDir+"_"+era
         helWeights = args.helWeights
+        print("HelWeights:", helWeights)
         ##Add era to input dir
         inDir+=era
         if pretendJob:
@@ -78,12 +81,10 @@ def main():
 
         for sample in samples:
             if helWeights:
-                if not 'WPlusJetsToMuNu' in sample or 'WMinusJetsToMuNu' in sample: continue
+                if not 'WPlusJetsToMuNu' in sample and not 'WMinusJetsToMuNu' in sample: continue
             systType = samples[sample]['nsyst']
-            # if systType==0: continue #only process samples with pdfs
-            #if  'WPlusJetsToMuNu' not in sample and 'data' not in sample: continue
-            checkS='WPlusJetsToMuNu' in sample or 'data'  in sample
-            #if checkS: continue
+            checkS=sample in SList 
+            if not checkS: continue
             direc = samples[sample]['dir']
             xsec = samples[sample]['xsec']
             fvec=ROOT.vector('string')()
@@ -104,6 +105,7 @@ def main():
             sumw=1.
             if not 'data' in sample:
                 sumw=sumwClippedDict[sample]
+            print("Sample is: ", sample)
             RDFtrees[era][sample] = RDFprocess(fvec, outputDir, sample, xsec, systType, sumw, era, pretendJob, helWeights)
 
     #now trigger all the event loops at the same time:
@@ -122,12 +124,10 @@ def main():
             sumwClippedDict= sumwDictpostVFP
         for sample in samples:
             if helWeights:
-                if not 'WPlusJetsToMuNu' in sample or 'WMinusJetsToMuNu' in sample: continue
+                if not 'WPlusJetsToMuNu' in sample and not 'WMinusJetsToMuNu' in sample: continue
             systType = samples[sample]['nsyst']
-            # if systType==0: continue #only process samples with pdfs
-            #if 'WPlusJetsToMuNu' not in sample and 'data' not in sample: continue
-            checkS='WPlusJetsToMuNu' in sample or 'data'  in sample
-            #if checkS: continue
+            checkS=sample in SList
+            if not checkS: continue
             RDFtreeDict = RDFtrees[era][sample].getObjects()
             if args.report: cutFlowreportDict[sample] = RDFtrees[era][sample].getCutFlowReport('defs')
             for node in RDFtreeDict:
@@ -141,13 +141,11 @@ def main():
     for era in eras:
         for sample in samples:
             if helWeights:
-                if not 'WPlusJetsToMuNu' in sample or 'WMinusJetsToMuNu' in sample: continue
+                if not 'WPlusJetsToMuNu' in sample and not 'WMinusJetsToMuNu' in sample: continue
                 # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
             systType = samples[sample]['nsyst']
-            # if systType==0: continue #only process samples with pdfs
-            #if 'WPlusJetsToMuNu' not in sample and 'data' not in sample: continue
-            checkS='WPlusJetsToMuNu' in sample or 'data'  in sample
-            #if checkS: continue
+            checkS=sample in SList 
+            if not checkS: continue
             RDFtrees[era][sample].gethdf5Output()
             if args.report: cutFlowreportDict[sample].Print()
             # RDFtrees[era][sample].saveGraph()

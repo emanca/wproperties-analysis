@@ -19,21 +19,21 @@ samplespreVFP = {
         "xsec": 11572.19, 
         "dir": ["WPlusToMuNu"]
     },
-    #"WMinusJetsToMuNu": {
-    #    "nsyst": 2, 
-    #    "xsec": 8562.66, 
-    #    "dir": ["WminusJetsToMuNu"]
-    #},
+    "WMinusJetsToMuNu": {
+        "nsyst": 2, 
+        "xsec": 8562.66, 
+        "dir": ["WMinusToMuNu"]
+    },
     "WPlusJetsToTauNu": {
         "nsyst": 2, 
         "xsec": 0.17394*11572.19, 
         "dir": ["WPlusToTauNu"]
     },
-    #"WMinusJetsToTauNu": {
-    #    "nsyst": 2, 
-    #    "xsec": 0.17394*8562.66, 
-    #    "dir": ["WminusJetsToTauNu"]
-    #},
+    "WMinusJetsToTauNu": {
+        "nsyst": 2, 
+        "xsec": 0.17394*8562.66, 
+        "dir": ["WMinusToTauNu"]
+    },
     "WZ": {
         "nsyst": 1,  
         "xsec": 27.6, 
@@ -107,21 +107,21 @@ samplespostVFP = {
         "xsec": 11572.19, 
         "dir": ["WPlusToMuNu"]
     },
-    #"WMinusJetsToMuNu": {
-    #    "nsyst": 2, 
-    #    "xsec": 8562.66, 
-    #    "dir": ["WminusJetsToMuNu"]
-    #},
+    "WMinusJetsToMuNu": {
+        "nsyst": 2, 
+        "xsec": 8562.66, 
+        "dir": ["WMinusToMuNu"]
+    },
     "WPlusJetsToTauNu": {
         "nsyst": 2, 
         "xsec": 0.17394*11572.19, 
         "dir": ["WPlusToTauNu"]
     },
-   # "WMinusJetsToTauNu": {
-   #     "nsyst": 2, 
-   #     "xsec": 0.17394*8562.66, 
-   #     "dir": ["WminusJetsToTauNu"]
-   # },
+    "WMinusJetsToTauNu": {
+        "nsyst": 2, 
+        "xsec": 0.17394*8562.66, 
+        "dir": ["WMinusToTauNu"]
+    },
     "WZ": {
         "nsyst": 1,  
         "xsec": 27.6, 
