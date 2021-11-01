@@ -15,9 +15,9 @@ plt.style.use([hep.style.ROOT])
 #hep.cms.label(loc=0, year=2016, lumi=35.9, data=True)
 #hep.cms.text('Simulation')
 
-WMuFiles = ["WMinusJetsToMuNu.hdf5"]
-WMuFiles_rew = ["WMinusJetsToMuNu.hdf5"]
-WTauFiles = ["WMinusJetsToTauNu.hdf5"]
+WMuFiles = ["WPlusJetsToMuNu.hdf5", "WMinusJetsToMuNu.hdf5"]
+WMuFiles_rew = ["WPlusJetsToMuNu.hdf5", "WMinusJetsToMuNu.hdf5"]
+WTauFiles = ["WPlusJetsToTauNu.hdf5", "WMinusJetsToTauNu.hdf5"]
 DYFiles = ["DYJetsToMuMu_M50.hdf5","DYJetsToTauTau_M50.hdf5"]
 TopFiles = ["ST_t-channel_muDecays.hdf5", "ST_t-channel_tauDecays.hdf5","ST_s-channel_4f_leptonDecays.hdf5","ST_t-channel_top_5f_InclusiveDecays.hdf5","TTToSemiLeptonic.hdf5", "TTTo2L2Nu.hdf5"]
 DibosonFiles = ["WW.hdf5","WZ.hdf5"]
@@ -36,15 +36,11 @@ def haddFiles(fileList, fname, histonames, shapes, folder, era):
 
 threshold_y = np.digitize(2.4,yBins)-1
 threshold_qt = np.digitize(60.,qtBins)-1
-#if len(sys.argv) < 2:
-#    print "Please enter input dir"
-#    exit(1)
-    
-#inFolder=sys.argv[1]
-eras = ["preVFP","postVFP"]
+
+eras = ["preVFP", "postVFP"]
 for era in eras:
     # folder = "../config/alternatesample_{}/".format(era)
-    folder = "../config/outputW_{}_saved/".format(era)
+    folder = "../config/outputW_{}_workingv1/".format(era)
     shape = (len(etaBins)-1,len(ptBins)-1,len(chargeBins)-1,len(mTBins)-1,len(isoBins)-1)
     datadict = haddFiles(dataFiles,"data",["data_obs","data_obs_sumw2"], [shape,shape],folder,era)
     hdata = datadict['data_obs']
@@ -68,11 +64,11 @@ for era in eras:
     hDiboson_sumw2 = dibdict['ewk_sumw2']
 
     # write down shapes as fit input
-    fshapes = h5py.File('shapesWminus_{}.hdf5'.format(era), mode='w')
+    fshapes = h5py.File('shapesWplus_{}.hdf5'.format(era), mode='w')
 
     # uncomment to write out real data
     # dset = fshapes.create_dataset(name='data_obs', shape=(len(etaBins)-1,len(ptBins)-1,len(mTBins)-1,len(isoBins)-1), dtype='float64')
-    # dset[...] = hdata[:,:,0,:,:] #select positive charge
+    # dset[...] = hdata[:,:,-1,:,:] #select positive charge
 
     dset = fshapes.create_dataset(name='Wtau', shape=(len(etaBins)-1,len(ptBins)-1,len(mTBins)-1,len(isoBins)-1), dtype='float64')
     dset[...] = hWtau[:,:,0,:,:] #select positive charge
@@ -109,8 +105,8 @@ for era in eras:
     shape_pdf_lowacc = (len(etaBins)-1,len(ptBins)-1,len(chargeBins)-1,len(mTBins)-1,len(isoBins)-1, 103)
     shape_qcd_lowacc = (len(etaBins)-1,len(ptBins)-1,len(chargeBins)-1,len(mTBins)-1,len(isoBins)-1,len(qtBins_syst)-1,9)
 
-    histonames = ['signalTemplates', 'signalTemplates_sumw2','signalTemplates_mass','signalTemplates_LHEPdfWeight', 'lowacc', 'lowacc_sumw2','lowacc_mass','lowacc_LHEPdfWeight','lowacc_LHEScaleWeight', 'lowacc_rew']
-    wdict=haddFiles(WMuFiles,"WmuSignal",histonames, [shape_hel,shape_hel,shape_mass,shape_pdf,shape_lowacc,shape_lowacc,shape_mass_lowacc,shape_pdf_lowacc,shape_qcd_lowacc,shape_lowacc],"../config/outputW_{}_saved/".format(era),era)
+    histonames = ['signalTemplates', 'signalTemplates_sumw2','signalTemplates_mass', 'lowacc', 'lowacc_sumw2','lowacc_mass','lowacc_LHEPdfWeight','lowacc_LHEScaleWeight', 'lowacc_rew']
+    wdict=haddFiles(WMuFiles,"WmuSignal",histonames, [shape_hel,shape_hel,shape_mass,shape_lowacc,shape_lowacc,shape_mass_lowacc,shape_pdf_lowacc,shape_qcd_lowacc,shape_lowacc],"../config/outputW_{}_workingv1/".format(era),era)
 
     # signal: nominal
     hsignal = wdict['signalTemplates']
@@ -121,8 +117,8 @@ for era in eras:
     hsignal_mass=hsignal_mass.reshape(hsignal_mass.shape[:-1] + (9,2))
     
     # signal: PDFs
-    hsignal_PDF = wdict['signalTemplates_LHEPdfWeight']
-    hsignal_PDF=hsignal_PDF.reshape(hsignal_PDF.shape[:-1] + (9,103))
+    #hsignal_PDF = wdict['signalTemplates_LHEPdfWeight']
+    #hsignal_PDF=hsignal_PDF.reshape(hsignal_PDF.shape[:-1] + (9,103))
 
     # # # signal: QCD
     # hsignal_QCD = np.array(fsignal['signalTemplates_LHEScaleWeight'][:])[:,:,-1,...,:threshold_y,:threshold_qt,:]
@@ -132,7 +128,7 @@ for era in eras:
     hWmu_sumw2 = np.sum(hsignal_sumw2,axis=(-1,-2,-3)) # integrated over helicity, y and qt
 
     # helicity xsecs without acceptance cuts for unfolding
-    file_gen = '../config/outputW_{}_saved/WMinusJetsToMuNu_helweights.hdf5'.format(era)
+    file_gen = '../config/outputW_{}/WPlusJetsToMuNu_helweights.hdf5'.format(era)
     f_gen = h5py.File(file_gen, mode='r+')
 
     htot = f_gen['totxsecs'][:]
@@ -174,8 +170,8 @@ for era in eras:
     # load aMC@NLO coefficients
 
     f_aMC = ROOT.TFile.Open('/scratchnvme/wmass/REWEIGHT/genInfo_syst.root')
-    qt_aMC = np.sum(hist2array(f_aMC.Get('angularCoefficients_Wminus/YqTcT')),axis=-1)
-    fcoeffs = ROOT.TFile.Open('/scratchnvme/wmass/REWEIGHT/genInput_v7_syst_Wminus.root')
+    qt_aMC = np.sum(hist2array(f_aMC.Get('angularCoefficients_Wplus/YqTcT')),axis=-1)
+    fcoeffs = ROOT.TFile.Open('/scratchnvme/wmass/REWEIGHT/genInput_v7_syst_Wplus.root')
     
     hists_aMC = []
     for i in range(5):
@@ -183,7 +179,7 @@ for era in eras:
         hists_aMC.append(tmp)
     coeffs_aMC = np.stack(hists_aMC,axis=-1)
 
-    mapTot = hist2array(f_aMC.Get('angularCoefficients_Wminus/mapTot'))
+    mapTot = hist2array(f_aMC.Get('angularCoefficients_Wplus/mapTot'))
     h_aMC = 3./(16.*pi)*coeffs_aMC*mapTot[...,np.newaxis]/factors_hel[...,:threshold_y,:threshold_qt,:5] #helicity xsecs aMC
     print('done')
 
@@ -220,31 +216,31 @@ for era in eras:
 
     # this is pseudodata made with the sum of the templates
     dset = fshapes.create_dataset(name='data_obs', shape=(len(etaBins)-1,len(ptBins)-1,len(mTBins)-1,len(isoBins)-1), dtype='float64')
-    dset[...] =  pseudo_data[:,:,0,:,:]
+    dset[...] =  pseudo_data[:,:,-1,:,:]
 
     hewk = hWtau+hDY+hTop+hDiboson+hWmu+hlowacc
-
+    
     fig, ax1 = plt.subplots()
     ax1.set_title("total xsec closure", fontsize=9)
-    hep.hist2dplot(hWmu[:,:,0,1,0],etaBins,ptBins)
+    hep.hist2dplot(hWmu[:,:,-1,1,0],etaBins,ptBins)
     plt.tight_layout()
     plt.savefig("testprefitWminus/total_xsec_clos_{}".format(era))
     plt.clf()
 
     fig, ax1 = plt.subplots()
     ax1.set_title("pseudodata", fontsize=9)
-    hep.hist2dplot(pseudo_data[:,:,0,1,0],etaBins,ptBins)
+    hep.hist2dplot(pseudo_data[:,:,-1,1,0],etaBins,ptBins)
     plt.tight_layout()
     plt.savefig("testprefitWminus/pseudo_data_{}".format(era))
     plt.clf()
-
-    fig, ax1 = plt.subplots()
-    ax1.set_title("total xsec closure", fontsize=9)
-    hep.hist2dplot(np.sum(hsignal_PDF,axis=(-2,-3,-4))[:,:,0,1,0,1]/hWmu[:,:,0,1,0],etaBins,ptBins)
-    plt.tight_layout()
-    plt.savefig("testprefitWminus/total_xsec_clos_pdf_{}".format(era))
-    plt.clf()
-
+   
+    #fig, ax1 = plt.subplots()
+    #ax1.set_title("total xsec closure", fontsize=9)
+    #hep.hist2dplot(np.sum(hsignal_PDF,axis=(-2,-3,-4))[:,:,-1,1,0,1]/hWmu[:,:,-1,1,0],etaBins,ptBins)
+    #plt.tight_layout()
+    #plt.savefig("testprefitWminus/total_xsec_clos_pdf_{}".format(era))
+    #plt.clf()
+    
     dset = fshapes.create_dataset(name='template', shape=(len(etaBins)-1,len(ptBins)-1,len(mTBins)-1,len(isoBins)-1, len(yBins)-1, len(qtBins)-1, 9), dtype='float64')
     dset[...] = hsignal[:,:,0,...] #select positive charge
 
@@ -262,8 +258,8 @@ for era in eras:
     dset = fshapes.create_dataset(name='template_mass', shape=(len(etaBins)-1,len(ptBins)-1,len(mTBins)-1,len(isoBins)-1, len(yBins)-1, len(qtBins)-1, 9, 2), dtype='float64')
     dset[...] = hsignal_mass[:,:,0,...] #select positive charge
 
-    dset = fshapes.create_dataset(name='template_LHEPdfWeight', shape=(len(etaBins)-1,len(ptBins)-1,len(mTBins)-1,len(isoBins)-1, len(yBins)-1, len(qtBins)-1, 9, 103), dtype='float64')
-    dset[...] = hsignal_PDF[:,:,0,...] #select positive charge
+    #dset = fshapes.create_dataset(name='template_LHEPdfWeight', shape=(len(etaBins)-1,len(ptBins)-1,len(mTBins)-1,len(isoBins)-1, len(yBins)-1, len(qtBins)-1, 9, 103), dtype='float64')
+    #dset[...] = hsignal_PDF[:,:,0,...] #select positive charge
 
     # dset = fshapes.create_dataset(name='template_LHEScaleWeight', shape=hsignal_QCD.shape, dtype='float64')
     # dset[...] = hsignal_QCD #select positive charge
@@ -295,15 +291,15 @@ for era in eras:
     qtBins_syst=np.array(qtBins_syst)
     qtBinsS = qtBins_syst[1:]-qtBins_syst[:-1]
     qtBinsC = 0.5*(qtBins_syst[1:]+qtBins_syst[:-1])
-    hlowacc_qt = np.sum(wdict['lowacc_LHEScaleWeight'][:,:,0,-1,0,:,:],axis=(0,1))
-    hlowacc_qt_rew = np.sum(wdict['lowacc_rew'][:,:,0,-1,0,:],axis=(0,1))
-    hlowacc_qt_nom = np.sum(wdict['lowacc'][:,:,0,-1,0,:],axis=(0,1))
+    hlowacc_qt = np.sum(wdict['lowacc_LHEScaleWeight'][:,:,-1,-1,0,:,:],axis=(0,1))
+    hlowacc_qt_rew = np.sum(wdict['lowacc_rew'][:,:,-1,-1,0,:],axis=(0,1))
+    hlowacc_qt_nom = np.sum(wdict['lowacc'][:,:,-1,-1,0,:],axis=(0,1))
     hlowacc_qt_pdf = np.sum(wdict['lowacc_LHEPdfWeight'][:,:,-1,-1,0,:],axis=(0,1))
     # print(np.where(np.isnan(wdict['lowacc_rew'])), wdict['lowacc_rew'][np.where(np.isnan(wdict['lowacc_rew']))])
     fig, ax1 = plt.subplots()
 
     hep.histplot(hlowacc_qt_rew/qtBinsS,qtBins_syst,histtype = 'errorbar', label="pseudodata")
-    print(hlowacc_qt_rew/qtBinsS,np.sum(wdict['lowacc'][:,:,0,-1,0,:],axis=(0,1))/qtBinsS)
+    print(hlowacc_qt_rew/qtBinsS,np.sum(wdict['lowacc'][:,:,-1,-1,0,:],axis=(0,1))/qtBinsS)
     qcdsyst = [0, 1, 3, 5, 7, 8]
     for iqcd in qcdsyst:
         if iqcd<4:
@@ -325,7 +321,7 @@ for era in eras:
     dset[...] = h
     dset = fshapes.create_dataset(name='helicity_LHEPdfWeight', shape=h_PDF.shape, dtype='float64')
     dset[...] = h_PDF
-
+    
     # get prefit estimate of shape and normalisation of QCD bkg
 
     hfakesLowMt = hdata[:,:,0,:,:]-hewk[:,:,0,:,:]
@@ -354,77 +350,6 @@ for era in eras:
 
     # build mask
     print("building shapes")
-    # for i in range(hfakesLowMt.shape[0]*hfakesLowMt.shape[1]):
-    #     mask = np.zeros(hfakesLowMt.shape[0]*hfakesLowMt.shape[1])
-    #     mask[i,...]=1
-    #     mask = mask.reshape((hfakesLowMt.shape[0],hfakesLowMt.shape[1]))[...,np.newaxis,np.newaxis]
-    #     # nuisance for changing the normalisations independently
-
-    #     hfakesLowMtVarUp = np.where(mask==0, hfakesLowMt, hfakesLowMt+0.5*hfakesLowMt)
-    #     dset = fshapes.create_dataset(name='fakesLowMt_fakeNormLowMtBin{}Up'.format(i), shape=[(len(etaBins)-1) * (len(ptBins)-1) * (len(mTBins)-1) * (len(isoBins)-1)], dtype='float64')
-    #     dset[...] = hfakesLowMtVarUp.flatten()
-    #     hfakesLowMtVarDown = np.where(mask==0, hfakesLowMt, hfakesLowMt-0.5*hfakesLowMt)
-    #     dset = fshapes.create_dataset(name='fakesLowMt_fakeNormLowMtBin{}Down'.format(i), shape=[(len(etaBins)-1) * (len(ptBins)-1) * (len(mTBins)-1) * (len(isoBins)-1)], dtype='float64')
-    #     dset[...] = hfakesLowMtVarDown.flatten()
-
-    #     hfakesHighMtVarUp = np.where(mask==0, hfakesHighMt, hfakesHighMt+0.5*hfakesHighMt)
-    #     dset = fshapes.create_dataset(name='fakesHighMt_fakeNormHighMtBin{}Up'.format(i), shape=[(len(etaBins)-1) * (len(ptBins)-1) * (len(mTBins)-1) * (len(isoBins)-1)], dtype='float64')
-    #     dset[...] = hfakesHighMtVarUp.flatten()
-    #     hfakesHighMtVarDown = np.where(mask==0, hfakesHighMt, hfakesHighMt-0.5*hfakesHighMt)
-    #     dset = fshapes.create_dataset(name='fakesHighMt_fakeNormHighMtBin{}Down'.format(i), shape=[(len(etaBins)-1) * (len(ptBins)-1) * (len(mTBins)-1) * (len(isoBins)-1)], dtype='float64')
-    #     dset[...] = hfakesHighMtVarDown.flatten()
-
-    #     # print('checking if any zero or negative yields for bin {}'.format(i))
-    #     # print(np.any((hfakesLowMtVarUp+hfakesHighMtVarUp)<=0.))
-    #     # print(np.any((hfakesLowMtVarDown+hfakesHighMtVarDown)<=0.))
-
-    #     # common nuisance for changing fake shape
-
-    #     norm = np.sum(hfakesLowMt[:,:,0,:],axis=2)
-    #     ratio = hfakesLowMt[:,:,0,0]/norm #ratio iso/iso+aiso
-    #     rate_var = 2.
-    #     var_idx = np.nonzero(mask)
-    #     # set to nominal
-    #     hfakesLowMtVarUp = np.empty_like(hfakesLowMt)
-    #     hfakesLowMtVarDown = np.empty_like(hfakesLowMt)
-    #     np.copyto(hfakesLowMtVarUp, hfakesLowMt) # (dst, src)
-    #     np.copyto(hfakesLowMtVarDown, hfakesLowMt) # (dst, src)
-    #     # apply variation to isolated part
-    #     hfakesLowMtVarUp[var_idx[0],var_idx[1],0, 0] = (rate_var*ratio*norm)[var_idx[0],var_idx[1]]
-    #     hfakesLowMtVarDown[var_idx[0],var_idx[1],0, 0] = ((1./rate_var)*ratio*norm)[var_idx[0],var_idx[1]]
-    #     # apply variation to anti-isolated part
-    #     hfakesLowMtVarUp[var_idx[0],var_idx[1],0, 1] = ((1-rate_var*ratio)*norm)[var_idx[0],var_idx[1]]
-    #     hfakesLowMtVarDown[var_idx[0],var_idx[1],0, 1] = ((1-(1./rate_var)*ratio)*norm)[var_idx[0],var_idx[1]]
-
-    #     dset = fshapes.create_dataset(name='fakesLowMt_fakeShapeBin{}Up'.format(i), shape=[(len(etaBins)-1) * (len(ptBins)-1) * (len(mTBins)-1) * (len(isoBins)-1)], dtype='float64')
-    #     dset[...] = (hfakesLowMtVarUp/hfakes_unc).flatten()
-    #     dset = fshapes.create_dataset(name='fakesLowMt_fakeShapeBin{}Down'.format(i), shape=[(len(etaBins)-1) * (len(ptBins)-1) * (len(mTBins)-1) * (len(isoBins)-1)], dtype='float64')
-    #     dset[...] = (hfakesLowMtVarDown/hfakes_unc).flatten()
-
-    #     norm = np.sum(hfakesHighMt[:,:,1,:],axis=2)
-    #     ratio = hfakesHighMt[:,:,1,0]/norm #ratio iso/iso+aiso
-    #     rate_var = 1.2
-    #     var_idx = np.nonzero(mask)
-    #     # set to nominal
-    #     hfakesHighMtVarUp = np.empty_like(hfakesHighMt)
-    #     hfakesHighMtVarDown = np.empty_like(hfakesHighMt)
-    #     np.copyto(hfakesHighMtVarUp, hfakesHighMt) # (dst, src)
-    #     np.copyto(hfakesHighMtVarDown, hfakesHighMt) # (dst, src)
-    #     # apply variation to isolated part
-    #     hfakesHighMtVarUp[var_idx[0],var_idx[1],1, 0] = (rate_var*ratio*norm)[var_idx[0],var_idx[1]]
-    #     hfakesHighMtVarDown[var_idx[0],var_idx[1],1, 0] = ((1./rate_var)*ratio*norm)[var_idx[0],var_idx[1]]
-    #     # apply variation to anti-isolated part
-    #     hfakesHighMtVarUp[var_idx[0],var_idx[1],1, 1] = ((1-rate_var*ratio)*norm)[var_idx[0],var_idx[1]]
-    #     hfakesHighMtVarDown[var_idx[0],var_idx[1],1, 1] = ((1-(1./rate_var)*ratio)*norm)[var_idx[0],var_idx[1]]
-
-    #     dset = fshapes.create_dataset(name='fakesHighMt_fakeShapeBin{}Up'.format(i), shape=[(len(etaBins)-1) * (len(ptBins)-1) * (len(mTBins)-1) * (len(isoBins)-1)], dtype='float64')
-    #     dset[...] = (hfakesHighMtVarUp/hfakes_unc).flatten()
-    #     dset = fshapes.create_dataset(name='fakesHighMt_fakeShapeBin{}Down'.format(i), shape=[(len(etaBins)-1) * (len(ptBins)-1) * (len(mTBins)-1) * (len(isoBins)-1)], dtype='float64')
-    #     dset[...] = (hfakesHighMtVarDown/hfakes_unc).flatten()
-
-    #     # print('checking if any zero or negative yields for bin {}'.format(i))
-    #     # print(np.any((hfakesLowMtVarUp+hfakesHighMtVarUp)<=0.))
-    #     # print(np.any((hfakesLowMtVarDown+hfakesHighMtVarDown)<=0.))
 
     # plot pt, eta and mt in isolated and antiisolated region
     for i in range(2):
@@ -440,7 +365,7 @@ for era in eras:
         etaDY = np.sum(hDY,axis=1)[:,0,-1,i]
         etaTop = np.sum(hTop,axis=1)[:,0,-1,i]
         etaDiboson = np.sum(hDiboson,axis=1)[:,0,-1,i]
-        etafake = np.sum(hfakesHighMt,axis=1)[:,0,i]
+        etafake = np.sum(hfakesHighMt,axis=1)[:,-1,i]
         etalowacc = np.sum(hlowacc,axis=1)[:,0,-1,i]
         hep.histplot([etadata],bins = etaBins, histtype = 'errorbar', color = "k", stack = False, ax=ax1, label = ["data"])
         hep.histplot([etaDiboson,etaTop,etaDY,etaWtau,etafake,etalowacc,etaWmu],bins = etaBins, histtype = 'fill',linestyle = 'solid', color =["grey","magenta","orange","green","blue","aqua","red"], label=["Diboson","Top","DY",r'$W->\tau\nu$',"fakes","low acc",r'$W->\mu\nu$'], stack = True, ax=ax1)
@@ -463,7 +388,7 @@ for era in eras:
         ptDY = np.sum(hDY,axis=0)[:,0,-1,i]
         ptTop = np.sum(hTop,axis=0)[:,0,-1,i]
         ptDiboson = np.sum(hDiboson,axis=0)[:,0,-1,i]
-        ptfake = np.sum(hfakesHighMt,axis=0)[:,0,i]
+        ptfake = np.sum(hfakesHighMt,axis=0)[:,-1,i]
         ptlowacc = np.sum(hlowacc,axis=0)[:,0,-1,i]
         hep.histplot([ptdata],bins = ptBins, histtype = 'errorbar', color = "k", stack = False, ax=ax1,label = ["data"])
         hep.histplot([ptDiboson,ptTop,ptDY,ptWtau,ptfake,ptlowacc,ptWmu],bins = ptBins, histtype = 'fill',linestyle = 'solid', color =["grey","magenta","orange","green","blue","aqua","red"], label=["Diboson","Top","DY",r'$W->\tau\nu$',"fakes","low acc",r'$W->\mu\nu$'], stack = True, ax=ax1)
@@ -485,7 +410,7 @@ for era in eras:
         etaWtau = np.sum(hWtau,axis=1)[:,0,0,i]
         etaDY = np.sum(hDY,axis=1)[:,0,0,i]
         etaTop = np.sum(hTop,axis=1)[:,0,0,i]
-        etaDiboson = np.sum(hDiboson,axis=1)[:,-1,0,i]
+        etaDiboson = np.sum(hDiboson,axis=1)[:,0,0,i]
         etafake = np.sum(hfakesLowMt,axis=1)[:,0,i]
         etalowacc = np.sum(hlowacc,axis=1)[:,0,0,i]
         hep.histplot([etadata],bins = etaBins, histtype = 'errorbar', color = "k", stack = False, ax=ax1,label = ["data"])
@@ -525,13 +450,13 @@ for era in eras:
     # ax1.set_ylabel('number of events')
     # ax2.set_ylabel('data/prediction')
     # ax2.set_xlabel('$m_T$')
-    # mtdata = np.sum(hdata[:,:,0,:,0],axis=(0,1))
-    # mtewk = np.sum(hewk[:,:,0,:,0],axis=(0,1))
-    # mtW = np.sum(hW[:,:,0,:,0],axis=(0,1))
-    # mtDY = np.sum(hDY[:,:,0,:,0],axis=(0,1))
-    # mtTop = np.sum(hTop[:,:,0,:,0],axis=(0,1))
-    # mtDiboson = np.sum(hDiboson[:,:,0,:,0],axis=(0,1))
-    # mtfake = np.einsum('kmi,km->i',hdata[:,:,0,:,1]-hewk[:,:,0,:,1],fR)
+    # mtdata = np.sum(hdata[:,:,-1,:,0],axis=(0,1))
+    # mtewk = np.sum(hewk[:,:,-1,:,0],axis=(0,1))
+    # mtW = np.sum(hW[:,:,-1,:,0],axis=(0,1))
+    # mtDY = np.sum(hDY[:,:,-1,:,0],axis=(0,1))
+    # mtTop = np.sum(hTop[:,:,-1,:,0],axis=(0,1))
+    # mtDiboson = np.sum(hDiboson[:,:,-1,:,0],axis=(0,1))
+    # mtfake = np.einsum('kmi,km->i',hdata[:,:,-1,:,1]-hewk[:,:,-1,:,1],fR)
 
     # hep.histplot([mtdata],bins = mTBins, histtype = 'errorbar', color = "k", stack = False, ax=ax1,label = ["data"])
     # hep.histplot([mtDiboson,mtTop,mtDY,mtfake,mtW],bins = mTBins, histtype = 'fill',linestyle = 'solid', color =["grey","magenta","orange","green","blue","aqua","red"], label=["Diboson","Top","DY",r'$W->\tau\nu$',"fakes","low acc",r'$W->\mu\nu$'], stack = True, ax=ax1)
