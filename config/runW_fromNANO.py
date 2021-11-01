@@ -49,11 +49,11 @@ def main():
     parser.add_argument('-p', '--pretend',type=bool, default=False, help="run over a small number of event")
     parser.add_argument('-r', '--report',type=bool, default=False, help="Prints the cut flow report for all named filters")
     parser.add_argument('-o', '--outputDir',type=str, default='outputW', help="output dir name")
-    parser.add_argument('-i', '--inputDir',type=str, default='/scratchnvme/wmass/NANOJEC/', help="input dir name")    
+    parser.add_argument('-i', '--inputDir',type=str, default='/scratchnvme/wmass/NANOJEC/', help="input dir name")
+    parser.add_argument('-c', '--ncores',type=int, default=48, help="no. of cores")    
     parser.add_argument('-helWeights', '--helWeights',type=bool, default=False, help="derive helicity weights for reweighting")    
 
-    SList=['WPlusJetsToMuNu', 'WMinusJetsToMuNu', 'WPlusJetsToTauNu', 'WMinusJetsToTauNu']
-    #SList=['WMinusJetsToMuNu']
+    SList=[]#['WPlusJetsToMuNu', 'WMinusJetsToMuNu', 'WPlusJetsToTauNu', 'WMinusJetsToTauNu']
     RDFtrees = {}
     args = parser.parse_args()
     for era in eras:
@@ -61,6 +61,7 @@ def main():
         inDir = args.inputDir
         outputDir = args.outputDir+"_"+era
         helWeights = args.helWeights
+        nCores = args.ncores
         print("HelWeights:", helWeights)
         ##Add era to input dir
         inDir+=era
@@ -68,7 +69,7 @@ def main():
             print("Running a test job over a few events")
         else:
             print("Running on full dataset")
-        ROOT.ROOT.EnableImplicitMT(48)
+        ROOT.ROOT.EnableImplicitMT(nCores)
         RDFtrees[era] = {}
 
         samples = samplespreVFP
@@ -83,7 +84,8 @@ def main():
             if helWeights:
                 if not 'WPlusJetsToMuNu' in sample and not 'WMinusJetsToMuNu' in sample: continue
             systType = samples[sample]['nsyst']
-            checkS=sample in SList 
+            checkS = sample in SList if len(SList) > 0 else True
+            print(sample, checkS)
             if not checkS: continue
             direc = samples[sample]['dir']
             xsec = samples[sample]['xsec']
@@ -126,7 +128,7 @@ def main():
             if helWeights:
                 if not 'WPlusJetsToMuNu' in sample and not 'WMinusJetsToMuNu' in sample: continue
             systType = samples[sample]['nsyst']
-            checkS=sample in SList
+            checkS = sample in SList if len(SList) > 0 else True
             if not checkS: continue
             RDFtreeDict = RDFtrees[era][sample].getObjects()
             if args.report: cutFlowreportDict[sample] = RDFtrees[era][sample].getCutFlowReport('defs')
@@ -144,7 +146,7 @@ def main():
                 if not 'WPlusJetsToMuNu' in sample and not 'WMinusJetsToMuNu' in sample: continue
                 # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
             systType = samples[sample]['nsyst']
-            checkS=sample in SList 
+            checkS = sample in SList if len(SList) > 0 else True
             if not checkS: continue
             RDFtrees[era][sample].gethdf5Output()
             if args.report: cutFlowreportDict[sample].Print()
