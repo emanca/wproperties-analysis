@@ -1,11 +1,10 @@
 sumwDictpreVFP= {
-    "DYJetsToMuMu_M50": 236188782054.09033,
-    "DYJetsToTauTau_M50": 117780345518.67993,
-    # "WPlusJetsToMuNu": 5913676474938.473,
+    "DYJetsToMuMu_M50": 100174265.0,
+    "DYJetsToTauTau_M50": 49191704.0,
     "WPlusJetsToMuNu": 334557563.0,
-    "WMinusJetsToMuNu": 2007009908354.7617,
-    "WPlusJetsToTauNu": 805334479658.9951,
-    "WMinusJetsToTauNu": 359142564288.70215,
+    "WMinusJetsToMuNu": 183060011.0,
+    "WPlusJetsToTauNu": 55680997.0,
+    "WMinusJetsToTauNu": 34003571.0,
     "WZ": 7907000.0,
     "WW": 15919132.429617828,
     "ST_t-channel_top_5f_InclusiveDecays": 6806472841.764001,
@@ -20,13 +19,12 @@ sumwDictpreVFP= {
 }
 
 sumwDictpostVFP={
-    "DYJetsToMuMu_M50": 178398638065.42627,
-    "DYJetsToTauTau_M50": 98016972289.8086,
-    # "WPlusJetsToMuNu": 4811269647262.408,
+    "DYJetsToMuMu_M50": 75217118.0,
+    "DYJetsToTauTau_M50": 40814019.0,
     "WPlusJetsToMuNu": 343753702.0,
-    "WMinusJetsToMuNu": 1858662408003.745,
-    "WPlusJetsToTauNu": 635503390165.7627,
-    "WMinusJetsToTauNu": 298914099784.64355,
+    "WMinusJetsToMuNu": 193557731.0,
+    "WPlusJetsToTauNu": 39750567.0,
+    "WMinusJetsToTauNu": 24810302.0,
     "WZ": 7768000.0,
     "WW": 15907138.464620693,
     "ST_t-channel_top_5f_InclusiveDecays": 7178743419.39,
@@ -39,3 +37,5 @@ sumwDictpostVFP={
     "WJetsToLNu_1J": 8395779679530.377,
     "WJetsToLNu_2J": 8395779679530.376
 }
+
+sumwClipSamples=["WPlusJetsToMuNu", "WMinusJetsToMuNu", "WPlusJetsToTauNu", "WMinusJetsToMuNu", "DYJetsToMuMu_M50", "DYJetsToTauTau_M50"]
