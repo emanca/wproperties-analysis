@@ -48,7 +48,7 @@ def wSelectionSequence(p, systType, nodetoStart, era):
         p.branch(nodeToStart = 'defs', nodeToEnd = 'defs', modules = [ROOT.defineHarmonics(),ROOT.recoDefinitions(True, False), ROOT.mtDefinitions(False,ptprefix="MET_pt", phiprefix="MET_phi"), ROOT.SF_ul(fileSFul, fileSFPogTrk,isZ=False,era=era)])
         p.EventFilter(nodeToStart='defs', nodeToEnd='defs', evfilter="Mu1_hasTriggerMatch", filtername="{:20s}".format("mu1 trig matched"))
         p.EventFilter(nodeToStart='defs', nodeToEnd='defs', evfilter="Mu1_pt < 65.", filtername="{:20s}".format("mu1 pt-eta acceptance"))
-        #p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins])
+        p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins])
         # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight","SFvar"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk_SFvar'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], variations = [])
         # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk_LHEPdfWeight'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], sample=("LHEPdfWeight",103))
         # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk_LHEScaleWeight'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], sample=("LHEScaleWeight",9))
@@ -58,7 +58,6 @@ def wSelectionSequence(p, systType, nodetoStart, era):
 def wSelectionHelWeightsSequence(p, nodetoStart,era):
     # here get angular coefficients
     p.branch(nodeToStart=nodetoStart, nodeToEnd='defs', modules=[ROOT.defineHarmonics()]) #,reweightyqt(era=era),reweightycostheta(era=era),getHelWeights(era=era,syst="",pseudodata=True)
-    
     p.Histogram(columns = ["Vrap_preFSR_abs","Vpt_preFSR","lumiweight"], types = ['float']*3,node='defs',histoname=ROOT.string("xsecs"),bins=[yBins,qtBins], sample=('harmonicsVec',9))
     p.Histogram(columns = ["Vrap_preFSR_abs","Vpt_preFSR","lumiweight"], types = ['float']*3,node='defs',histoname=ROOT.string("totxsecs"),bins=[yBins,qtBins])
     p.Histogram(columns = ["Vrap_preFSR_abs","Vpt_preFSR","CStheta_preFSR","lumiweight"], types = ['float']*4,node='defs',histoname=ROOT.string("qtycostheta"),bins=[yBins,qtBins,cosThetaBins])
@@ -72,7 +71,6 @@ def wSelectionHelWeightsSequence(p, nodetoStart,era):
     # scale variations
     p.Histogram(columns = ["Vrap_preFSR_abs","Vpt_preFSR","lumiweight"], types = ['float']*3,node='defs',histoname=ROOT.string("xsecs_LHEScaleWeight"),bins=[yBins,qtBins], sample=('harmonicsVec_LHEScaleWeight',9*9))
     p.Histogram(columns = ["Vrap_preFSR_abs","Vpt_preFSR","lumiweight"], types = ['float']*3,node='defs',histoname=ROOT.string("totxsecs_LHEScaleWeight"),bins=[yBins,qtBins], sample=("LHEScaleWeight",9))
-    
     return p
 
 def wSelectionDifferentialSequence(p,era,sample):
