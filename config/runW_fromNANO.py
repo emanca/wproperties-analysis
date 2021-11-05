@@ -1,5 +1,5 @@
 import os
-import sys
+1;5202;0cimport sys
 import ROOT
 import argparse
 import copy
@@ -26,6 +26,10 @@ from wSequence import wSelectionSequence, wSelectionHelWeightsSequence, wSelecti
 
 ROOT.gROOT.ProcessLine("gErrorIgnoreLevel = 2001;")
 
+#Run over the selected sample list. 
+#SList = ['WPlusJetsToMuNu', 'WMinusJetsToMuNu', 'WPlusJetsToTauNu', 'WMinusJetsToTauNu']
+#Comment the following line in case of using a subset of samples
+SList=[]
 eras = ["preVFP","postVFP"]
 
 def RDFprocess(fvec, outputDir, sample, xsec, systType, sumw, era, pretendJob, helWeights=False):
@@ -51,9 +55,8 @@ def main():
     parser.add_argument('-o', '--outputDir',type=str, default='outputW', help="output dir name")
     parser.add_argument('-i', '--inputDir',type=str, default='/scratchnvme/wmass/NANOJEC/', help="input dir name")
     parser.add_argument('-c', '--ncores',type=int, default=48, help="no. of cores")    
-    parser.add_argument('-helWeights', '--helWeights',type=bool, default=False, help="derive helicity weights for reweighting")    
+    parser.add_argument('-w', '--helWeights',type=bool, default=False, help="derive helicity weights for reweighting")    
 
-    SList=[]#['WPlusJetsToMuNu', 'WMinusJetsToMuNu', 'WPlusJetsToTauNu', 'WMinusJetsToTauNu']
     RDFtrees = {}
     args = parser.parse_args()
     for era in eras:
