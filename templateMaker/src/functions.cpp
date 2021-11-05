@@ -119,5 +119,11 @@ float getErrFromTH2(const TH2 &h, const float &x, const float &y)
   return h.GetBinError(xbin, ybin);
 }
 
+float getValFromTH1(const TH1 &h, const float &x)
+{
+  int xbin = std::max(1, std::min(h.GetNbinsX(), h.GetXaxis()->FindFixBin(x)));
+  return h.GetBinContent(xbin);
+}
+
 #endif
 

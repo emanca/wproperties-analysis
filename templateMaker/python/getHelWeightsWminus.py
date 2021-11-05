@@ -5,18 +5,19 @@ import matplotlib.pyplot as plt
 import mplhep as hep
 from math import pi, sqrt
 
-class getHelWeights(module):
+class getHelWeightsWminus(module):
    
-    def __init__(self, era,syst = ""):
+    def __init__(self, era,helwtFile,syst = ""):
         self.syst = syst
         if not syst == "":
             self.syst = "_"+syst
         self.era=era
+        self.helwtFile=helwtFile
         pass
       
 
     def run(self,d):
-        file_in = '/scratchnvme/emanca/wproperties-analysis/config/powheg_acc_{}/WPlusJetsToMuNu_helweights.hdf5'.format(self.era)
+        file_in = self.helwtFile#'/scratchnvme/emanca/wproperties-analysis/config/powheg_acc_{}/WPlusJetsToMuNu_helweights.hdf5'.format(self.era)
         
         f = h5py.File(file_in, mode='r+')
         
@@ -50,7 +51,7 @@ class getHelWeights(module):
         if self.era =="preVFP":
             if self.syst == "":
                 @ROOT.Numba.Declare(["float", "float"], "RVec<double>")
-                def getCoefficients_preVFP(y, pt):
+                def getCoefficients_preVFP_Wminus(y, pt):
                     biny = np.digitize(np.array([y]), yBins)[0]-1
                     binpt = np.digitize(np.array([pt]), qtBins)[0]-1
                     coeff = np.zeros(h.shape[-1])
@@ -58,7 +59,7 @@ class getHelWeights(module):
                         coeff[i]=h[biny,binpt,i]
                     return coeff
                 @ROOT.Numba.Declare(["float", "float", "RVec<double>", "RVec<float>"], "float")
-                def getNorm_preVFP(y, pt, coeffs, harms):
+                def getNorm_preVFP_Wminus(y, pt, coeffs, harms):
                     biny = np.digitize(np.array([y]), yBins)[0]-1
                     binpt = np.digitize(np.array([pt]), qtBins)[0]-1
                     totMap = htot[biny,binpt]
@@ -68,7 +69,7 @@ class getHelWeights(module):
                     norm *=3./16./pi
                     return norm
                 @ROOT.Numba.Declare(["float", "float", "RVec<double>", "RVec<float>","float"], "RVec<float>")
-                def getWeights_preVFP(y, pt, coeffs, harms, norm):
+                def getWeights_preVFP_Wminus(y, pt, coeffs, harms, norm):
                     biny = np.digitize(np.array([y]), yBins)[0]-1
                     binpt = np.digitize(np.array([pt]), qtBins)[0]-1
                     totMap = htot[biny,binpt]
@@ -82,12 +83,12 @@ class getHelWeights(module):
                     return weights
                 self.d = d
 
-                self.d = self.d.Define("AngCoeffVec", "Numba::getCoefficients_preVFP(Vrap_preFSR_abs,Vpt_preFSR)")\
-                    .Define("norm", "Numba::getNorm_preVFP(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec)")\
-                    .Define("helWeights", "Numba::getWeights_preVFP(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec,norm)")
+                self.d = self.d.Define("AngCoeffVec", "Numba::getCoefficients_preVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR)")\
+                    .Define("norm", "Numba::getNorm_preVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec)")\
+                    .Define("helWeights", "Numba::getWeights_preVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec,norm)")
             elif self.syst == "_LHEPdfWeight":
                 @ROOT.Numba.Declare(["float", "float"], "RVec<double>")
-                def getCoefficients_LHEPdfWeight_preVFP(y, pt):
+                def getCoefficients_LHEPdfWeight_preVFP_Wminus(y, pt):
                     biny = np.digitize(np.array([y]), yBins)[0]-1
                     binpt = np.digitize(np.array([pt]), qtBins)[0]-1
                     coeff = np.zeros((9,103))
@@ -96,7 +97,7 @@ class getHelWeights(module):
                             coeff[i,j]=h[biny,binpt,i,j]
                     return coeff.ravel()
                 @ROOT.Numba.Declare(["float", "float", "RVec<double>", "RVec<float>"], "RVec<double>")
-                def getNorm_LHEPdfWeight_preVFP(y, pt, coeffs, harms):
+                def getNorm_LHEPdfWeight_preVFP_Wminus(y, pt, coeffs, harms):
                     biny = np.digitize(np.array([y]), yBins)[0]-1
                     binpt = np.digitize(np.array([pt]), qtBins)[0]-1
 
@@ -113,7 +114,7 @@ class getHelWeights(module):
                     norm *=3./16./pi
                     return norm.ravel()
                 @ROOT.Numba.Declare(["float", "float", "RVec<double>", "RVec<float>","RVec<double>"], "RVec<float>")
-                def getWeights_LHEPdfWeight_preVFP(y, pt, coeffs, harms, norm):
+                def getWeights_LHEPdfWeight_preVFP_Wminus(y, pt, coeffs, harms, norm):
                     biny = np.digitize(np.array([y]), yBins)[0]-1
                     binpt = np.digitize(np.array([pt]), qtBins)[0]-1
                     coeffs = np.ascontiguousarray(coeffs).reshape((9,103))
@@ -129,12 +130,12 @@ class getHelWeights(module):
                                     weights[i,j] = 3./16./pi * totMap[j] *harms[i,j]/norm[j]
                     return weights.ravel()
                 self.d = d
-                self.d = self.d.Define("AngCoeffVec_LHEPdfWeight", "Numba::getCoefficients_LHEPdfWeight_preVFP(Vrap_preFSR_abs,Vpt_preFSR)")\
-                    .Define("norm_LHEPdfWeight", "Numba::getNorm_LHEPdfWeight_preVFP(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec_LHEPdfWeight,harmonicsVec_LHEPdfWeight)")\
-                    .Define("helWeights_LHEPdfWeight", "Numba::getWeights_LHEPdfWeight_preVFP(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec_LHEPdfWeight,harmonicsVec_LHEPdfWeight,norm_LHEPdfWeight)")
+                self.d = self.d.Define("AngCoeffVec_LHEPdfWeight", "Numba::getCoefficients_LHEPdfWeight_preVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR)")\
+                    .Define("norm_LHEPdfWeight", "Numba::getNorm_LHEPdfWeight_preVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec_LHEPdfWeight,harmonicsVec_LHEPdfWeight)")\
+                    .Define("helWeights_LHEPdfWeight", "Numba::getWeights_LHEPdfWeight_preVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec_LHEPdfWeight,harmonicsVec_LHEPdfWeight,norm_LHEPdfWeight)")
             elif self.syst == "_LHEScaleWeight":
                 @ROOT.Numba.Declare(["float", "float"], "RVec<double>")
-                def getCoefficients_LHEScaleWeight_preVFP(y, pt):
+                def getCoefficients_LHEScaleWeight_preVFP_Wminus(y, pt):
                     biny = np.digitize(np.array([y]), yBins)[0]-1
                     binpt = np.digitize(np.array([pt]), qtBins)[0]-1
                     coeff = np.zeros((9,9))
@@ -144,7 +145,7 @@ class getHelWeights(module):
                     return coeff.ravel()
 
                 @ROOT.Numba.Declare(["float", "float", "RVec<double>", "RVec<float>"], "RVec<double>")
-                def getNorm_LHEScaleWeight_preVFP(y, pt, coeffs, harms):
+                def getNorm_LHEScaleWeight_preVFP_Wminus(y, pt, coeffs, harms):
                     biny = np.digitize(np.array([y]), yBins)[0]-1
                     binpt = np.digitize(np.array([pt]), qtBins)[0]-1
 
@@ -160,7 +161,7 @@ class getHelWeights(module):
                     return norm.ravel()
 
                 @ROOT.Numba.Declare(["float", "float", "RVec<double>", "RVec<float>","RVec<double>"], "RVec<float>")
-                def getWeights_LHEScaleWeight_preVFP(y, pt, coeffs, harms, norm):
+                def getWeights_LHEScaleWeight_preVFP_Wminus(y, pt, coeffs, harms, norm):
                     biny = np.digitize(np.array([y]), yBins)[0]-1
                     binpt = np.digitize(np.array([pt]), qtBins)[0]-1
                     coeffs = np.ascontiguousarray(coeffs).reshape((9,9))
@@ -176,14 +177,14 @@ class getHelWeights(module):
                                     weights[i,j] = 3./16./pi * totMap[j] *harms[i,j]/norm[j]
                     return weights.ravel()
                 self.d = d
-                self.d = self.d.Define("AngCoeffVec_LHEScaleWeight", "Numba::getCoefficients_LHEScaleWeight_preVFP(Vrap_preFSR_abs,Vpt_preFSR)")\
-                    .Define("norm_LHEScaleWeight", "Numba::getNorm_LHEScaleWeight_preVFP(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec_LHEScaleWeight,harmonicsVec_LHEScaleWeight)")\
-                    .Define("helWeights_LHEScaleWeight", "Numba::getWeights_LHEScaleWeight_preVFP(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec_LHEScaleWeight,harmonicsVec_LHEScaleWeight,norm_LHEScaleWeight)")\
+                self.d = self.d.Define("AngCoeffVec_LHEScaleWeight", "Numba::getCoefficients_LHEScaleWeight_preVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR)")\
+                    .Define("norm_LHEScaleWeight", "Numba::getNorm_LHEScaleWeight_preVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec_LHEScaleWeight,harmonicsVec_LHEScaleWeight)")\
+                    .Define("helWeights_LHEScaleWeight", "Numba::getWeights_LHEScaleWeight_preVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec_LHEScaleWeight,harmonicsVec_LHEScaleWeight,norm_LHEScaleWeight)")\
                     .Define("nhelWeights_LHEScaleWeight", "helWeights_LHEScaleWeight.size()")
         else:
             if self.syst == "":
                 @ROOT.Numba.Declare(["float", "float"], "RVec<double>")
-                def getCoefficients_postVFP(y, pt):
+                def getCoefficients_postVFP_Wminus(y, pt):
                     biny = np.digitize(np.array([y]), yBins)[0]-1
                     binpt = np.digitize(np.array([pt]), qtBins)[0]-1
                     coeff = np.zeros(h.shape[-1])
@@ -191,7 +192,7 @@ class getHelWeights(module):
                         coeff[i]=h[biny,binpt,i]
                     return coeff
                 @ROOT.Numba.Declare(["float", "float", "RVec<double>", "RVec<float>"], "float")
-                def getNorm_postVFP(y, pt, coeffs, harms):
+                def getNorm_postVFP_Wminus(y, pt, coeffs, harms):
                     biny = np.digitize(np.array([y]), yBins)[0]-1
                     binpt = np.digitize(np.array([pt]), qtBins)[0]-1
                     totMap = htot[biny,binpt]
@@ -201,7 +202,7 @@ class getHelWeights(module):
                     norm *=3./16./pi
                     return norm
                 @ROOT.Numba.Declare(["float", "float", "RVec<double>", "RVec<float>","float"], "RVec<float>")
-                def getWeights_postVFP(y, pt, coeffs, harms, norm):
+                def getWeights_postVFP_Wminus(y, pt, coeffs, harms, norm):
                     biny = np.digitize(np.array([y]), yBins)[0]-1
                     binpt = np.digitize(np.array([pt]), qtBins)[0]-1
                     totMap = htot[biny,binpt]
@@ -215,13 +216,13 @@ class getHelWeights(module):
                     return weights
                 self.d = d
 
-                self.d = self.d.Define("AngCoeffVec", "Numba::getCoefficients_postVFP(Vrap_preFSR_abs,Vpt_preFSR)")\
-                    .Define("norm", "Numba::getNorm_postVFP(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec)")\
-                    .Define("helWeights", "Numba::getWeights_postVFP(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec,norm)")\
+                self.d = self.d.Define("AngCoeffVec", "Numba::getCoefficients_postVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR)")\
+                    .Define("norm", "Numba::getNorm_postVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec)")\
+                    .Define("helWeights", "Numba::getWeights_postVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec,norm)")\
                     .Define("nhelWeights", "helWeights.size()")
             elif self.syst == "_LHEPdfWeight":
                 @ROOT.Numba.Declare(["float", "float"], "RVec<double>")
-                def getCoefficients_LHEPdfWeight_postVFP(y, pt):
+                def getCoefficients_LHEPdfWeight_postVFP_Wminus(y, pt):
                     biny = np.digitize(np.array([y]), yBins)[0]-1
                     binpt = np.digitize(np.array([pt]), qtBins)[0]-1
                     coeff = np.zeros((9,103))
@@ -231,7 +232,7 @@ class getHelWeights(module):
                     return coeff.ravel()
 
                 @ROOT.Numba.Declare(["float", "float", "RVec<double>", "RVec<float>"], "RVec<double>")
-                def getNorm_LHEPdfWeight_postVFP(y, pt, coeffs, harms):
+                def getNorm_LHEPdfWeight_postVFP_Wminus(y, pt, coeffs, harms):
                     biny = np.digitize(np.array([y]), yBins)[0]-1
                     binpt = np.digitize(np.array([pt]), qtBins)[0]-1
 
@@ -248,7 +249,7 @@ class getHelWeights(module):
                     return norm.ravel()
 
                 @ROOT.Numba.Declare(["float", "float", "RVec<double>", "RVec<float>","RVec<double>"], "RVec<float>")
-                def getWeights_LHEPdfWeight_postVFP(y, pt, coeffs, harms, norm):
+                def getWeights_LHEPdfWeight_postVFP_Wminus(y, pt, coeffs, harms, norm):
                     biny = np.digitize(np.array([y]), yBins)[0]-1
                     binpt = np.digitize(np.array([pt]), qtBins)[0]-1
                     coeffs = np.ascontiguousarray(coeffs).reshape((9,103))
@@ -264,14 +265,14 @@ class getHelWeights(module):
                                     weights[i,j] = 3./16./pi * totMap[j] *harms[i,j]/norm[j]
                     return weights.ravel()
                 self.d = d
-                self.d = self.d.Define("AngCoeffVec_LHEPdfWeight", "Numba::getCoefficients_LHEPdfWeight_postVFP(Vrap_preFSR_abs,Vpt_preFSR)")\
-                    .Define("norm_LHEPdfWeight", "Numba::getNorm_LHEPdfWeight_postVFP(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec_LHEPdfWeight,harmonicsVec_LHEPdfWeight)")\
-                    .Define("helWeights_LHEPdfWeight", "Numba::getWeights_LHEPdfWeight_postVFP(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec_LHEPdfWeight,harmonicsVec_LHEPdfWeight,norm_LHEPdfWeight)")\
+                self.d = self.d.Define("AngCoeffVec_LHEPdfWeight", "Numba::getCoefficients_LHEPdfWeight_postVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR)")\
+                    .Define("norm_LHEPdfWeight", "Numba::getNorm_LHEPdfWeight_postVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec_LHEPdfWeight,harmonicsVec_LHEPdfWeight)")\
+                    .Define("helWeights_LHEPdfWeight", "Numba::getWeights_LHEPdfWeight_postVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec_LHEPdfWeight,harmonicsVec_LHEPdfWeight,norm_LHEPdfWeight)")\
                     .Define("nhelWeights_LHEPdfWeight", "helWeights_LHEPdfWeight.size()")
 
             elif self.syst == "_LHEScaleWeight":
                 @ROOT.Numba.Declare(["float", "float"], "RVec<double>")
-                def getCoefficients_LHEScaleWeight_postVFP(y, pt):
+                def getCoefficients_LHEScaleWeight_postVFP_Wminus(y, pt):
                     biny = np.digitize(np.array([y]), yBins)[0]-1
                     binpt = np.digitize(np.array([pt]), qtBins)[0]-1
                     coeff = np.zeros((9,9))
@@ -281,7 +282,7 @@ class getHelWeights(module):
                     return coeff.ravel()
 
                 @ROOT.Numba.Declare(["float", "float", "RVec<double>", "RVec<float>"], "RVec<double>")
-                def getNorm_LHEScaleWeight_postVFP(y, pt, coeffs, harms):
+                def getNorm_LHEScaleWeight_postVFP_Wminus(y, pt, coeffs, harms):
                     biny = np.digitize(np.array([y]), yBins)[0]-1
                     binpt = np.digitize(np.array([pt]), qtBins)[0]-1
 
@@ -297,7 +298,7 @@ class getHelWeights(module):
                     return norm.ravel()
 
                 @ROOT.Numba.Declare(["float", "float", "RVec<double>", "RVec<float>","RVec<double>"], "RVec<float>")
-                def getWeights_LHEScaleWeight_postVFP(y, pt, coeffs, harms, norm):
+                def getWeights_LHEScaleWeight_postVFP_Wminus(y, pt, coeffs, harms, norm):
                     biny = np.digitize(np.array([y]), yBins)[0]-1
                     binpt = np.digitize(np.array([pt]), qtBins)[0]-1
                     coeffs = np.ascontiguousarray(coeffs).reshape((9,9))
@@ -313,9 +314,9 @@ class getHelWeights(module):
                                     weights[i,j] = 3./16./pi * totMap[j] *harms[i,j]/norm[j]
                     return weights.ravel()
                 self.d = d
-                self.d = self.d.Define("AngCoeffVec_LHEScaleWeight", "Numba::getCoefficients_LHEScaleWeight_postVFP(Vrap_preFSR_abs,Vpt_preFSR)")\
-                    .Define("norm_LHEScaleWeight", "Numba::getNorm_LHEScaleWeight_postVFP(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec_LHEScaleWeight,harmonicsVec_LHEScaleWeight)")\
-                    .Define("helWeights_LHEScaleWeight", "Numba::getWeights_LHEScaleWeight_postVFP(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec_LHEScaleWeight,harmonicsVec_LHEScaleWeight,norm_LHEScaleWeight)")\
+                self.d = self.d.Define("AngCoeffVec_LHEScaleWeight", "Numba::getCoefficients_LHEScaleWeight_postVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR)")\
+                    .Define("norm_LHEScaleWeight", "Numba::getNorm_LHEScaleWeight_postVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec_LHEScaleWeight,harmonicsVec_LHEScaleWeight)")\
+                    .Define("helWeights_LHEScaleWeight", "Numba::getWeights_LHEScaleWeight_postVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec_LHEScaleWeight,harmonicsVec_LHEScaleWeight,norm_LHEScaleWeight)")\
                     .Define("nhelWeights_LHEScaleWeight", "helWeights_LHEScaleWeight.size()")
         return self.d
 

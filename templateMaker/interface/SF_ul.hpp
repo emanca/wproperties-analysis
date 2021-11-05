@@ -9,6 +9,8 @@ class SF_ul : public Module
 
 private:
     TFile *_SF;
+    TFile *_SFpogtrk;
+    TH1D* _pogtrk;
     TH2D *_tracking;
     TH2D *_idip;
     TH2D *_trigger_plus;
@@ -21,13 +23,20 @@ private:
     int _prefCharge;
 
 public:
-  SF_ul(TFile *SF, bool isZ = false, std::string era = "preVFP", int prefCharge = 1)
+  SF_ul(TFile *SF, TFile* SFpogtrk, bool isZ = false, std::string era = "preVFP", int prefCharge = 1)
     {
         _SF = SF;
+	_SFpogtrk = SFpogtrk;
         _isZ = isZ;
 	TString tag = "BtoH";//for all 2016
-	if(era == "preVFP") tag = "BtoF";
-	else if(era == "postVFP") tag = "GtoH";
+	if(era == "preVFP") {
+	  tag = "BtoF";
+	  _pogtrk = (TH1D*)_SFpogtrk->Get("muonPOGtrackingSF_preVFP");
+	}
+	else if(era == "postVFP") {
+	  tag = "GtoH";
+	  _pogtrk = (TH1D*)_SFpogtrk->Get("muonPOGtrackingSF_postVFP");
+	}
 	std::cout << "SF tag is " << tag << std::endl;
         _tracking = (TH2D *)_SF->Get("SF2D_tracking_" + tag + "_both");
         _idip = (TH2D *)_SF->Get("SF2D_idip_" + tag + "_both");

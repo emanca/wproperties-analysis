@@ -26,6 +26,10 @@ from wSequence import wSelectionSequence, wSelectionHelWeightsSequence, wSelecti
 
 ROOT.gROOT.ProcessLine("gErrorIgnoreLevel = 2001;")
 
+#Run over the selected sample list. 
+#SList = ['WPlusJetsToMuNu', 'WMinusJetsToMuNu', 'WPlusJetsToTauNu', 'WMinusJetsToTauNu']
+#Comment the following line in case of using a subset of samples
+SList=[]
 eras = ["preVFP","postVFP"]
 
 def RDFprocess(fvec, outputDir, sample, xsec, systType, sumw, era, pretendJob, helWeights=False):
@@ -49,8 +53,9 @@ def main():
     parser.add_argument('-p', '--pretend',type=bool, default=False, help="run over a small number of event")
     parser.add_argument('-r', '--report',type=bool, default=False, help="Prints the cut flow report for all named filters")
     parser.add_argument('-o', '--outputDir',type=str, default='outputW', help="output dir name")
-    parser.add_argument('-i', '--inputDir',type=str, default='/scratchnvme/wmass/NANOJEC/', help="input dir name")    
-    parser.add_argument('-helWeights', '--helWeights',type=bool, default=False, help="derive helicity weights for reweighting")    
+    parser.add_argument('-i', '--inputDir',type=str, default='/scratchnvme/wmass/NANOJEC/', help="input dir name")
+    parser.add_argument('-c', '--ncores',type=int, default=48, help="no. of cores")    
+    parser.add_argument('-w', '--helWeights',type=bool, default=False, help="derive helicity weights for reweighting")    
 
     RDFtrees = {}
     args = parser.parse_args()
@@ -59,13 +64,15 @@ def main():
         inDir = args.inputDir
         outputDir = args.outputDir+"_"+era
         helWeights = args.helWeights
+        nCores = args.ncores
+        print("HelWeights:", helWeights)
         ##Add era to input dir
         inDir+=era
         if pretendJob:
             print("Running a test job over a few events")
         else:
             print("Running on full dataset")
-        ROOT.ROOT.EnableImplicitMT(48)
+        ROOT.ROOT.EnableImplicitMT(nCores)
         RDFtrees[era] = {}
 
         samples = samplespreVFP
@@ -78,12 +85,11 @@ def main():
 
         for sample in samples:
             if helWeights:
-                if not 'WPlusJetsToMuNu' in sample or 'WMinusJetsToMuNu' in sample: continue
-                # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
+                if not 'WPlusJetsToMuNu' in sample and not 'WMinusJetsToMuNu' in sample: continue
             systType = samples[sample]['nsyst']
-            # if systType==0: continue #only process samples with pdfs
-            if not 'WPlusJetsToMuNu' in sample: continue
-            # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
+            checkS = sample in SList if len(SList) > 0 else True
+            print(sample, checkS)
+            if not checkS: continue
             direc = samples[sample]['dir']
             xsec = samples[sample]['xsec']
             fvec=ROOT.vector('string')()
@@ -104,6 +110,7 @@ def main():
             sumw=1.
             if not 'data' in sample:
                 sumw=sumwClippedDict[sample]
+            print("Sample is: ", sample)
             RDFtrees[era][sample] = RDFprocess(fvec, outputDir, sample, xsec, systType, sumw, era, pretendJob, helWeights)
 
     #now trigger all the event loops at the same time:
@@ -122,12 +129,10 @@ def main():
             sumwClippedDict= sumwDictpostVFP
         for sample in samples:
             if helWeights:
-                if not 'WPlusJetsToMuNu' in sample or 'WMinusJetsToMuNu' in sample: continue
-                # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
+                if not 'WPlusJetsToMuNu' in sample and not 'WMinusJetsToMuNu' in sample: continue
             systType = samples[sample]['nsyst']
-            # if systType==0: continue #only process samples with pdfs
-            if not 'WPlusJetsToMuNu' in sample: continue
-            # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
+            checkS = sample in SList if len(SList) > 0 else True
+            if not checkS: continue
             RDFtreeDict = RDFtrees[era][sample].getObjects()
             if args.report: cutFlowreportDict[sample] = RDFtrees[era][sample].getCutFlowReport('defs')
             for node in RDFtreeDict:
@@ -141,12 +146,11 @@ def main():
     for era in eras:
         for sample in samples:
             if helWeights:
-                if not 'WPlusJetsToMuNu' in sample or 'WMinusJetsToMuNu' in sample: continue
+                if not 'WPlusJetsToMuNu' in sample and not 'WMinusJetsToMuNu' in sample: continue
                 # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
             systType = samples[sample]['nsyst']
-            # if systType==0: continue #only process samples with pdfs
-            if not 'WPlusJetsToMuNu' in sample: continue
-            # if not 'WJetsToLNu_0J' in sample and not 'WJetsToLNu_1J' in sample and not 'WJetsToLNu_2J' in sample: continue
+            checkS = sample in SList if len(SList) > 0 else True
+            if not checkS: continue
             RDFtrees[era][sample].gethdf5Output()
             if args.report: cutFlowreportDict[sample].Print()
             # RDFtrees[era][sample].saveGraph()

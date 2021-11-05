@@ -6,18 +6,20 @@ import mplhep as hep
 from math import pi, sqrt
 from root_numpy import hist2array
 
-class reweightyqt(module):
+class reweightyqtWplus(module):
    
-    def __init__(self, era):
+    def __init__(self, era, inFilehelwt, genInfoFile):
         self.era=era
+        self.inFilehelwt = inFilehelwt
+        self.genInfoFile = genInfoFile
+            
+        print("reweightyqt: helWtFile=",self.inFilehelwt)
         pass
       
 
     def run(self,d):
-
-        file_in = '/scratchnvme/emanca/wproperties-analysis/config/powheg_acc_{}/WPlusJetsToMuNu_helweights.hdf5'.format(self.era)
-        f = ROOT.TFile.Open('/scratchnvme/emanca/wproperties-analysis/Common/data/genInfo_syst.root')
-
+        file_in = self.inFilehelwt 
+        f = ROOT.TFile.Open(self.genInfoFile) 
         fin = h5py.File(file_in, mode='r+')
         
         qt_powheg = fin['qtycostheta'][:]
@@ -32,20 +34,20 @@ class reweightyqt(module):
 
         if self.era =="preVFP":
             @ROOT.Numba.Declare(["float","float"], "float")
-            def getWeightqt_preVFP(y,pt):
+            def getWeightqt_preVFP_Wplus(y,pt):
                 biny = np.digitize(np.array([y]), yBins)[0]-1
                 binpt = np.digitize(np.array([pt]), qtBins)[0]-1
                 return h[biny,binpt]
             self.d = d
-            self.d = self.d.Define("yqtweight", "Numba::getWeightqt_preVFP(Vrap_preFSR_abs, Vpt_preFSR)")
+            self.d = self.d.Define("yqtweight", "Numba::getWeightqt_preVFP_Wplus(Vrap_preFSR_abs, Vpt_preFSR)")
         else:
             @ROOT.Numba.Declare(["float","float"], "float")
-            def getWeightqt_postVFP(y,pt):
+            def getWeightqt_postVFP_Wplus(y,pt):
                 biny = np.digitize(np.array([y]), yBins)[0]-1
                 binpt = np.digitize(np.array([pt]), qtBins)[0]-1
                 return h[biny,binpt]
             self.d = d
-            self.d = self.d.Define("yqtweight", "Numba::getWeightqt_postVFP(Vrap_preFSR_abs, Vpt_preFSR)")
+            self.d = self.d.Define("yqtweight", "Numba::getWeightqt_postVFP_Wplus(Vrap_preFSR_abs, Vpt_preFSR)")
 
             # data=self.d.AsNumpy(columns=["yqtweight","Vrap_preFSR_abs", "Vpt_preFSR"])
             # print(np.isinf(data["yqtweight"]).any(),np.isinf(data["Vrap_preFSR_abs"]).any(),np.isinf(data["Vpt_preFSR"]).any())

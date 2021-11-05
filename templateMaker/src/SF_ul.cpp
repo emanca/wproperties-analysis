@@ -12,7 +12,8 @@ RNode SF_ul::run(RNode d)
     **The default charge is +ve;
       */
         float sf = 1.;
-        sf *= getValFromTH2(*_tracking, eta1, pt1);
+        //sf *= getValFromTH2(*_tracking, eta1, pt1);
+	sf *= getValFromTH1(*_pogtrk, eta1);//From POG
         sf *= getValFromTH2(*_idip, eta1, pt1);
         sf *= getValFromTH2(*_iso, eta1, pt1);
 
@@ -21,7 +22,8 @@ RNode SF_ul::run(RNode d)
         else
             sf *= getValFromTH2(*_trigger_minus, eta1, pt1);
 
-        sf *= getValFromTH2(*_tracking, eta2, pt2);
+        //sf *= getValFromTH2(*_tracking, eta2, pt2);
+	sf *= getValFromTH1(*_pogtrk, eta2);//From POG
         sf *= getValFromTH2(*_idip, eta2, pt2);
         sf *= getValFromTH2(*_iso_notrig, eta2, pt2);
 
@@ -31,7 +33,8 @@ RNode SF_ul::run(RNode d)
     auto defineSF = [this](float pt1, float eta1, float charge1, float iso1)
     {
         float sf = 1.;
-        sf *= getValFromTH2(*_tracking, eta1, pt1);
+        //sf *= getValFromTH2(*_tracking, eta1, pt1);
+	sf *= getValFromTH1(*_pogtrk, eta1);//From POG
         sf *= getValFromTH2(*_idip, eta1, pt1);
 
         if (charge1 > 0)

@@ -6,18 +6,20 @@ import mplhep as hep
 from math import pi, sqrt
 from root_numpy import hist2array
 
-class reweightcoeffs(module):
+class reweightcoeffsWplus(module):
    
-    def __init__(self, era):
+    def __init__(self, era, helWtsrcdir, geninputF):
         self.era=era
+        self.helwtsrcDir=helWtsrcdir
+        self.getnInfputFile=geninputF
         pass
       
 
     def run(self,d):
 
         # load powheg coefficients
-        file_preVFP = '/scratchnvme/emanca/wproperties-analysis/config/powheg_acc_preVFP/WPlusJetsToMuNu_helweights.hdf5'
-        file_postVFP = '/scratchnvme/emanca/wproperties-analysis/config/powheg_acc_postVFP/WPlusJetsToMuNu_helweights.hdf5'
+        file_preVFP = self.helwtsrcDir + '/powheg_acc_preVFP/WPlusJetsToMuNu_helweights.hdf5'
+        file_postVFP = self.helwtsrcDir + '/powheg_acc_postVFP/WPlusJetsToMuNu_helweights.hdf5'
 
         f_preVFP = h5py.File(file_preVFP, mode='r+')
         f_postVFP = h5py.File(file_postVFP, mode='r+')
@@ -36,7 +38,7 @@ class reweightcoeffs(module):
         coeffs_powheg = h[...,:-4] #remove A5,A6,A7,UL coefficient
 
         # load aMC@NLO coefficients
-        fcoeffs = ROOT.TFile.Open('/scratchnvme/emanca/wproperties-analysis/Common/data/genInput_v7_syst_Wplus.root')
+        fcoeffs = ROOT.TFile.Open(self.getnInfputFile)#'/scratchnvme/emanca/wproperties-analysis/Common/data/genInput_v7_syst_Wplus.root')
 
         hists_aMC = []
         for i in range(5):
@@ -54,7 +56,7 @@ class reweightcoeffs(module):
 
         if self.era =="preVFP":
             @ROOT.Numba.Declare(["float", "float", "RVec<float>"], "float")
-            def getNormRatio(y, pt,harms):
+            def getNormRatio_Wplus(y, pt,harms):
                 biny = np.digitize(np.array([y]), yBins)[0]-1
                 binpt = np.digitize(np.array([pt]), qtBins)[0]-1
     
@@ -65,7 +67,7 @@ class reweightcoeffs(module):
                     norm_powheg += coeffs_powheg[biny,binpt,i]*harms[i]
                 return norm_aMC/norm_powheg
         self.d = d
-        self.d = self.d.Define("coeffsweight", "Numba::getNormRatio(Vrap_preFSR_abs, Vpt_preFSR,harmonicsVec)")
+        self.d = self.d.Define("coeffsweight", "Numba::getNormRatio_Wplus(Vrap_preFSR_abs, Vpt_preFSR,harmonicsVec)")
         # data=self.d.AsNumpy(columns=["coeffsweight","Vrap_preFSR_abs", "Vpt_preFSR"])
         # print(np.isinf(data["coeffsweight"]).any(),np.isinf(data["Vrap_preFSR_abs"]).any(),np.isinf(data["Vpt_preFSR"]).any())
         # idx=np.where(np.isinf(data["coeffsweight"]))
