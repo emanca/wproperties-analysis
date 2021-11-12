@@ -6,3 +6,4 @@
 #include "genVProducer.hpp"
 #include "muonPrefireWeightProducer.hpp"
 #include "lumiWeight.hpp"
+#include "jmeProducer.hpp"

@@ -7,4 +7,5 @@
   <class name="genVProducer"/>
   <class name="muonPrefireWeightProducer"/>
   <class name="lumiWeight"/>
+  <class name="jmeProducer"/>
 </lcgdict>
