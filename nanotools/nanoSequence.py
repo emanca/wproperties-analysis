@@ -20,7 +20,7 @@ ROOT.gSystem.Load('{}/nanotools/bin/libNanoTools.so'.format(FWKBASE))
 ROOT.gROOT.ProcessLine("gErrorIgnoreLevel = 2001;")
 
 #pass a RDFtree object
-def nanoSequence(rdftree, systType, sample, xsec, sumw, era):    
+def nanoSequence(rdftree, systType, sample, xsec, sumw, era):
     endNode="input" #this is to protect if no postnano sequence is run
     if systType == 0: #this is data
         endNode='postnano'
@@ -55,7 +55,8 @@ def nanoSequence(rdftree, systType, sample, xsec, sumw, era):
         #TFile *puMC, TFile *puData, TString hmcName, TString hdataName, bool dosyst, booql fixlargeW = true, bool normtoArea = true
         #rdftree.branch(nodeToStart='input', nodeToEnd='postnano', modules=[ROOT.puWeightProducer(mcprofName, "pileup", False, True, True), ROOT.trigObjMatchProducer()])
         #FOR ROOT HISTOS
-        print(clip)
+        print(sumwClipSamples)
+        print(sample,'clipping:',clip)
         rdftree.branch(nodeToStart='input', nodeToEnd='postnano', modules=[ROOT.lumiWeight(xsec=xsec, sumw=sumw, targetLumi = luminosityN, clip=clip),ROOT.puWeightProducer(eraCode), ROOT.trigObjMatchProducer(),ROOT.muonPrefireWeightProducer(filemuPrefire, eraCode)])
         if systType == 2:#for signal MC
             rdftree.branch(nodeToStart='postnano', nodeToEnd='postnano', modules=[ROOT.genLeptonSelector(), ROOT.CSvariableProducer(), ROOT.genVProducer()])

@@ -38,4 +38,4 @@ sumwDictpostVFP={
     "WJetsToLNu_2J": 8395779679530.376
 }
 
-sumwClipSamples=["WPlusJetsToMuNu", "WMinusJetsToMuNu", "WPlusJetsToTauNu", "WMinusJetsToMuNu", "DYJetsToMuMu_M50", "DYJetsToTauTau_M50"]
+sumwClipSamples=["WPlusJetsToMuNu", "WMinusJetsToMuNu", "WPlusJetsToTauNu", "WMinusJetsToTauNu", "DYJetsToMuMu_M50", "DYJetsToTauTau_M50"]

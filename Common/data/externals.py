@@ -7,9 +7,10 @@ import json
 #Easter bunny SF
 #fileSFul = ROOT.TFile.Open("../Common/data/2021-03-31_allSFs.root")
 #SF may
-fileSFul = ROOT.TFile.Open("../Common/data/2021-05-31_allSFs_nodz_dxybs.root")
+# fileSFul = ROOT.TFile.Open("../Common/data/2021-05-31_allSFs_nodz_dxybs.root")
 # SF prod
 #fileSFul = ROOT.TFile.Open("../Common/data/scaleFactorProduct_31Mar2021.root")
+fileSFul = ROOT.TFile.Open("../Common/data/scaleFactorProduct_28Oct2021_nodz_dxybs_genMatchDR01.root")
 fileSFPogTrk=ROOT.TFile.Open("../Common/data/muonPOGtrackingSF.root")
 
 #fileSF = ROOT.TFile.Open("../Common/data/ScaleFactors_OnTheFly.root")
@@ -30,7 +31,9 @@ fileSFdatapre=ROOT.TFile.Open('../Common/data/scaleFactorProduct_31Mar2021.root'
 filemuPrefire=ROOT.TFile.Open("../Common/data/muonPrefiring_prePostVFP.root")
 
 ##Common path where re-weighting files are stored
-weightFoldersrc="/scratchnvme/wmass/REWEIGHT/"
+# weightFoldersrc="/scratchnvme/wmass/REWEIGHT/"
+weightFoldersrc="/scratchnvme/emanca/wproperties-analysis/Common/data/"
+
 
 
 
