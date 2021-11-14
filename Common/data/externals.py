@@ -28,8 +28,11 @@ datajson='../Common/data/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.t
 ##SF file for eff correction of pre to post VFP data only
 fileSFdatapre=ROOT.TFile.Open('../Common/data/scaleFactorProduct_31Mar2021.root')
 ##Muon prefire weights
-filemuPrefire=ROOT.TFile.Open("../Common/data/muonPrefiring_prePostVFP.root")
+#filemuPrefire=ROOT.TFile.Open("../Common/data/muonPrefiring_prePostVFP.root")
+##pt_eta 
+filemuPrefire=ROOT.TFile.Open("../Common/data/L1MuonPrefiringParametriations_histograms.root")
 
+<<<<<<< HEAD
 ##Common path where re-weighting files are stored
 # weightFoldersrc="/scratchnvme/wmass/REWEIGHT/"
 weightFoldersrc="/scratchnvme/emanca/wproperties-analysis/Common/data/"
@@ -40,3 +43,8 @@ weightFoldersrc="/scratchnvme/emanca/wproperties-analysis/Common/data/"
 
 
 
+=======
+##Common path where re-weighting files are stored#followed by era*!
+##*set in the config
+weightFoldersrc="/scratchnvme/wmass/REWEIGHT/"
+>>>>>>> refs/remotes/origin/master

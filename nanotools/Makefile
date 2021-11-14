@@ -7,9 +7,9 @@ BINDIR=bin
 HPPDIR=interface
 AUXDIR=aux
 COREDIR=../RDFprocessor/framework
-PATHFLAGS=-I$(COREDIR)/ -I$(COREDIR)/interface/ -I./interface/ -I/scratchnvme/wmass/eigen-3.3.7/ -I.
+PATHFLAGS=-I$(COREDIR)/ -I$(COREDIR)/interface/ -I./interface/ -I/scratchnvme/wmass/eigen-3.3.7/ -I. -I/scratchnvme/wmass/CMSJMECalculators/include -I/scratchnvme/wmass/CMSJMECalculators/interface 
 CORELIB=$(COREDIR)/lib/libRDFProcessorCore.so
-
+JMELIB=/scratchnvme/wmass/CMSJMECalculators/lib/libCMSJMECalculatorsDict.so /scratchnvme/wmass/CMSJMECalculators/lib/libCMSJMECalculators.so
 SRC=$(wildcard $(SRCDIR)/*.cpp)
 OBJ=$(patsubst $(SRCDIR)/%.cpp, $(BINDIR)/%.o , $(SRC)  )
 HPPLINKDEF=$(patsubst $(SRCDIR)/%.cpp, ../interface/%.hpp , $(SRC)  )
@@ -27,7 +27,7 @@ fast:
 	$(MAKE) libNanoTools.so
 
 libNanoTools.so: $(OBJ) Dict | $(BINDIR)
-	$(GCC) $(CXXFLAGS) $(PATHFLAGS) $(RPATH) $(SOFLAGS) -o $(BINDIR)/$@ $(OBJ) $(BINDIR)/dict.o $(CORELIB)
+	$(GCC) $(CXXFLAGS) $(PATHFLAGS) $(RPATH) $(SOFLAGS) -o $(BINDIR)/$@ $(OBJ) $(BINDIR)/dict.o $(CORELIB)  $(JMELIB)
 
 $(OBJ) : $(BINDIR)/%.o : $(SRCDIR)/%.cpp interface/%.hpp | $(BINDIR)
 	$(GCC) $(CXXFLAGS) $(PATHFLAGS) $(RPATH) -c -o $(BINDIR)/$*.o $<

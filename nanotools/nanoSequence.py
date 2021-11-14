@@ -16,6 +16,13 @@ from externals import datajson,filemuPrefire
 from dataluminosity import lumi_preVFP,lumi_postVFP,lumi_total2016
 from genSumW import sumwClipSamples
 
+JMEBASE="/scratchnvme/wmass/CMSJMECalculators"
+sys.path.append("{}/include/".format(JMEBASE))
+sys.path.append("{}/interface/".format(JMEBASE))
+sys.path.append("{}/lib/".format(JMEBASE))
+ROOT.gSystem.Load('{}/lib/libCMSJMECalculators.so'.format(JMEBASE))
+ROOT.gSystem.Load('{}/lib/libCMSJMECalculatorsDict.so'.format(JMEBASE))
+
 ROOT.gSystem.Load('{}/nanotools/bin/libNanoTools.so'.format(FWKBASE))
 ROOT.gROOT.ProcessLine("gErrorIgnoreLevel = 2001;")
 
@@ -60,4 +67,7 @@ def nanoSequence(rdftree, systType, sample, xsec, sumw, era):
         rdftree.branch(nodeToStart='input', nodeToEnd='postnano', modules=[ROOT.lumiWeight(xsec=xsec, sumw=sumw, targetLumi = luminosityN, clip=clip),ROOT.puWeightProducer(eraCode), ROOT.trigObjMatchProducer(),ROOT.muonPrefireWeightProducer(filemuPrefire, eraCode)])
         if systType == 2:#for signal MC
             rdftree.branch(nodeToStart='postnano', nodeToEnd='postnano', modules=[ROOT.genLeptonSelector(), ROOT.CSvariableProducer(), ROOT.genVProducer()])
+            if sample in ['WPlusJetsToMuNu', 'WMinusJetsToMuNu']:
+                print('Will run jme producer for sample:' + sample)
+                rdftree.branch(nodeToStart='postnano', nodeToEnd='postnano', modules=[ROOT.jmeProducer(era=eraCode)])
     return rdftree,endNode

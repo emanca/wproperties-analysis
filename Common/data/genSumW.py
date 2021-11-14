@@ -24,7 +24,7 @@ sumwDictpostVFP={
     "WPlusJetsToMuNu": 343753702.0,
     "WMinusJetsToMuNu": 193557731.0,
     "WPlusJetsToTauNu": 39750567.0,
-    "WMinusJetsToTauNu": 24810302.0,
+    "WMinusJetsToTauNu": 24810302.0,	
     "WZ": 7768000.0,
     "WW": 15907138.464620693,
     "ST_t-channel_top_5f_InclusiveDecays": 7178743419.39,
