@@ -28,8 +28,8 @@ systematicsDict = {
     "mass" : {
         "vars":["mass"],
         "procs": ["Signal", "LowAcc", "Fake"],
-      #   "type": "shapeNoConstraint",
-        "type": "shape",
+        "type": "shapeNoConstraint",
+      #   "type": "shape",
         "weight" : 1.
     },
     "WHSFStat"  : {

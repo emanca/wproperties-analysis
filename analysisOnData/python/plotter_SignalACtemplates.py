@@ -38,9 +38,10 @@ def uncorrelate1PtVar(t):
 
 class plotter:
     
-    def __init__(self, outDir, inDir = ''):
+    def __init__(self, outDir, inDir = '',simult=False):
         self.indir = inDir # indir containig the various outputs
         self.outdir = outDir
+        self.simult = simult
         self.sampleFile = 'WToMu_AC_plots.root'
 
         self.extSyst = copy.deepcopy(systematics)
@@ -161,7 +162,18 @@ class plotter:
         if syst == '_' : syst=''        
         for iY in range(1, th3.GetNbinsZ()+1):
             
-            slicename = 'helXsecs'+ coeff + '_y_{}'.format(iY)+'_qt_{}'.format(iQt) + syst
+            if not self.simult :
+                slicename = 'helXsecs'+ coeff + '_y_{}'.format(iY)+'_qt_{}'.format(iQt) + syst
+            else :
+                if 'Prefire' in syst or 'WHSF' in syst or 'jesTotal' in syst or 'unclustEn' in syst or 'corrected' in syst : 
+                    chargeSting = '_'+charge
+                elif syst!='' :
+                    chargeSting = '_'
+                else :
+                    chargeSting = '' #nominal
+                slicename = charge+'helXsecs'+ coeff + '_y_{}'.format(iY)+'_qt_{}'.format(iQt) +chargeSting + syst[1:]
+                # print("syst=",syst,slicename )
+
             th3.GetZaxis().SetRange(iY, iY)
             
             th2slice=th3.Project3D("y_{iY}_yxe".format(iY=iY))
@@ -211,6 +223,7 @@ class plotter:
                             #assert(0)
         self.uncorrelateEff()
         self.symmetrisePDF()
+        self.symmetriseScale()
         # self.uncorrelateJME_eta()
         # self.symmetrisePDF_shift()
         # self.alphaVariations()
@@ -339,6 +352,33 @@ class plotter:
                         hlist.append(th2Up)
                         hlist.append(th2Down)
                     self.histoDict[charge][c][bin]['LHEPdfWeight'] = hlist
+    def symmetriseScale(self):
+        for charge in self.charges:
+            for c in self.clist:
+                for bin in self.bins:
+                    hlist = []
+                    hnom = [h for h in self.histoDict[charge][c][bin]['Nominal'] if not 'mass' in h.GetName()][0]
+                    for hvar in self.histoDict[charge][c][bin]['LHEScaleWeight']:
+                        print(hvar.GetName())
+                        th2c = hnom.Clone()
+                        th2varD = hvar.Clone()
+                        hvar.Divide(th2c)
+                        th2c.Divide(th2varD)
+                        nbinsX = hnom.GetXaxis().GetNbins()
+                        nbinsY = hnom.GetYaxis().GetNbins()
+                        th2Up = ROOT.TH2D("up", "up", nbinsX, hnom.GetXaxis().GetBinLowEdge(1), hnom.GetXaxis().GetBinUpEdge(nbinsX), nbinsY, hnom.GetYaxis().GetBinLowEdge(1), hnom.GetYaxis().GetBinUpEdge(nbinsY))
+                        th2Up.Sumw2()
+                        th2Down = ROOT.TH2D("down", "down", nbinsX, hnom.GetXaxis().GetBinLowEdge(1), hnom.GetXaxis().GetBinUpEdge(nbinsX), nbinsY, hnom.GetYaxis().GetBinLowEdge(1), hnom.GetYaxis().GetBinUpEdge(nbinsY))
+                        th2Down.Sumw2()
+                        for j in range(1, hnom.GetNbinsX()+1):
+                            for k in range(1, hnom.GetNbinsY()+1):
+                                th2Up.SetBinContent(j, k, hnom.GetBinContent(j, k)*hvar.GetBinContent(j, k))
+                                th2Down.SetBinContent(j, k, hnom.GetBinContent(j, k)*th2c.GetBinContent(j, k))
+                        th2Up.SetName(hvar.GetName() + 'Up')
+                        th2Down.SetName(hvar.GetName() + 'Down')
+                        hlist.append(th2Up)
+                        hlist.append(th2Down)
+                    self.histoDict[charge][c][bin]['LHEScaleWeight'] = hlist
     def symmetrisePDF_shift(self): #nom+-var (insted of nom*(nom/var), nom*(var/nom))
         for charge in self.charges:
             for c in self.clist:
@@ -406,9 +446,11 @@ class plotter:
 parser = argparse.ArgumentParser("")
 parser.add_argument('-o','--output', type=str, default='./',help="name of the output directory")
 parser.add_argument('-i','--input', type=str, default='./',help="name of the input directory root file")
+parser.add_argument('-s', '--simult',      type=int, default=False, help="simultaneous fit of two W charges")
 
 args = parser.parse_args()
 OUTPUT = args.output
 INPUT = args.input
-p=plotter(outDir=OUTPUT, inDir = INPUT)
+SIMULT = args.simult
+p=plotter(outDir=OUTPUT, inDir = INPUT, simult=SIMULT)
 p.getHistos()

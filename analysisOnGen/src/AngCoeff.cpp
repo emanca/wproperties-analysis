@@ -122,6 +122,9 @@ RNode AngCoeff::run(RNode d)
         
         // auto YqTcT = d1.Histo3D(TH3D("YqTcT", "YqTcT", _nBinsY, _yArr.data(), _nBinsPt, _ptArr.data(),  _cosThetaArr.size() -1, _cosThetaArr.data()), "Wrap_preFSR_abs", "Wpt_preFSR","CStheta_preFSR","weight");
         // _h3List.push_back(YqTcT);    
+                
+        // auto norm = d1.Histo2D(TH2D("norm", "norm", _nBinsY, _yArr.data(), _nBinsPt, _ptArr.data()), "Wrap_preFSR_abs", "Wpt_preFSR","norm");
+        // _h2List.push_back(norm);    
         return d1;
     }
 }

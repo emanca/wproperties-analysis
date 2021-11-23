@@ -14,3 +14,5 @@
 #include "interface/PDFWeightsHelper.hpp"
 #include "interface/Replica2Hessian.hpp"
 #include "interface/reweightFromZ.hpp"
+#include "interface/getACValues.hpp"
+

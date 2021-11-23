@@ -14,10 +14,11 @@ ROOT.gStyle.SetOptStat(0)
 
 class plotter:
     
-    def __init__(self, outDir, inDir = ''):
+    def __init__(self, outDir, inDir = '',simult=False):
 
         self.indir = inDir # indir containig the various outputs
         self.outdir = outDir
+        self.simult= simult
         
         self.sampleDict = { "data_obs"      :  ('WToMu_plots.root', 2 ),
                             "DYJets"      : ('DYJets_plots.root', 2 ),
@@ -320,6 +321,13 @@ class plotter:
                 fout.cd()
                 for h in hlist:
                     #th1=self.unroll2D(h)
+                    if self.simult :
+                        if 'data_obs' not in sample :
+                            chargeS = foutName.replace('_reco.root','')
+                            h.SetName(chargeS+h.GetName())
+                            if 'Prefire' in h.GetName() or 'WHSF' in h.GetName() or 'jesTotal' in h.GetName() or 'unclustEn' in h.GetName() or 'corrected' in h.GetName() : 
+                                # print(h.GetName(), chargeS+sample+'_'+chargeS+h.GetName().replace(chargeS+sample+'_',''))
+                                h.SetName(chargeS+sample+'_'+chargeS+h.GetName().replace(chargeS+sample+'_',''))
                     h.Write()
                 #fout.cd()
         fout.Save()
@@ -328,11 +336,13 @@ class plotter:
 parser = argparse.ArgumentParser("")
 parser.add_argument('-o','--output', type=str, default='./',help="name of the output directory")
 parser.add_argument('-i','--input', type=str, default='./',help="name of the input directory root file")
+parser.add_argument('-s', '--simult',      type=int, default=False, help="simultaneous fit of two W charges")
 
 args = parser.parse_args()
 OUTPUT = args.output
 INPUT = args.input
+SIMULT = args.simult
 
-p=plotter(outDir=OUTPUT, inDir = INPUT)
+p=plotter(outDir=OUTPUT, inDir = INPUT,simult = SIMULT)
 p.getHistos(1)
 p.getHistos(2)
