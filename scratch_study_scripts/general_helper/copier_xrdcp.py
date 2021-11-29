@@ -1,0 +1,13 @@
+import os
+import sys
+
+os.system('nohup xrdcp -f root://cms-xrd-global.cern.ch//store/relval/CMSSW_11_2_0_pre8/RelValQCD_Pt_1800_2400_14/GEN-SIM-DIGI-RAW/112X_mcRun3_2024_realistic_v10_forTrk-v1/00000/0b016847-77a4-4ba3-9ff9-6acc7fd1aeb5.root . > log1.log 2>&1 &')
+os.system('nohup xrdcp -f root://cms-xrd-global.cern.ch//store/relval/CMSSW_11_2_0_pre8/RelValQCD_Pt_1800_2400_14/GEN-SIM-DIGI-RAW/112X_mcRun3_2024_realistic_v10_forTrk-v1/00000/13926eac-0193-4e52-9c4a-82c54a829506.root . > log2.log 2>&1 &')
+os.system('nohup xrdcp -f root://cms-xrd-global.cern.ch//store/relval/CMSSW_11_2_0_pre8/RelValQCD_Pt_1800_2400_14/GEN-SIM-DIGI-RAW/112X_mcRun3_2024_realistic_v10_forTrk-v1/00000/27db8f0a-7140-4fbb-89fb-809887c32f30.root . > log3.log 2>&1 &')
+os.system('nohup xrdcp -f root://cms-xrd-global.cern.ch//store/relval/CMSSW_11_2_0_pre8/RelValQCD_Pt_1800_2400_14/GEN-SIM-DIGI-RAW/112X_mcRun3_2024_realistic_v10_forTrk-v1/00000/3b23497b-78c1-40a3-9ce2-9ea289b611f5.root . > log4.log 2>&1 &')
+os.system('nohup xrdcp -f root://cms-xrd-global.cern.ch//store/relval/CMSSW_11_2_0_pre8/RelValQCD_Pt_1800_2400_14/GEN-SIM-DIGI-RAW/112X_mcRun3_2024_realistic_v10_forTrk-v1/00000/59198d44-e74b-4f47-b21c-346812a52ace.root . > log5.log 2>&1 &')
+os.system('nohup xrdcp -f root://cms-xrd-global.cern.ch//store/relval/CMSSW_11_2_0_pre8/RelValQCD_Pt_1800_2400_14/GEN-SIM-DIGI-RAW/112X_mcRun3_2024_realistic_v10_forTrk-v1/00000/5ff84622-dafb-442a-af01-2a5d24ac1944.root . > log6.log 2>&1 &')
+os.system('nohup xrdcp -f root://cms-xrd-global.cern.ch//store/relval/CMSSW_11_2_0_pre8/RelValQCD_Pt_1800_2400_14/GEN-SIM-DIGI-RAW/112X_mcRun3_2024_realistic_v10_forTrk-v1/00000/ac07a016-1feb-4dba-9ada-31d9d221d35d.root . > log7.log 2>&1 &')
+os.system('nohup xrdcp -f root://cms-xrd-global.cern.ch//store/relval/CMSSW_11_2_0_pre8/RelValQCD_Pt_1800_2400_14/GEN-SIM-DIGI-RAW/112X_mcRun3_2024_realistic_v10_forTrk-v1/00000/b437c5dd-fe4a-4b28-ab17-d27027411fba.root . > log8.log 2>&1 &')
+os.system('nohup xrdcp -f root://cms-xrd-global.cern.ch//store/relval/CMSSW_11_2_0_pre8/RelValQCD_Pt_1800_2400_14/GEN-SIM-DIGI-RAW/112X_mcRun3_2024_realistic_v10_forTrk-v1/00000/caaf1b74-9a80-418e-8da6-7a52d1e792e9.root . > log9.log 2>&1 &')
+os.system('nohup xrdcp -f root://cms-xrd-global.cern.ch//store/relval/CMSSW_11_2_0_pre8/RelValQCD_Pt_1800_2400_14/GEN-SIM-DIGI-RAW/112X_mcRun3_2024_realistic_v10_forTrk-v1/00000/dd6057d4-5972-42b7-885a-80a968cab184.root . > log0.log 2>&1 &')
