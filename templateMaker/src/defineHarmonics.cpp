@@ -33,18 +33,6 @@ RNode defineHarmonics::run(RNode d)
     return harms;
   };
 
-  auto vecMultiplication = [](const ROOT::VecOps::RVec<float> &v1, const ROOT::VecOps::RVec<float> &v2) -> ROOT::VecOps::RVec<float>
-  {
-    ROOT::VecOps::RVec<float> products;
-
-    products.reserve(v1.size() * v2.size());
-    for (auto e1 : v1)
-      for (auto e2 : v2)
-        products.push_back(e1 * e2);
-
-    return products;
-  };
-
   auto d1 = d.Define("harmonicsVec", getHarmonicsVec, {"CStheta_preFSR", "CSphi_preFSR"})
                 // .Define("harmonicsVec_BWmassWeights", vecMultiplication, {"harmonicsVec", "BWmassWeights"})
                 .Define("harmonicsVec_LHEPdfWeight", vecMultiplication, {"harmonicsVec", "LHEPdfWeight"})

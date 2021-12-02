@@ -1,19 +1,5 @@
-#include "ROOT/RDataFrame.hxx"
-#include "ROOT/RVec.hxx"
-#include "ROOT/RDF/RInterface.hxx"
 #include "interface/getMassWeights.hpp"
-
-ROOT::VecOps::RVec<float> vecMultiplication(const ROOT::VecOps::RVec<float> &v1, const ROOT::VecOps::RVec<float> &v2)
-{
-  ROOT::VecOps::RVec<float> products;
-
-  products.reserve(v1.size() * v2.size());
-  for (auto e1 : v1)
-    for (auto e2 : v2)
-      products.push_back(e1 * e2);
-
-  return products;
-}
+#include "functions.hpp"
 
 RNode getMassWeights::run(RNode d)
 {

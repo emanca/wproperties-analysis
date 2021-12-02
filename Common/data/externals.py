@@ -32,19 +32,6 @@ fileSFdatapre=ROOT.TFile.Open('../Common/data/scaleFactorProduct_31Mar2021.root'
 ##pt_eta 
 filemuPrefire=ROOT.TFile.Open("../Common/data/L1MuonPrefiringParametriations_histograms.root")
 
-<<<<<<< HEAD
-##Common path where re-weighting files are stored
-# weightFoldersrc="/scratchnvme/wmass/REWEIGHT/"
-weightFoldersrc="/scratchnvme/emanca/wproperties-analysis/Common/data/"
-
-
-
-
-
-
-
-=======
 ##Common path where re-weighting files are stored#followed by era*!
 ##*set in the config
 weightFoldersrc="/scratchnvme/wmass/REWEIGHT/"
->>>>>>> refs/remotes/origin/master
