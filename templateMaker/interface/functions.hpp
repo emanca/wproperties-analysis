@@ -23,3 +23,4 @@ bool hasTriggerMatch(const float mueta, const float muphi, const RVec<float> &Tr
 float getValFromTH1(const TH1 &h, const float &x);
 float getValFromTH2(const TH2 &h, const float &x, const float &y);
 float getErrFromTH2(const TH2 &h, const float &x, const float &y);
+ROOT::VecOps::RVec<float> vecMultiplication(const ROOT::VecOps::RVec<float> &v1, const ROOT::VecOps::RVec<float> &v2);

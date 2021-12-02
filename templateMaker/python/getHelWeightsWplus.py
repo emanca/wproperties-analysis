@@ -81,11 +81,20 @@ class getHelWeightsWplus(module):
                             else:
                                 weights[i] = 3./16./pi * totMap *harms[i]/norm
                     return weights
+                @ROOT.Numba.Declare(["RVec<float>","RVec<float>"], "RVec<float>")
+                def multVec_preVFP_Wplus(weights, syst):
+                    prod = np.zeros((weights.shape[0],syst.shape[0]),dtype='float32')
+                    for i in range(weights.shape[0]):
+                        for j in range(syst.shape[0]):
+                            prod[i,j]=weights[i]*syst[j]
+                    return prod.ravel()
                 self.d = d
 
                 self.d = self.d.Define("AngCoeffVec", "Numba::getCoefficients_preVFP_Wplus(Vrap_preFSR_abs,Vpt_preFSR)")\
                     .Define("norm", "Numba::getNorm_preVFP_Wplus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec)")\
-                    .Define("helWeights", "Numba::getWeights_preVFP_Wplus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec,norm)")
+                    .Define("helWeights", "Numba::getWeights_preVFP_Wplus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec,norm)")\
+                    .Define("SFStatvar_helweights", "Numba::multVec_preVFP_Wplus(helWeights,SFStatvar)")
+
             elif self.syst == "_LHEPdfWeight":
                 @ROOT.Numba.Declare(["float", "float"], "RVec<double>")
                 def getCoefficients_LHEPdfWeight_preVFP_Wplus(y, pt):
@@ -214,12 +223,20 @@ class getHelWeightsWplus(module):
                             else:
                                 weights[i] = 3./16./pi * totMap *harms[i]/norm
                     return weights
+                @ROOT.Numba.Declare(["RVec<float>","RVec<float>"], "RVec<float>")
+                def multVec_postVFP_Wplus(weights, syst):
+                    prod = np.zeros((weights.shape[0],syst.shape[0]),dtype='float32')
+                    for i in range(weights.shape[0]):
+                        for j in range(syst.shape[0]):
+                            prod[i,j]=weights[i]*syst[j]
+                    return prod.ravel()
                 self.d = d
 
                 self.d = self.d.Define("AngCoeffVec", "Numba::getCoefficients_postVFP_Wplus(Vrap_preFSR_abs,Vpt_preFSR)")\
                     .Define("norm", "Numba::getNorm_postVFP_Wplus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec)")\
                     .Define("helWeights", "Numba::getWeights_postVFP_Wplus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec,norm)")\
-                    .Define("nhelWeights", "helWeights.size()")
+                    .Define("SFStatvar_helweights", "Numba::multVec_postVFP_Wplus(helWeights,SFStatvar)")
+
             elif self.syst == "_LHEPdfWeight":
                 @ROOT.Numba.Declare(["float", "float"], "RVec<double>")
                 def getCoefficients_LHEPdfWeight_postVFP_Wplus(y, pt):
