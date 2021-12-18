@@ -1,6 +1,16 @@
 import os
 import sys
 import regularizationFit
+import argparse
+
+parser = argparse.ArgumentParser("")
+parser.add_argument('-o', '--output_dir',type=str, default='TEST', help="")
+parser.add_argument('-i','--input_gen', type=str, default='../analysisOnGen/genInput_fineBinned_4regularization_fix_Wplus.root ../analysisOnGen/genInput_fineBinned_4regularization_fix_Wminus.root',nargs='*', help="list of two gen input files (plus, minus), separated by space")
+args = parser.parse_args()
+output_dir = args.output_dir
+IN_GEN = args.input_gen
+
+
 
 systDict = regularizationFit.buildSystDict()
 
@@ -13,7 +23,7 @@ for sKind, sList in systDict.iteritems() :
             systString = '--syst_kind '+sKind+' --syst_name '+sName 
         # if 'Pdf' in sKind : continue  
         # if 'nom' not in sName : continue 
-        os.system('nohup python regularizationFit.py --validation_only 0 -o TEST_syst --map01 0 '+systString+' -i ../analysisOnGen/genInputUncorrErr_fineBinning.root > log_'+sKind+sName+'.log 2>&1 &')
+        os.system('nohup python regularizationFit.py --validation_only 0 -o '+output_dir+' --map01 0 '+systString+' -i '+IN_GEN+' > log_'+sKind+sName+'.log 2>&1 &')
 
 
 

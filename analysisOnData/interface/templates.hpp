@@ -20,6 +20,7 @@ private:
     HistoCategory _hcat;
 
     std::vector<float> _pTArr = std::vector<float>(61);
+    // std::vector<float> _pTArr = std::vector<float>(601); //CHANGEBIN
     std::vector<float> _etaArr = std::vector<float>(49);
     std::vector<float> _chargeArr = std::vector<float>(3);
     void setAxisarrays();

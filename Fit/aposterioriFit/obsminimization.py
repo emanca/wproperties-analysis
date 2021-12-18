@@ -59,7 +59,7 @@ def pmin(f, x, args = [], doParallel=True):
         #maxidx = np.argmax(trust_radius)
         #print(i, val, trust_radius, gradmag, np.max(trust_radius), np.max(gradmag), actual_reduction[maxidx],predicted_reduction[maxidx])
         # print("iter", i, np.sum(val), np.max(trust_radius), np.max(gradmag), np.sum(edm), np.max(edm), np.min(e0))
-        print "iter", i, ", gradmag=",gradmag ,", edm=",edm, "e0=", e0
+        print("iter", i, ", gradmag=",gradmag ,", edm=",edm, "e0=", e0)
         # print ", parametri:", x[0], x[1], x[2], x[3],x[4],x[5],x[6],x[7],x[8],x[9],x[10]
         # print x
         #for iparm in range(4):

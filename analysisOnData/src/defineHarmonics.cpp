@@ -8,7 +8,8 @@ RNode defineHarmonics::run(RNode d)
 
   // angular coefficients as defined in https://arxiv.org/pdf/1609.02536.pdf
 
-  auto getHarmonicsVec = [](float costheta, float phi) {
+  auto getHarmonicsVec = [](float costheta, float phiRaw) {
+    float phi = phiRaw-TMath::Pi();
     float P0 = 1. / 2. * (1. - 3. * costheta * costheta);
     float P1 = 2. * costheta * sqrt(1. - costheta * costheta) * cos(phi);
     float P2 = 1. / 2. * (1. - costheta * costheta) * cos(2. * phi);

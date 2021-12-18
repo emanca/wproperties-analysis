@@ -4,7 +4,8 @@ import copy
 import sys
 import argparse
 import math
-
+sys.path.append('utils/')
+from systematics import systematics
 
 ROOT.gROOT.SetBatch()
 ROOT.TH1.AddDirectory(False)
@@ -24,6 +25,8 @@ OUTPUT = args.output
 INPUT = args.input
 UNCORR = args.uncorrelate
 
+SHIFT = False #up/down as nom+/-var (insted of nom*(nom/var), nom*(var/nom))
+
 coeffDict = {
     'A0' : 1.,
     'A1' : 5.,
@@ -36,23 +39,29 @@ coeffDict = {
     'AUL' : 1.,
 }
 
-systDict = {
-    "_LHEScaleWeight" : ["_LHEScaleWeight_muR0p5_muF0p5", "_LHEScaleWeight_muR0p5_muF1p0","_LHEScaleWeight_muR1p0_muF0p5","_LHEScaleWeight_muR1p0_muF2p0","_LHEScaleWeight_muR2p0_muF1p0", "_LHEScaleWeight_muR2p0_muF2p0"],
-    "_LHEPdfWeight" : ["_LHEPdfWeightHess" + str(i)  for i in range(1, 61)],
-    "" : [""]
-}
+# systDict = {
+#     "_LHEScaleWeight" : ["_LHEScaleWeight_muR0p5_muF0p5", "_LHEScaleWeight_muR0p5_muF1p0","_LHEScaleWeight_muR1p0_muF0p5","_LHEScaleWeight_muR1p0_muF2p0","_LHEScaleWeight_muR2p0_muF1p0", "_LHEScaleWeight_muR2p0_muF2p0"],
+#     "_LHEPdfWeight" : ["_LHEPdfWeightHess" + str(i)  for i in range(1, 61)],
+#     "" : [""]
+# }
+# systDict = copy.deepcopy(systematics)
+systDict = {}
+for key, val in systematics.items() :
+        systDict['_'+key] = [var for var in val[0]]
+systDict[""] = [""]
 
 Wcharge = ["_Wplus","_Wminus"]
 for charge in Wcharge:
+    print("processing", charge)
     #GET HISTOS
     hDict = {}
     inFile = ROOT.TFile.Open(INPUT)
-    for sKind, sList in systDict.iteritems():
+    for sKind, sList in systDict.items():
         for sName in sList :
             hDict[sName+'mapTot'] =  inFile.Get('angularCoefficients'+charge+sKind+'/mapTot'+sName)
             hDict[sName+'Y'] =  inFile.Get('angularCoefficients'+charge+sKind+'/Y'+sName)
             hDict[sName+'Pt'] =  inFile.Get('angularCoefficients'+charge+sKind+'/Pt'+sName)
-            for coeff,div in coeffDict.iteritems() :
+            for coeff,div in coeffDict.items() :
                 hDict[sName+coeff] =  inFile.Get('angularCoefficients'+charge+sKind+'/harmonics'+coeff+sName)
                 hDict[sName+coeff+'Err'] =  inFile.Get('angularCoefficients'+charge+sKind+'/harmonicsSq'+coeff+sName)
                 hDict[sName+coeff+'Y'] =  inFile.Get('angularCoefficients'+charge+sKind+'/harmonicsY'+coeff+sName)
@@ -66,7 +75,8 @@ for charge in Wcharge:
     #BUILD OUTPUT
     outFile = ROOT.TFile(OUTPUT+charge+'.root', "RECREATE")
     outFile.cd()
-    for sKind, sList in systDict.iteritems():    
+    print('regular variations...')
+    for sKind, sList in systDict.items():    
         outFile.mkdir('angularCoefficients'+sKind)
         outFile.cd('angularCoefficients'+sKind)
 
@@ -79,9 +89,9 @@ for charge in Wcharge:
                 hDict[sName+'Y'].Write()
                 hDict[sName+'Pt'].Write()
                 for sNameDen in sListMod :
-                    if sNameDen!=sName and not (sKind=='_LHEScaleWeight' and UNCORR) : #PDF or correlated Scale
+                    if sNameDen!=sName and not (sKind=='_LHEScaleWeight' and UNCORR) : #PDF/alpha/mass (or correlated Scale, not used)
                         continue 
-                    for coeff,div in coeffDict.iteritems() :
+                    for coeff,div in coeffDict.items() :
                         hist = hDict[sName+coeff].Clone()
                         histY = hDict[sName+coeff+'Y'].Clone()
                         histPt = hDict[sName+coeff+'Pt'].Clone()
@@ -158,7 +168,49 @@ for charge in Wcharge:
     mapAccEta.Write()
     mapAcc.Write()
     sumw.Write()
+    
+    #symmetrize up/down (PDF,Scale)
+    print('symmetrization Up/Down...')
+    hSymDict = {}
+    for sKind, sList in systDict.items(): 
+        if 'LHE' not in sKind : continue 
+        for key in outFile.Get('angularCoefficients'+sKind).GetListOfKeys() :
+            variableName = key.GetName().split('_')[0]
+            if 'harmonics' not in variableName :
+                hNom = outFile.Get('angularCoefficients/'+variableName) #because in lines 86-89 the name has not been changed
+            else :   
+                hNom = outFile.Get('angularCoefficients/'+variableName+'_nom_nom')
+            hVar = outFile.Get('angularCoefficients'+sKind+'/'+key.GetName())
+            
+            if (SHIFT) :
+                
+                hDiff = hVar.Clone()
+                hDiff.Add(hNom,-1)
+                hVarUp = hNom.Clone(hVar.GetName()+'Up')
+                hVarDown = hNom.Clone(hVar.GetName()+'Down')
+                hVarUp.Add(hDiff,1)
+                hVarDown.Add(hDiff,-1)
+            
+            else :    
+                hMultUp = hVar.Clone()
+                hMultUp.Divide(hNom)
+                hVarUp = hNom.Clone(hVar.GetName()+'Up')
+                hVarUp.Multiply(hMultUp)
 
-
+                hMultDown = hNom.Clone()
+                hMultDown.Divide(hVar)
+                hVarDown = hNom.Clone(hVar.GetName()+'Down')
+                hVarDown.Multiply(hMultDown)
+            
+            hSymDict[sKind+'Up'+key.GetName()] = hVarUp
+            hSymDict[sKind+'Down'+key.GetName()] = hVarDown
+            
+    for sKind, sList in systDict.items(): 
+        if 'LHE' not in sKind : continue 
+        outFile.cd('angularCoefficients'+sKind)
+        for k,h in hSymDict.items() :
+            if sKind in k :
+                h.Write()
+            
     outFile.Close()
 

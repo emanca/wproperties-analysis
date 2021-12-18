@@ -28,7 +28,6 @@ def getFitRes(inFile,coeffList, bins) :
     npTreeNP = np.zeros((len(coeffList)-1)*bins[0]*bins[1])
     for obj in npTree :
         counter=0
-        print len(obj)
         for boh in obj :
             npTreeNP[counter] = boh
             counter+=1
@@ -95,15 +94,26 @@ coeffList.append(['A4', 4,5,4,6, 1,0,0]) #5-->7 but no convergence!
 extraInFile = ROOT.TFile.Open(EXTRAIN)
 href = extraInFile.Get('coeff2D_reco/recoFitACA0')
 
-parVec = getFitRes(inFile=INPUT,coeffList=coeffList,bins = [href.GetNbinsX(),href.GetNbinsY()])
-funcVec = rebuildFunc(pars=parVec,coeffList=coeffList,href=href)
+plusOnly=False
+if plusOnly :
+    signList = ['plus']
+else :
+    signList = ['plus', 'minus']
+print("WARNING: used wplus parameterization also for wminus, and not the dictionary above (ok if in the fit has been done the same)")
 
-outFile = ROOT.TFile(OUTPUT+".root", "recreate")
-for li in coeffList :
-    h = href.Clone("post-fit-regularization_"+li[0])
-    for y in range(1, h.GetNbinsX()+1) :
-        for qt in range(1, h.GetNbinsY()+1) : 
-            h.SetBinContent(y,qt,funcVec[coeffList.index(li)][y-1][qt-1])  
-            h.SetBinError(y,qt,0)  
-    outFile.cd()
-    h.Write()
+for s in signList : 
+    INPUT_s = INPUT.replace('plus',s)
+    OUTPUT_s = OUTPUT.replace('plus',s)
+    
+    parVec = getFitRes(inFile=INPUT_s,coeffList=coeffList,bins = [href.GetNbinsX(),href.GetNbinsY()])
+    funcVec = rebuildFunc(pars=parVec,coeffList=coeffList,href=href)
+
+    outFile = ROOT.TFile(OUTPUT_s+".root", "recreate")
+    for li in coeffList :
+        h = href.Clone("post-fit-regularization_"+li[0])
+        for y in range(1, h.GetNbinsX()+1) :
+            for qt in range(1, h.GetNbinsY()+1) : 
+                h.SetBinContent(y,qt,funcVec[coeffList.index(li)][y-1][qt-1])  
+                h.SetBinError(y,qt,0)  
+        outFile.cd()
+        h.Write()

@@ -28,7 +28,8 @@ RNode baseDefinitions::run(RNode d)
                 .Define("Wrap_preFSR_abs", "TMath::Abs(Wrap_preFSR)")
                 .Define("Nom", defineNomweight)
                 .Define("LHEScaleWeightred", reduceVec, {"LHEScaleWeight"})
-                .Define("weight", "lumiweight*weightPt*weightY");
+                // .Define("weight", "lumiweight*weightPt*weightY");
+                .Define("weight", "lumiweight*weightPt");
 
   //at this point return the node in case of data
   return d1;

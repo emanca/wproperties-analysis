@@ -1,5 +1,5 @@
 GCC=g++
-CXXFLAGS=`root-config --libs --cflags` -O3 -fPIC -Wall -I../  -I./  -I /scratchnvme/wmass/eigen-3.3.7/
+CXXFLAGS=`root-config --libs --cflags` -O3 -g -fPIC -Wall -I../  -I./  -I /scratchnvme/wmass/eigen-3.3.7/
 SOFLAGS=-shared
 
 SRCDIR=src

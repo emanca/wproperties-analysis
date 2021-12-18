@@ -31,7 +31,11 @@ std::vector<std::string> AngCoeff::stringMultiplication(const std::vector<std::s
 
 RNode AngCoeff::run(RNode d)
 {
-
+    // for (float i=0.; i<=200.1; i=i+0.1){ _ptArr.push_back(i); }
+    // int _nBinsPt = _ptArr.size()-1;
+    // for (float i=0.; i<=6.1; i=i+0.1){ _yArr.push_back(i); }
+    // int _nBinsY = _yArr.size()-1;
+    
     std::vector<std::string> total = stringMultiplication(_syst_name, _coeff);
 
     auto vecMultiplication = [](const ROOT::VecOps::RVec<float> &v1, const ROOT::VecOps::RVec<float> &v2) {
@@ -63,20 +67,24 @@ RNode AngCoeff::run(RNode d)
         _h2Group.push_back(mapTot);
 
         TH1weightsHelper helperPt(std::string("harmonicsPt"), std::string("harmonicsPt"), _nBinsPt, _ptArr, total);
-        auto helXsecsPt = d1.Filter("Wpt_preFSR<32. && Wrap_preFSR_abs<2.4").Book<float, float, ROOT::VecOps::RVec<float>>(std::move(helperPt), {"Wpt_preFSR", "weight", Form("%sharmonicsVec", _syst_weight.c_str())});
+        auto helXsecsPt = d1.Filter("Wpt_preFSR<60. && Wrap_preFSR_abs<2.4").Book<float, float, ROOT::VecOps::RVec<float>>(std::move(helperPt), {"Wpt_preFSR", "weight", Form("%sharmonicsVec", _syst_weight.c_str())});
         _h1Group.push_back(helXsecsPt);
 
         TH1weightsHelper helperY(std::string("harmonicsY"), std::string("harmonicsY"), _nBinsY, _yArr, total);
-        auto helXsecsY = d1.Filter("Wpt_preFSR<32. && Wrap_preFSR_abs<2.4").Book<float, float, ROOT::VecOps::RVec<float>>(std::move(helperY), {"Wrap_preFSR_abs", "weight", Form("%sharmonicsVec", _syst_weight.c_str())});
+        auto helXsecsY = d1.Filter("Wpt_preFSR<60. && Wrap_preFSR_abs<2.4").Book<float, float, ROOT::VecOps::RVec<float>>(std::move(helperY), {"Wrap_preFSR_abs", "weight", Form("%sharmonicsVec", _syst_weight.c_str())});
         _h1Group.push_back(helXsecsY);
 
         TH1weightsHelper helperMapPt(std::string("Pt"), std::string("Pt"), _nBinsPt, _ptArr, _syst_name);
-        auto Pt = d1.Filter("Wpt_preFSR<32. && Wrap_preFSR_abs<2.4").Book<float, float, ROOT::VecOps::RVec<float>>(std::move(helperMapPt), {"Wpt_preFSR", "weight", _syst_weight});
+        auto Pt = d1.Filter("Wpt_preFSR<60. && Wrap_preFSR_abs<2.4").Book<float, float, ROOT::VecOps::RVec<float>>(std::move(helperMapPt), {"Wpt_preFSR", "weight", _syst_weight});
         _h1Group.push_back(Pt);
 
         TH1weightsHelper helperMapY(std::string("Y"), std::string("Y"), _nBinsY, _yArr, _syst_name);
-        auto Y = d1.Filter("Wpt_preFSR<32. && Wrap_preFSR_abs<2.4").Book<float, float, ROOT::VecOps::RVec<float>>(std::move(helperMapY), {"Wrap_preFSR_abs", "weight", _syst_weight});
+        auto Y = d1.Filter("Wpt_preFSR<60. && Wrap_preFSR_abs<2.4").Book<float, float, ROOT::VecOps::RVec<float>>(std::move(helperMapY), {"Wrap_preFSR_abs", "weight", _syst_weight});
         _h1Group.push_back(Y);
+        
+        // TH1weightsHelper helperMass(std::string("Wmass_preFSR"), std::string("Wmass_preFSR"), _Marr.size() - 1, _Marr, _syst_name);
+        // auto Mass = d1.Book<float, float, ROOT::VecOps::RVec<float>>(std::move(helperMass), {"Wmass_preFSR", "weight", _syst_weight});
+        // _h1Group.push_back(Mass);
 
         return d1;
     }
@@ -96,19 +104,33 @@ RNode AngCoeff::run(RNode d)
         _h2List.push_back(mapTot);
 
         TH1weightsHelper helperPt(std::string("harmonicsPt"), std::string("harmonicsPt"), _nBinsPt, _ptArr, total);
-        auto helXsecsPt = d1.Filter("Wpt_preFSR<32. && Wrap_preFSR_abs<2.4").Book<float, float, ROOT::VecOps::RVec<float>>(std::move(helperPt), { "Wpt_preFSR", "weight", Form("%sharmonicsVec", _syst_weight.c_str()) });
+        auto helXsecsPt = d1.Filter("Wpt_preFSR<60. && Wrap_preFSR_abs<2.4").Book<float, float, ROOT::VecOps::RVec<float>>(std::move(helperPt), { "Wpt_preFSR", "weight", Form("%sharmonicsVec", _syst_weight.c_str()) });
         _h1Group.push_back(helXsecsPt);
 
         TH1weightsHelper helperY(std::string("harmonicsY"), std::string("harmonicsY"), _nBinsY, _yArr, total);
-        auto helXsecsY = d1.Filter("Wpt_preFSR<32. && Wrap_preFSR_abs<2.4").Book<float, float, ROOT::VecOps::RVec<float>>(std::move(helperY), { "Wrap_preFSR_abs", "weight", Form("%sharmonicsVec", _syst_weight.c_str()) });
+        auto helXsecsY = d1.Filter("Wpt_preFSR<60. && Wrap_preFSR_abs<2.4").Book<float, float, ROOT::VecOps::RVec<float>>(std::move(helperY), { "Wrap_preFSR_abs", "weight", Form("%sharmonicsVec", _syst_weight.c_str()) });
         _h1Group.push_back(helXsecsY);
 
-        auto Pt = d1.Filter("Wpt_preFSR<32. && Wrap_preFSR_abs<2.4").Histo1D(TH1D("Pt", "Pt", _nBinsPt, _ptArr.data()), "Wpt_preFSR", "weight");
+        auto Pt = d1.Filter("Wpt_preFSR<60. && Wrap_preFSR_abs<2.4").Histo1D(TH1D("Pt", "Pt", _nBinsPt, _ptArr.data()), "Wpt_preFSR", "weight");
         _h1List.push_back(Pt);
 
-        auto Y = d1.Filter("Wpt_preFSR<32. && Wrap_preFSR_abs<2.4").Histo1D(TH1D("Y", "Y", _nBinsY, _yArr.data()), "Wrap_preFSR_abs", "weight");
+        auto Y = d1.Filter("Wpt_preFSR<60. && Wrap_preFSR_abs<2.4").Histo1D(TH1D("Y", "Y", _nBinsY, _yArr.data()), "Wrap_preFSR_abs", "weight");
         _h1List.push_back(Y);
-
+        
+        // auto Mass = d1.Histo1D(TH1D("Wmass_preFSR", "Wmass_preFSR",_Marr.size() - 1, _Marr.data()), "Wmass_preFSR", "weight");
+        // _h1List.push_back(Mass);
+        
+        // auto YqTcT = d1.Histo3D(TH3D("YqTcT", "YqTcT", _nBinsY, _yArr.data(), _nBinsPt, _ptArr.data(),  _cosThetaArr.size() -1, _cosThetaArr.data()), "Wrap_preFSR_abs", "Wpt_preFSR","CStheta_preFSR","weight");
+        // _h3List.push_back(YqTcT);    
+                
+        // auto norm = d1.Histo2D(TH2D("norm", "norm", _nBinsY, _yArr.data(), _nBinsPt, _ptArr.data()), "Wrap_preFSR_abs", "Wpt_preFSR","norm");
+        // _h2List.push_back(norm);    
         return d1;
     }
 }
+
+// void AngCoeff::setAxisarrays()
+// {
+// //   for (int i=0; i<1001;i++) _Marr[i] = 75.+i*(85.-75.)/1000.;
+//   for (int i=0; i<101;i++) _cosThetaArr[i] = -1.+i*(1.+1.)/100.;
+// }

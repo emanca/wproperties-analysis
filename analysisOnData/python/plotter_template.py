@@ -37,10 +37,10 @@ class plotter:
         self.varName = 'template'
     
     def getHistos(self) :
-        for f,fileInfo in self.sampleDict.iteritems() :
+        for f,fileInfo in self.sampleDict.items() :
             inFile = ROOT.TFile.Open(self.indir+'/'+fileInfo[0])
             # inFile = ROOT.TFile.Open(self.outdir+'/hadded/'+fileInfo[0])
-            for sKind, sList in self.extSyst.iteritems():
+            for sKind, sList in self.extSyst.items():
                 varname = self.varName
                 if f=='WToMu' : #patch 
                     if sKind=='jmeVars' or sKind=='ptScaleVars' :
@@ -48,11 +48,11 @@ class plotter:
                 for sName in sList :
                     inFile.cd()
                     if ROOT.gDirectory.Get(fileInfo[1]+'/'+sKind+'/'+varname+'_'+sName)==None : #this syst is missing -. take the nominal
-                        if sName!='' or f!='Data': print "missing syst:", sName, " for file", f
+                        if sName!='' or f!='Data': print("missing syst:", sName, " for file", f)
                         h2 = inFile.Get(fileInfo[1]+'/Nominal/template')
                     else : 
                         h2 = inFile.Get(fileInfo[1]+'/'+sKind+'/'+varname+'_'+sName)
-                    for s,sInfo in self.signDict.iteritems() :
+                    for s,sInfo in self.signDict.items() :
                         h2.GetZaxis().SetRange(sInfo[0],sInfo[0])
                         self.histoDict[f+s+sName] = h2.Project3D(f+'_'+s+'_'+sName+'_yx')
                         # self.varBinWidth_modifier(self.histoDict[f+s+var+sName])
@@ -62,9 +62,9 @@ class plotter:
         fname = "{dir}/EtaPtPlots.root".format(dir=self.outdir)
         outFile =  ROOT.TFile(fname, "RECREATE")
         
-        for f,fileInfo in self.sampleDict.iteritems() :
-            for s,sInfo in self.signDict.iteritems() :
-                for sKind, sList in bkg_utils.bkg_systematics.iteritems():
+        for f,fileInfo in self.sampleDict.items() :
+            for s,sInfo in self.signDict.items() :
+                for sKind, sList in bkg_utils.bkg_systematics.items():
                     if f=='SIGNAL_Fake' and sKind=='LHEPdfWeightVars' : continue #PATCH
                     if sKind in skipSyst : continue #skipped systs
                     for sName in sList :
@@ -96,7 +96,7 @@ class plotter:
                 for xx in range(1,hBandRatio.GetNbinsX()+1) :
                     for yy in range(1,hBandRatio.GetNbinsY()+1) :
                         delta=0
-                        for sKind, sList in bkg_utils.bkg_systematics.iteritems():
+                        for sKind, sList in bkg_utils.bkg_systematics.items():
                             if sKind in skipSyst : continue #skipped systs
                             if f=='SIGNAL_Fake' and sKind=='LHEPdfWeightVars' : continue #PATCH
                             for sName in sList :
@@ -108,7 +108,7 @@ class plotter:
                         delta = 0.5*math.sqrt(delta)
                         
                         deltaLHE=0 #LHES variations
-                        for sKind, sList in bkg_utils.bkg_systematics.iteritems():
+                        for sKind, sList in bkg_utils.bkg_systematics.items():
                             if sKind in skipSyst : continue #skipped systs
                             if f=='SIGNAL_Fake' and sKind=='LHEPdfWeightVars' : continue #PATCH
                             for sName in sList :
@@ -133,7 +133,7 @@ class plotter:
                 canBand.Modified()
                 canBand.Update()
                 
-                print "BAND NAME", canBand.GetName()
+                print("BAND NAME", canBand.GetName())
                 canBand.SaveAs("{dir}/{c}.pdf".format(dir=self.outdir,c=canBand.GetName()))
                 canBand.SaveAs("{dir}/{c}.png".format(dir=self.outdir,c=canBand.GetName()))
                 
@@ -144,9 +144,9 @@ class plotter:
         outFile.Close()
                     
 
-print "FEATUREs NOT IMPLEMENTED:"
-print "1) hadd"
-print "2) comparison signal - bkg"
+print("FEATUREs NOT IMPLEMENTED:")
+print("1) hadd")
+print("2) comparison signal - bkg")
 
 parser = argparse.ArgumentParser("")
 parser.add_argument('-hadd','--hadd', type=int, default=True,help="hadd of the output of RDF")

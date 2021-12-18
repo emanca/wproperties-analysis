@@ -25,7 +25,7 @@ parser = argparse.ArgumentParser("")
 parser.add_argument('-o', '--output_dir',type=str, default='TEST', help="")
 parser.add_argument('-i','--input_gen', type=str, default='../analysisOnGen/genInput_fineBinned_4regularization_fix_Wplus.root ../analysisOnGen/genInput_fineBinned_4regularization_fix_Wminus.root',nargs='*', help="list of two gen input files (plus, minus), separated by space")
 parser.add_argument('-validation_only', '--validation_only',type=int, default=False, help="False: skip fit and do validation only")
-parser.add_argument('-input_reg', '--input_reg',type=str, default='regularizationFit', help="Name of the input file for validation_only")
+parser.add_argument('-input_reg', '--input_reg',type=str, default='regularizationFit', help="Name of the input file for validation_only (without .root)")
 parser.add_argument('-map01', '--map01',type=int, default=False, help="if true map the polynomial between 0 and 1, otherwise between -1,1")
 parser.add_argument('-suffix', '--suffix',type=str, default='', help="suffix for output file")
 parser.add_argument('-syst_kind', '--syst_kind',type=str, default='', help="name of the kind of syst empty=nominal")
@@ -93,21 +93,35 @@ signDict = {
 #         'A3' : 'qt->0, y->0',
 #         'A4' : 'y->0'
 #     }
+# coeffDict = {
+#         'A0' : 'qt->0, C1',
+#         'A1' : 'qt->0, y->0, ',
+#         'A2' : 'qt->0, C1',
+#         'A3' : 'qt->0',
+#         'A4' : 'y->0, C1'
+#     }
 coeffDict = {
-        'A0' : 'qt->0, C1',
+        'A0' : 'qt->0',
         'A1' : 'qt->0, y->0, ',
-        'A2' : 'qt->0, C1',
+        'A2' : 'qt->0',
         'A3' : 'qt->0',
-        'A4' : 'y->0, C1'
+        'A4' : 'y->0'
     }
+# coeffDict = {
+#         'A0' : 'qt->0',
+#         'A1' : 'qt->0',
+#         'A2' : 'qt->0',
+#         'A3' : 'qt->0',
+#         'A4' : ''
+#     }
         
 #oder of Chebyshev polinomials:
-degreeYList = [2,3,4,5,6,7]
+# degreeYList = [2,3,4,5,6,7]
 degreeQtList = [2,3,4,5,6,7]
 # degreeYList = [2,3]
 # degreeQtList = [2,3]
-# degreeYList = [2,3,4]
-# degreeQtList = [2,3,4]
+degreeYList = [2,3,4,5]
+# degreeQtList = [2,3,4,5]
 
 
 
@@ -682,8 +696,8 @@ def fit_coeff_poly(fname=["genInput_Wplus.root","genInput_Wminus.root"] , charge
 
     xx = array('f', x)
     yy = array('f', y)
-    # print "bin y=",xx
-    # print "bin qt=", yy
+    print "bin y=",xx
+    print "bin qt=", yy
     
     hA_cut = ROOT.TH2F("hfit_"+charge+"_"+coeff+'_'+str(degreeY)+str(degreeQt), "hfit_"+charge+"_"+coeff+'_'+str(degreeY)+str(degreeQt), len(xx)-1, xx, len(yy)-1, yy)
     hA_cut.GetXaxis().SetTitle('Y, 1='+str(y_max))
@@ -1227,8 +1241,9 @@ def Validation(hdict, signDict, coeffDict, degreeYList,degreeQtList) :
                 valDict[str(yDeg)+str(qtDeg)+'chi2'+s].GetYaxis().SetTitle("#chi^{2}/NDF")
                 valDict[str(yDeg)+str(qtDeg)+'chi2'+s].SetStats(0)
                 valDict[str(yDeg)+str(qtDeg)+'chi2'+s].GetYaxis().SetRangeUser(0,6)
-                binN=1
+                # binN=1
                 for coeff,constr in coeffDict.iteritems() :
+                    binN=int(coeff.replace('A',''))+1
                     if not (VALONLY or MULTICORE) :
                         if hdict[str(yDeg)+str(qtDeg)+s+coeff]['fit'+'Res'+sName+coeff].Ndf()>0 :
                             valDict[str(yDeg)+str(qtDeg)+'chi2'+s].SetBinContent(binN,hdict[str(yDeg)+str(qtDeg)+s+coeff]['fit'+'Res'+sName+coeff].Chi2()/hdict[str(yDeg)+str(qtDeg)+s+coeff]['fit'+'Res'+sName+coeff].Ndf())
@@ -1239,21 +1254,22 @@ def Validation(hdict, signDict, coeffDict, degreeYList,degreeQtList) :
                     else :
                         if hdict[str(yDeg)+str(qtDeg)+s+coeff]['fit'+'Res'+sName+coeff].GetNDF() >0 :  
                             valDict[str(yDeg)+str(qtDeg)+'chi2'+s].SetBinContent(binN,hdict[str(yDeg)+str(qtDeg)+s+coeff]['fit'+'Res'+sName+coeff].GetChisquare()/hdict[str(yDeg)+str(qtDeg)+s+coeff]['fit'+'Res'+sName+coeff].GetNDF())
+                            # print('DEBUG', "h1", s, yDeg, qtDeg,binN, hdict[str(yDeg)+str(qtDeg)+s+coeff]['fit'+'Res'+sName+coeff].GetChisquare(), hdict[str(yDeg)+str(qtDeg)+s+coeff]['fit'+'Res'+sName+coeff].GetNDF(),valDict[str(yDeg)+str(qtDeg)+'chi2'+s].GetBinContent(binN))
                         else :
                             print "WARNING: NDF=0 for", coeff, s, " y=",yDeg, " qt=",qtDeg
                             valDict[str(yDeg)+str(qtDeg)+'chi2'+s].SetBinContent(binN,0)
                         valDict[str(yDeg)+str(qtDeg)+'chi2'+s].SetBinError(binN,math.sqrt(2*hdict[str(yDeg)+str(qtDeg)+s+coeff]['fit'+'Res'+sName+coeff].GetNDF())/hdict[str(yDeg)+str(qtDeg)+s+coeff]['fit'+'Res'+sName+coeff].GetChisquare())
 
-                    binN+=1
+                    # binN+=1
                     
             valDict[str(yDeg)+str(qtDeg)+'chi2_c'] = ROOT.TCanvas("c_chi2"+'_'+str(yDeg)+str(qtDeg), "c_chi2"+'_'+str(yDeg)+str(qtDeg), 800, 600)
             valDict[str(yDeg)+str(qtDeg)+'chi2_c'].cd()
             valDict[str(yDeg)+str(qtDeg)+'chi2_c'].SetGridx()
             valDict[str(yDeg)+str(qtDeg)+'chi2_c'].SetGridy()
             valDict[str(yDeg)+str(qtDeg)+'chi2'+'Plus'].SetLineColor(1)
-            # valDict[str(yDeg)+str(qtDeg)+'chi2'+'Minus'].SetLineColor(2)
+            valDict[str(yDeg)+str(qtDeg)+'chi2'+'Minus'].SetLineColor(2)
             valDict[str(yDeg)+str(qtDeg)+'chi2'+'Plus'].Draw()
-            # valDict[str(yDeg)+str(qtDeg)+'chi2'+'Minus'].Draw("SAME")
+            valDict[str(yDeg)+str(qtDeg)+'chi2'+'Minus'].Draw("SAME")
             valDict[str(yDeg)+str(qtDeg)+'chi2_leg'] = ROOT.TLegend(0.7,0.8,0.95,0.95)
             for s,sname in signDict.iteritems() : 
                 valDict[str(yDeg)+str(qtDeg)+'chi2_leg'].AddEntry(valDict[str(yDeg)+str(qtDeg)+'chi2'+s],s)
@@ -1267,7 +1283,7 @@ def Validation(hdict, signDict, coeffDict, degreeYList,degreeQtList) :
     degreeYBins_temp.append(degreeYList[-1]+0.5)
     for qtDeg in degreeQtList :
         degreeQtBins_temp.append(qtDeg-0.5)
-    degreeQtBins_temp.append(degreeYList[-1]+0.5)
+    degreeQtBins_temp.append(degreeQtList[-1]+0.5)
     
 
     
@@ -1294,6 +1310,7 @@ def Validation(hdict, signDict, coeffDict, degreeYList,degreeQtList) :
                        else :
                             if hdict[str(yDeg)+str(qtDeg)+s+coeff]['fit'+'Res'+sName+coeff].GetNDF()>0 :  
                                 valDict['h2_chi2'+s+coeff].SetBinContent(binY,binQt,hdict[str(yDeg)+str(qtDeg)+s+coeff]['fit'+'Res'+sName+coeff].GetChisquare()/hdict[str(yDeg)+str(qtDeg)+s+coeff]['fit'+'Res'+sName+coeff].GetNDF())   
+                                # print('DEBUG2', "h2", s, yDeg, qtDeg,coeff, hdict[str(yDeg)+str(qtDeg)+s+coeff]['fit'+'Res'+sName+coeff].GetChisquare(), hdict[str(yDeg)+str(qtDeg)+s+coeff]['fit'+'Res'+sName+coeff].GetNDF(), valDict['h2_chi2'+s+coeff].GetBinContent(binY,binQt))
                             else :
                                 print "WARNING: NDF=0 for", coeff, s, " y=",yDeg, " qt=",qtDeg
                                 valDict['h2_chi2'+s+coeff].SetBinContent(binY,binQt,0)
@@ -2297,7 +2314,7 @@ def runSignleFit(par) :
 
 if __name__ == "__main__":
     
-    print "WARNING: chosen Degree = N --> Chebyshev polynomial max = N-1"
+    print "WARNING: chosen Degree = N --> Chebyshev polynomial max = N-1 (or standard poly. max = N-1)"
     
     if not SYST_VALIDATION : #analysis part
     
@@ -2313,10 +2330,10 @@ if __name__ == "__main__":
                     for coeff,constr in coeffDict.iteritems() :
                         if not VALONLY :
                             if MULTICORE : 
-                                processesMain.append((IN_GEN, sname,coeff,constr,yDeg,qtDeg,MAP01,2.4,32))
+                                processesMain.append((IN_GEN, sname,coeff,constr,yDeg,qtDeg,MAP01,2.4,60.))
                             else :
                                 # tempDict = fit_coeff(fname=IN_GEN, charge=sname,coeff=coeff,constraint=constr,degreeY=yDeg,degreeQt=qtDeg,Map01=MAP01,y_max=2.4,qt_max=32 )
-                                tempDict = fit_coeff_poly(fname=IN_GEN, charge=sname,coeff=coeff,constraint=constr,degreeY=yDeg,degreeQt=qtDeg,Map01=MAP01,y_max=2.4,qt_max=32 )
+                                tempDict = fit_coeff_poly(fname=IN_GEN, charge=sname,coeff=coeff,constraint=constr,degreeY=yDeg,degreeQt=qtDeg,Map01=MAP01,y_max=2.4,qt_max=60. )
                         else : #skip analyisis, do validation only
                             tempDict = rebuildHistoDict(charge=sname,coeff=coeff,degreeY=yDeg,degreeQt=qtDeg)    
                         if not MULTICORE : cumulativeDict[str(yDeg)+str(qtDeg)+s+coeff] = tempDict
@@ -2334,7 +2351,7 @@ if __name__ == "__main__":
         for yDeg in degreeYList :
             for s,sname in signDict.iteritems() :
                 # tempDict = fit_unpol(fname=IN_GEN,coeff='AUL',charge=sname,degreeY=yDeg,Map01=True,y_max=2.4,qt_max=32.) #Map01 should be ALWAYS true to remove odd degree easily
-                tempDict = fit_unpol_poly(fname=IN_GEN,coeff='AUL',charge=sname,degreeY=yDeg,Map01=True,y_max=2.4,qt_max=32.) #Map01 should be ALWAYS true to remove odd degree easily
+                tempDict = fit_unpol_poly(fname=IN_GEN,coeff='AUL',charge=sname,degreeY=yDeg,Map01=True,y_max=2.4,qt_max=60.) #Map01 should be ALWAYS true to remove odd degree easily
                 cumulativeDict[str(yDeg)+s+'unpol'] = tempDict
             
         #validation of the fit

@@ -24,8 +24,8 @@ public:
         _hY = (TH1F *)_Y->Get("unfold");
         TH1F *hYMC = (TH1F *)_Y->Get("hDDilRapLL");
 
+        hPtMC->Scale(_hPt->Integral() / hPtMC->Integral());
         _hPt->Divide(hPtMC);
-        _hPt->Scale(0.979);
 
         hYMC->Scale(_hY->Integral() / hYMC->Integral());
         _hY->Divide(hYMC);
