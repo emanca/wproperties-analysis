@@ -27,7 +27,7 @@ from wSequence import wSelectionSequence, wSelectionHelWeightsSequence, wSelecti
 ROOT.gROOT.ProcessLine("gErrorIgnoreLevel = 2001;")
 
 #Run over the selected sample list. 
-#SList = ['WPlusJetsToMuNu', 'WMinusJetsToMuNu', 'WPlusJetsToTauNu', 'WMinusJetsToTauNu']
+# SList = ["WPlusJetsToMuNu"]
 #Comment the following line in case of using a subset of samples
 SList=[]
 eras = ["preVFP","postVFP"]
