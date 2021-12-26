@@ -29,6 +29,7 @@ ROOT.gROOT.ProcessLine("gErrorIgnoreLevel = 2001;")
 #Run over the selected sample list. 
 # SList = ["WPlusJetsToMuNu"]
 #Comment the following line in case of using a subset of samples
+#SList=['data','DYJetsToMuMu_M50','DYJetsToTauTau_M50','WPlusJetsToTauNu','WMinusJetsToTauNu','WZ','WW','ST_t-channel_top_5f_InclusiveDecays','ST_t-channel_tauDecays','ST_t-channel_muDecays','ST_s-channel_4f_leptonDecays','TTToSemiLeptonic','TTTo2L2Nu']
 SList=[]
 eras = ["preVFP","postVFP"]
 
@@ -119,7 +120,7 @@ def main():
     for era in eras:
         print(era, "merging objects")
         sumwClippedDict=sumwDictpreVFP
-        
+        cutFlowreportDict[era] = {}
         samples = samplespreVFP
         # samples = wsignalNLO_preVFP
         sumwClippedDict=sumwDictpreVFP
@@ -134,7 +135,9 @@ def main():
             checkS = sample in SList if len(SList) > 0 else True
             if not checkS: continue
             RDFtreeDict = RDFtrees[era][sample].getObjects()
-            if args.report: cutFlowreportDict[sample] = RDFtrees[era][sample].getCutFlowReport('defs')
+            if args.report:
+                cutFlowreportDict[era][sample] = {}
+                cutFlowreportDict[era][sample] = RDFtrees[era][sample].getCutFlowReport('defs')
             for node in RDFtreeDict:
                 objList.extend(RDFtreeDict[node])
     print("end merging objects")
@@ -152,7 +155,7 @@ def main():
             checkS = sample in SList if len(SList) > 0 else True
             if not checkS: continue
             RDFtrees[era][sample].gethdf5Output()
-            if args.report: cutFlowreportDict[sample].Print()
+            if args.report: cutFlowreportDict[era][sample].Print()
             # RDFtrees[era][sample].saveGraph()
 
     print('all samples processed in {} s'.format(time.time()-start))

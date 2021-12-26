@@ -31,7 +31,8 @@ def nanoSequence(rdftree, systType, sample, xsec, sumw, era):
     endNode="input" #this is to protect if no postnano sequence is run
     if systType == 0: #this is data
         endNode='postnano'
-        rdftree.branch(nodeToStart='input', nodeToEnd='postnano', modules=[ROOT.isGoodLumi(datajson), ROOT.trigObjMatchProducer()])
+        eraCode= 1 if era == 'preVFP' else 2
+        rdftree.branch(nodeToStart='input', nodeToEnd='postnano', modules=[ROOT.isGoodLumi(datajson), ROOT.trigObjMatchProducer(), ROOT.jmeProducer(era=eraCode, isData=True)])
         rdftree.EventFilter(nodeToStart='postnano', nodeToEnd='postnano', evfilter="isGoodLumi==true", filtername="{:20s}".format("good Lumi"))
     else: #this is mc
         luminosityN = lumi_total2016
@@ -46,7 +47,7 @@ def nanoSequence(rdftree, systType, sample, xsec, sumw, era):
         endNode='postnano'
         datapu = pufile_data_UL2016_preVFP
         mcprofName="Pileup_nTrueInt_Wplus_preVFP"
-        eraCode=1#1 for preVFP, 2 for postVFP
+        eraCode=1 #1 for preVFP, 2 for postVFP
             
         if era == 'postVFP' : 
             datapu=pufile_data_UL2016_postVFP
@@ -64,10 +65,7 @@ def nanoSequence(rdftree, systType, sample, xsec, sumw, era):
         #FOR ROOT HISTOS
         print(sumwClipSamples)
         print(sample,'clipping:',clip)
-        rdftree.branch(nodeToStart='input', nodeToEnd='postnano', modules=[ROOT.lumiWeight(xsec=xsec, sumw=sumw, targetLumi = luminosityN, clip=clip),ROOT.puWeightProducer(eraCode), ROOT.trigObjMatchProducer(),ROOT.muonPrefireWeightProducer(filemuPrefire, eraCode)])
+        rdftree.branch(nodeToStart='input', nodeToEnd='postnano', modules=[ROOT.lumiWeight(xsec=xsec, sumw=sumw, targetLumi = luminosityN, clip=clip),ROOT.puWeightProducer(eraCode), ROOT.trigObjMatchProducer(),ROOT.muonPrefireWeightProducer(filemuPrefire, eraCode), ROOT.jmeProducer(era=eraCode)])
         if systType == 2:#for signal MC
             rdftree.branch(nodeToStart='postnano', nodeToEnd='postnano', modules=[ROOT.genLeptonSelector(), ROOT.CSvariableProducer(), ROOT.genVProducer()])
-            if sample in ['WPlusJetsToMuNu', 'WMinusJetsToMuNu']:
-                print('Will run jme producer for sample:' + sample)
-                rdftree.branch(nodeToStart='postnano', nodeToEnd='postnano', modules=[ROOT.jmeProducer(era=eraCode)])
     return rdftree,endNode
