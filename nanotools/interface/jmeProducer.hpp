@@ -14,9 +14,11 @@ class jmeProducer : public Module
 
 private:
   Type1METVariationsCalculator* myJetVarCalc;
+  bool isData_;
 public:
-  jmeProducer(int era)
+  jmeProducer(int era, bool isData = false)
     {
+      isData_ = isData;
       std::string jecDataSrc = "/scratchnvme/wmass/CMSJMECalculators/data/";
       std::string jerDataSrc = "/scratchnvme/wmass/CMSJMECalculators/data/";
       if(era==1) {
@@ -44,7 +46,10 @@ public:
      //Now configure JER
       std::string fptResolution = jerDataSrc + "_PtResolution_AK4PFchs.txt";
       std::string fptResolutionSF = jerDataSrc + "_SF_AK4PFchs.txt";
-      myJetVarCalc->setSmearing(fptResolution, fptResolutionSF, false, true, 0.2, 3.);
+      if(isData) 
+	myJetVarCalc->setSmearing(fptResolution, fptResolutionSF, false, false);//no gen matching for data
+      else
+	myJetVarCalc->setSmearing(fptResolution, fptResolutionSF, false, true, 0.2, 3.);
 
       for(auto& s: myJetVarCalc->available())
         std::cout << s << ",  ";
