@@ -48,8 +48,8 @@ class reweightcoeffsWplus(module):
         coeffs_aMC_stack = np.stack(hists_aMC,axis=-1)
         coeffs_aMC = np.copy(coeffs_powheg)
         coeffs_aMC[...,4]=coeffs_aMC_stack[...,4]
-        print(coeffs_powheg[...,0], 'powheg')
-        print(coeffs_aMC[...,0], 'aMC')
+        # print(coeffs_powheg[...,0], 'powheg')
+        # print(coeffs_aMC[...,0], 'aMC')
 
         yBins = f_preVFP['edges_xsecs_0'][:]
         qtBins = f_preVFP['edges_xsecs_1'][:]

@@ -25,7 +25,7 @@ for era in eras:
     objList = []
     for sample in samples:
         if 'data' in sample: continue
-        if not "WPlusJetsToMuNu" in sample: continue
+        if not "WPlusJetsToMuNu" in sample and not "WMinusJetsToMuNu" in sample: continue
         computeYes= 'DY' in sample or 'WPlus' in sample or 'WMinus' in sample
         fvec=ROOT.vector('string')()
         direc = samples[sample]['dir']
@@ -48,6 +48,12 @@ for era in eras:
             RDF = ROOT.ROOT.RDataFrame
             runs = RDF('Runs', fvec)
             sumwProc[sample] = runs.Sum("genEventSumw")
+        RDF = ROOT.ROOT.RDataFrame
+        runs = RDF('Runs', fvec)
+        runs = runs.Define("effEntries", "genEventSumw_*genEventSumw_/genEventSumw2_")
+        effectiveEntries = runs.Sum("effEntries").GetValue()
+        lumieq_w = effectiveEntries/ (samples[sample]["xsec"]*1000) 
+        print(sample,samples[sample]["xsec"],lumieq_w)
         objList.append(sumwProc[sample])
 
     ROOT.RDF.RunGraphs(objList)

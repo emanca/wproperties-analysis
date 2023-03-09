@@ -1,5 +1,5 @@
-#include "getZmass.hpp"
-#include "functions.hpp"
+#include "interface/getZmass.hpp"
+#include "interface/functions.hpp"
 #include "TLorentzVector.h"
 
 RNode getZmass::run(RNode d)

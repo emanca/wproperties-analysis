@@ -16,8 +16,8 @@ class getMassWeightsWplus(module):
             @ROOT.Numba.Declare(["RVec<float>"], "RVec<float>")
             def getMassWeights_Wplus(fullvec): # corresponding to a variation of 50 MeV
                 red = np.zeros((2,),dtype='float32')
-                red[0]=fullvec[15]
-                red[1]=fullvec[5]
+                red[0]=fullvec[11]
+                red[1]=fullvec[1]
                 return red
             @ROOT.Numba.Declare(["float"], "RVec<float>")
             def getBWMassWeights_Wplus(genMass): # corresponding to a variation of 50 MeV

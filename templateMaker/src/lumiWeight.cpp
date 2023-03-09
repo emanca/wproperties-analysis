@@ -1,4 +1,4 @@
-#include "lumiWeight.hpp"
+#include "interface/lumiWeight.hpp"
 
 RNode lumiWeight::run(RNode d)
 {

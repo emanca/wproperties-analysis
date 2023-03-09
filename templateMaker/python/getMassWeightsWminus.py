@@ -14,13 +14,15 @@ class getMassWeightsWminus(module):
     def run(self,d):
         if self.era=="preVFP":
             @ROOT.Numba.Declare(["RVec<float>"], "RVec<float>")
-            def getMassWeights_Wminus(fullvec): # corresponding to a variation of 50 MeV
+            def getMassWeights_Wminus(fullvec): # corresponding to a variation of 10 MeV
                 red = np.zeros((2,),dtype='float32')
-                red[0]=fullvec[15]
-                red[1]=fullvec[5]
+                # red[0]=fullvec[15]
+                # red[1]=fullvec[5]
+                red[0]=fullvec[11]
+                red[1]=fullvec[1]
                 return red
             @ROOT.Numba.Declare(["float"], "RVec<float>")
-            def getBWMassWeights_Wminus(genMass): # corresponding to a variation of 50 MeV
+            def getBWMassWeights_Wminus(genMass): # corresponding to a variation of 10 MeV
                 (m0, gamma) = (80.351812293789408, 2.0904310808144846)
                 offset = [-0.05,0.050]
                 weights = np.zeros((2,),dtype='float32')

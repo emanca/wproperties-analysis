@@ -93,7 +93,10 @@ class getHelWeightsWminus(module):
                 self.d = self.d.Define("AngCoeffVec", "Numba::getCoefficients_preVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR)")\
                     .Define("norm", "Numba::getNorm_preVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec)")\
                     .Define("helWeights", "Numba::getWeights_preVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec,norm)")\
-                    .Define("SFStatvar_helweights", "Numba::multVec_preVFP_Wminus(helWeights,SFStatvar)")
+                    .Define("SFStatvar_helweights", "Numba::multVec_preVFP_Wminus(helWeights,SFStatvar)")\
+                    .Define("muprefireWeightVars_helweights", "Numba::multVec_preVFP_Wminus(helWeights,muprefireWeightVars)")
+                # node = self.d.AsNumpy(columns=["SFStatvar_helweights"])
+                # print('weights:', np.asarray(node['SFStatvar_helweights'][-1]))
             elif self.syst == "_LHEPdfWeight":
                 @ROOT.Numba.Declare(["float", "float"], "RVec<double>")
                 def getCoefficients_LHEPdfWeight_preVFP_Wminus(y, pt):
@@ -234,7 +237,10 @@ class getHelWeightsWminus(module):
                 self.d = self.d.Define("AngCoeffVec", "Numba::getCoefficients_postVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR)")\
                     .Define("norm", "Numba::getNorm_postVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec)")\
                     .Define("helWeights", "Numba::getWeights_postVFP_Wminus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec,norm)")\
-                    .Define("SFStatvar_helweights", "Numba::multVec_postVFP_Wminus(helWeights,SFStatvar)")
+                    .Define("SFStatvar_helweights", "Numba::multVec_postVFP_Wminus(helWeights,SFStatvar)")\
+                    .Define("muprefireWeightVars_helweights", "Numba::multVec_postVFP_Wminus(helWeights,muprefireWeightVars)")
+                # node = self.d.AsNumpy(columns=["SFStatvar_helweights"])
+                # print('weights:', np.asarray(node['SFStatvar_helweights'][-1]))
             elif self.syst == "_LHEPdfWeight":
                 @ROOT.Numba.Declare(["float", "float"], "RVec<double>")
                 def getCoefficients_LHEPdfWeight_postVFP_Wminus(y, pt):

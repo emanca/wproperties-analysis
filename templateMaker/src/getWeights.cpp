@@ -1,4 +1,4 @@
-#include "getWeights.hpp"
+#include "interface/getWeights.hpp"
 
 RNode getWeights::run(RNode d)
 {

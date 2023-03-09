@@ -10,8 +10,10 @@ import json
 # fileSFul = ROOT.TFile.Open("../Common/data/2021-05-31_allSFs_nodz_dxybs.root")
 # SF prod
 #fileSFul = ROOT.TFile.Open("../Common/data/scaleFactorProduct_31Mar2021.root")
-fileSFul = ROOT.TFile.Open("../Common/data/scaleFactorProduct_28Oct2021_nodz_dxybs_genMatchDR01.root")
+fileSFul = ROOT.TFile.Open("../Common/data/2021-10-28_allSFs_nodz_dxybs_mcTruth.root")
 fileSFPogTrk=ROOT.TFile.Open("../Common/data/muonPOGtrackingSF.root")
+fileSFNov22 = ROOT.TFile.Open("../Common/data/scaleFactorProduct_08Oct2022_vertexWeight_OSchargeExceptTracking.root")
+
 
 #fileSF = ROOT.TFile.Open("../Common/data/ScaleFactors_OnTheFly.root")
 filePt = ROOT.TFile.Open("../Common/data/histoUnfoldingSystPt_nsel2_dy3_rebin1_default.root")
