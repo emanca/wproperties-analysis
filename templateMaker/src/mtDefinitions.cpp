@@ -1,5 +1,5 @@
-#include "mtDefinitions.hpp"
-#include "functions.hpp"
+#include "interface/mtDefinitions.hpp"
+#include "interface/functions.hpp"
 
 RNode mtDefinitions::run(RNode d)
 {

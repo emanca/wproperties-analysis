@@ -1,5 +1,5 @@
 #ifndef FUNCTIONS_H
-#include "functions.hpp"
+#include "interface/functions.hpp"
 #include "TMath.h"
 
 float getFromIdx(ROOT::VecOps::RVec<float> vec, int index){

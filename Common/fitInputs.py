@@ -39,8 +39,7 @@ threshold_qt = np.digitize(60.,qtBins)-1
 
 eras = ["preVFP","postVFP"]
 for era in eras:
-    # folder = "../config/alternatesample_{}/".format(era)
-    folder = "../config/valeriosbins_{}/".format(era)
+    folder = "../config/outputW_{}/".format(era)
     shape = (len(etaBins)-1,len(ptBins)-1,len(chargeBins)-1,len(mTBins)-1,len(isoBins)-1)
     datadict = haddFiles(dataFiles,"data",["data_obs","data_obs_sumw2"], [shape,shape],folder,era)
     hdata = datadict['data_obs']
@@ -52,7 +51,6 @@ for era in eras:
     dydict=haddFiles(DYFiles,"DY",histonames, [shape,shape],folder,era)
     topdict=haddFiles(TopFiles,"Top",histonames, [shape,shape],folder,era)
     dibdict=haddFiles(DibosonFiles,"Diboson",histonames, [shape,shape],folder,era)
-    rewdict=haddFiles(WMuFiles_rew,"ewk",histonames, [shape,shape],"../config/powheg_qtA4_{}/".format(era),era)
 
     hWtau = taudict['ewk']
     hWtau_sumw2 = taudict['ewk_sumw2']
@@ -105,8 +103,8 @@ for era in eras:
     shape_pdf_lowacc = (len(etaBins)-1,len(ptBins)-1,len(chargeBins)-1,len(mTBins)-1,len(isoBins)-1, 103)
     shape_qcd_lowacc = (len(etaBins)-1,len(ptBins)-1,len(chargeBins)-1,len(mTBins)-1,len(isoBins)-1,len(qtBins_syst)-1,9)
 
-    histonames = ['signalTemplates', 'signalTemplates_sumw2','signalTemplates_mass','signalTemplates_LHEPdfWeight', 'lowacc', 'lowacc_sumw2','lowacc_mass','lowacc_LHEPdfWeight','lowacc_LHEScaleWeight', 'lowacc_rew']
-    wdict=haddFiles(WMuFiles,"WmuSignal",histonames, [shape_hel,shape_hel,shape_mass,shape_pdf,shape_lowacc,shape_lowacc,shape_mass_lowacc,shape_pdf_lowacc,shape_qcd_lowacc,shape_lowacc],"../config/powheg_acc_{}/".format(era),era)
+    histonames = ['signalTemplates', 'signalTemplates_sumw2','signalTemplates_mass', 'lowacc', 'lowacc_sumw2','lowacc_mass','lowacc_LHEPdfWeight','lowacc_LHEScaleWeight', 'lowacc_rew']
+    wdict=haddFiles(WMuFiles,"WmuSignal",histonames, [shape_hel,shape_hel,shape_mass,shape_lowacc,shape_lowacc,shape_mass_lowacc,shape_pdf_lowacc,shape_qcd_lowacc,shape_lowacc],"../config/oldSF_{}/".format(era),era)
 
     # signal: nominal
     hsignal = wdict['signalTemplates']
@@ -116,9 +114,9 @@ for era in eras:
     hsignal_mass = wdict['signalTemplates_mass']
     hsignal_mass=hsignal_mass.reshape(hsignal_mass.shape[:-1] + (9,2))
     
-    # signal: PDFs
-    hsignal_PDF = wdict['signalTemplates_LHEPdfWeight']
-    hsignal_PDF=hsignal_PDF.reshape(hsignal_PDF.shape[:-1] + (9,103))
+    # # signal: PDFs
+    # hsignal_PDF = wdict['signalTemplates_LHEPdfWeight']
+    # hsignal_PDF=hsignal_PDF.reshape(hsignal_PDF.shape[:-1] + (9,103))
 
     # # # signal: QCD
     # hsignal_QCD = np.array(fsignal['signalTemplates_LHEScaleWeight'][:])[:,:,-1,...,:threshold_y,:threshold_qt,:]
@@ -128,7 +126,7 @@ for era in eras:
     hWmu_sumw2 = np.sum(hsignal_sumw2,axis=(-1,-2,-3)) # integrated over helicity, y and qt
 
     # helicity xsecs without acceptance cuts for unfolding
-    file_gen = '../config/powheg_acc_{}/WPlusJetsToMuNu_helweights.hdf5'.format(era)
+    file_gen = '/scratchnvme/wmass/REWEIGHT/outputW_sroychow_{}/WPlusJetsToMuNu_helweights.hdf5'.format(era)
     f_gen = h5py.File(file_gen, mode='r+')
 
     htot = f_gen['totxsecs'][:]
@@ -234,12 +232,12 @@ for era in eras:
     plt.savefig("testprefit/pseudo_data_{}".format(era))
     plt.clf()
 
-    fig, ax1 = plt.subplots()
-    ax1.set_title("total xsec closure", fontsize=9)
-    hep.hist2dplot(np.sum(hsignal_PDF,axis=(-2,-3,-4))[:,:,-1,1,0,1]/hWmu[:,:,-1,1,0],etaBins,ptBins)
-    plt.tight_layout()
-    plt.savefig("testprefit/total_xsec_clos_pdf_{}".format(era))
-    plt.clf()
+    # fig, ax1 = plt.subplots()
+    # ax1.set_title("total xsec closure", fontsize=9)
+    # hep.hist2dplot(np.sum(hsignal_PDF,axis=(-2,-3,-4))[:,:,-1,1,0,1]/hWmu[:,:,-1,1,0],etaBins,ptBins)
+    # plt.tight_layout()
+    # plt.savefig("testprefit/total_xsec_clos_pdf_{}".format(era))
+    # plt.clf()
 
     dset = fshapes.create_dataset(name='template', shape=(len(etaBins)-1,len(ptBins)-1,len(mTBins)-1,len(isoBins)-1, len(yBins)-1, len(qtBins)-1, 9), dtype='float64')
     dset[...] = hsignal[:,:,-1,...] #select positive charge
@@ -258,8 +256,8 @@ for era in eras:
     dset = fshapes.create_dataset(name='template_mass', shape=(len(etaBins)-1,len(ptBins)-1,len(mTBins)-1,len(isoBins)-1, len(yBins)-1, len(qtBins)-1, 9, 2), dtype='float64')
     dset[...] = hsignal_mass[:,:,-1,...] #select positive charge
 
-    dset = fshapes.create_dataset(name='template_LHEPdfWeight', shape=(len(etaBins)-1,len(ptBins)-1,len(mTBins)-1,len(isoBins)-1, len(yBins)-1, len(qtBins)-1, 9, 103), dtype='float64')
-    dset[...] = hsignal_PDF[:,:,-1,...] #select positive charge
+    # dset = fshapes.create_dataset(name='template_LHEPdfWeight', shape=(len(etaBins)-1,len(ptBins)-1,len(mTBins)-1,len(isoBins)-1, len(yBins)-1, len(qtBins)-1, 9, 103), dtype='float64')
+    # dset[...] = hsignal_PDF[:,:,-1,...] #select positive charge
 
     # dset = fshapes.create_dataset(name='template_LHEScaleWeight', shape=hsignal_QCD.shape, dtype='float64')
     # dset[...] = hsignal_QCD #select positive charge

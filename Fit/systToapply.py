@@ -1,62 +1,88 @@
+# ["DY","Diboson","Top","fakesLowMt","fakesHighMt", "Wtau","LowAcc"]
 systematicsDict = {
-    "Nominal": {
+    "CMSlumi": {
+       "vars":["CMSlumi"],
+       "procs": ["Signal","DY","Diboson","Top","Wtau","LowAcc"],
+       "type": "lnN",
+       "weight" : 1.012
     },
-    #"CMSlumi": {
-    #    "vars":[],
-    #    "procs": ["Signal", "DY","Diboson","Top","Tau","LowAcc"],
-    #    "type": "logN"
-    #},
-    #"DYxsec":{
-    #    "vars":[],
-    #    "procs": ["DY"],
-    #    "type": "logN"
-    #},
-    #"Topxsec":{
-    #    "vars":[],
-    #    "procs": ["Top"],
-    #    "type": "logN"
-    #},
-    #"Dibosonxsec":{
-    #    "vars":[],
-    #    "procs": ["Diboson"],
-    #    "type": "logN"
-    #},
+    "Topxsec":{
+       "vars":["Topxsec"],
+       "procs": ["Top"],
+       "type": "lnN",
+       "weight" : 1.060
+    },
+    "Dibosonxsec":{
+       "vars":["Dibosonxsec"],
+       "procs": ["Diboson"],
+       "type": "lnN",
+       "weight" : 1.160
+    },
+     "Tauxsec":{
+       "vars":["Tauxsec"],
+       "procs": ["Wtau"],
+       "type": "lnN",
+       "weight" : 1.04
+    },
     "mass" : {
         "vars":["mass"],
-        "procs": ["Signal", "LowAcc"],
-        "type": "shapeNoConstraint"
+        "procs": ["Signal","LowAcc"],
+        "type": "shapeNoConstraint",
+        "weight" : 1.
     },
-    #"WHSFStat"  : {
-    #    "vars": ["WHSFSyst0Eta{}".format(i) for i in range(1, 49)]+["WHSFSyst1Eta{}".format(i) for i in range(1, 49)]+["WHSFSyst2Eta{}".format(i) for i in range(1, 49)],
-    #    "procs": ["Signal", "LowAcc"],
-    #    "type":"shape"},
-    #"WHSFSyst":{
-    #    "vars": ["WHSFSystFlat"],
-    #    "procs": ["Signal","LowAcc"],
-    #    "type": "shape"},
-    #"ptScale" : {
-    #    "vars": ["Eta{}zptsyst".format(j) for j in range(1, 5)] + ["Eta{}Ewksyst".format(j) for j in range(1, 5)] + ["Eta{}deltaMsyst".format(j) for j in range(1, 5)]+["Eta{}stateig{}".format(j, i) for i in range(0, 99) for j in range(1, 5)],
-    #    "procs": ["Signal"],
-    #    "type": "shape"
-    #},
-    #"jme" : {
-    #    "vars":["jesTotal", "unclustEn"],
-    #    "procs": ["Signal", "LowAcc"],
-    #    "type": "shape"
-    #},
-    #"PrefireWeight":{
-    #    "vars":["PrefireWeight"],
-    #    "procs": ["Signal", "LowAcc"],
-    #    "type": "shape"
-    #},
-    #"LHEPdfWeight" : {
-    #    "vars":["LHEPdfWeightHess{}".format(i+1) for i in range(60)],
-    #    "procs": ["Signal", "LowAcc"],
-    #    "type": "shape"
-    #},
-    #"alphaS" :{
-    #    "vars": ["alphaS"],
-    #    "procs": ["Signal", "LowAcc"],
-    #    "type": "shape"
-    #}
+    "LHEScaleWeight1": {
+        "vars": ["LHEScaleWeight1_muRmuF", "LHEScaleWeight1_muR","LHEScaleWeight1_muF"],
+        "procs": ["LowAcc"],
+        "type": "shape",
+        "weight" : 1.
+    },
+    "LHEScaleWeight2": {
+        "vars": ["LHEScaleWeight2_muRmuF", "LHEScaleWeight2_muR","LHEScaleWeight2_muF"],
+        "procs": ["LowAcc"],
+        "type": "shape",
+        "weight" : 1.
+    },
+    "LHEScaleWeight3": {
+        "vars": ["LHEScaleWeight3_muRmuF", "LHEScaleWeight3_muR","LHEScaleWeight3_muF"],
+        "procs": ["LowAcc"],
+        "type": "shape",
+        "weight" : 1.
+    },
+    "LHEScaleWeight4": {
+        "vars": ["LHEScaleWeight4_muRmuF", "LHEScaleWeight4_muR","LHEScaleWeight4_muF"],
+        "procs": ["LowAcc"],
+        "type": "shape",
+        "weight" : 1.
+    },
+    "LHEScaleWeight": {
+        "vars": ["muRmuF", "muR","muF"],
+        "procs": ["DY","Wtau"],
+        "type": "shape",
+        "weight" : 1.
+    },
+    "SF"  : {
+        "vars": ["SFall{}".format(i) for i in range(624)]+["SFiso{}".format(i) for i in range(624)]+["SFSyst"],
+       "procs": ["Signal","DY","Diboson","Top","Wtau","LowAcc"],
+       "type": "shape",
+       "weight" : 1.
+    },
+    "jme" : {
+       "vars":["jes", "uncl"],
+       "procs": ["Signal","DY","Diboson","Top","Wtau","LowAcc"],
+       "type": "shape",
+       "weight" : 1.
+    },
+    "PrefireWeight":{
+       "vars":["prefire"],
+       "procs": ["Signal", "DY","Diboson","Top","Wtau","LowAcc"],
+       "type": "shape",
+       "weight" : 1.
+    },
+    "LHEPdfWeight" : {
+       "vars":["pdf{}".format(i) for i in range(1,103)],
+       "procs": ["DY","Wtau","LowAcc"],
+       "type": "shape",
+       "weight" : 1.
+    },
+
 }

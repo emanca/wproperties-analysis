@@ -7,13 +7,15 @@
   <class name="getWeights"/>
   <class name="recoWeightDefinitions"/>
   <class name="reweightFromZ"/>
-  <class name="Replica2Hessian"/>
   <class name="lumiWeight"/>
   <class name="getZmass"/>
   <class name="SF_ul"/>
   <class name="SFprod"/>
   <class name="zSelection"/>
   <class name="zVetoMuons"/>
-  <class name="zHistosROOT"/>
   <class name="mtDefinitions"/>
+  <class name="genLeptonSelector"/>
+  <class name="CSvariableProducer"/>
+  <class name="genVProducer"/>
+  <class name="trigObjMatchProducer"/>
 </lcgdict>

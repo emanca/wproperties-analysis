@@ -27,10 +27,10 @@ from wSequence import wSelectionSequence, wSelectionHelWeightsSequence, wSelecti
 ROOT.gROOT.ProcessLine("gErrorIgnoreLevel = 2001;")
 
 #Run over the selected sample list. 
-#SList = ['WPlusJetsToMuNu', 'WMinusJetsToMuNu', 'WPlusJetsToTauNu', 'WMinusJetsToTauNu']
+# SList = ["WMinusJetsToMuNu"]
 #Comment the following line in case of using a subset of samples
-#SList=['data','DYJetsToMuMu_M50','DYJetsToTauTau_M50','WPlusJetsToTauNu','WMinusJetsToTauNu','WZ','WW','ST_t-channel_top_5f_InclusiveDecays','ST_t-channel_tauDecays','ST_t-channel_muDecays','ST_s-channel_4f_leptonDecays','TTToSemiLeptonic','TTTo2L2Nu']
-SList=[]
+SList=['DYJetsToMuMu_M50','DYJetsToTauTau_M50','WPlusJetsToTauNu','WMinusJetsToTauNu','WZ','WW','ST_t-channel_top_5f_InclusiveDecays','ST_t-channel_tauDecays','ST_t-channel_muDecays','ST_s-channel_4f_leptonDecays','TTToSemiLeptonic','TTTo2L2Nu']
+# SList=[]
 eras = ["preVFP","postVFP"]
 
 def RDFprocess(fvec, outputDir, sample, xsec, systType, sumw, era, pretendJob, helWeights=False):

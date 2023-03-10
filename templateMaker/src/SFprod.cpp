@@ -1,14 +1,16 @@
-#include "SFprod.hpp"
-#include "functions.hpp"
+#include "interface/SFprod.hpp"
+#include "interface/functions.hpp"
 
 RNode SFprod::run(RNode d)
 {
     auto defineSF = [this](float pt1, float eta1, float charge1, float iso1)
     {
         float sf = 1.;
+        std::cout << sf << " " << pt1 << " " << eta1 << " " << charge1 << " " << iso1 << std::endl;
         sf *= getValFromTH2(*_reco, eta1, pt1);
+        std::cout << sf << " reco" << std::endl;
         sf *= getValFromTH2(*_tracking, eta1, pt1);
-
+        std::cout << sf << " tracking" << std::endl;
         if (charge1 > 0)
         {
             if (iso1 < 0.15) // if isolated
@@ -23,7 +25,7 @@ RNode SFprod::run(RNode d)
             else
                 sf *= getValFromTH2(*_antiiso_minus, eta1, pt1);
         }
-        // std::cout<< pt1 << " " << eta1 << " " << iso1 << " "<< sf << std::endl;
+        std::cout << sf << " iso" << std::endl;
         return sf;
     };
 
@@ -38,19 +40,20 @@ RNode SFprod::run(RNode d)
             if (iso1 < 0.15) // if isolated
                 sf += TMath::Power(getErrFromTH2(*_iso_plus, eta1, pt1) / getValFromTH2(*_iso_plus, eta1, pt1), 2);
             else
-                sf += TMath::Power(getErrFromTH2(*_antiiso_plus, eta1, pt1) / getValFromTH2(*_antiiso_plus, eta1, pt1), 2);
+                sf -= TMath::Power(getErrFromTH2(*_antiiso_plus, eta1, pt1) / getValFromTH2(*_antiiso_plus, eta1, pt1), 2);
         }
         else
         {
             if(iso1 < 0.15) // if isolated
                 sf += TMath::Power(getErrFromTH2(*_iso_minus, eta1, pt1) / getValFromTH2(*_iso_minus, eta1, pt1), 2);
-            else sf += TMath::Power(getErrFromTH2(*_antiiso_minus, eta1, pt1) / getValFromTH2(*_antiiso_minus, eta1, pt1), 2);
+            else sf -= TMath::Power(getErrFromTH2(*_antiiso_minus, eta1, pt1) / getValFromTH2(*_antiiso_minus, eta1, pt1), 2);
         }
         RVec<float> var;
         var.resize(2);
 
         var[0] = nomSF * (1 - TMath::Sqrt(sf));
         var[1] = nomSF * (1 + TMath::Sqrt(sf));
+
         return var;
     };
 

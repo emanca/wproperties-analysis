@@ -1,5 +1,5 @@
 #include "interface/getMassWeights.hpp"
-#include "functions.hpp"
+#include "interface/functions.hpp"
 
 RNode getMassWeights::run(RNode d)
 {

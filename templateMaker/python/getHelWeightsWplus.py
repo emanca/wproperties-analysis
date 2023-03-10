@@ -93,7 +93,10 @@ class getHelWeightsWplus(module):
                 self.d = self.d.Define("AngCoeffVec", "Numba::getCoefficients_preVFP_Wplus(Vrap_preFSR_abs,Vpt_preFSR)")\
                     .Define("norm", "Numba::getNorm_preVFP_Wplus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec)")\
                     .Define("helWeights", "Numba::getWeights_preVFP_Wplus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec,norm)")\
-                    .Define("SFStatvar_helweights", "Numba::multVec_preVFP_Wplus(helWeights,SFStatvar)")
+                    .Define("SFStatvar_helweights", "Numba::multVec_preVFP_Wplus(helWeights,SFStatvar)")\
+                    .Define("muprefireWeightVars_helweights", "Numba::multVec_preVFP_Wplus(helWeights,muprefireWeightVars)")
+                # node = self.d.AsNumpy(columns=["SFStatvar_helweights"])
+                # print(np.asarray(node['SFStatvar_helweights'][-1]))
 
             elif self.syst == "_LHEPdfWeight":
                 @ROOT.Numba.Declare(["float", "float"], "RVec<double>")
@@ -235,8 +238,10 @@ class getHelWeightsWplus(module):
                 self.d = self.d.Define("AngCoeffVec", "Numba::getCoefficients_postVFP_Wplus(Vrap_preFSR_abs,Vpt_preFSR)")\
                     .Define("norm", "Numba::getNorm_postVFP_Wplus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec)")\
                     .Define("helWeights", "Numba::getWeights_postVFP_Wplus(Vrap_preFSR_abs,Vpt_preFSR,AngCoeffVec,harmonicsVec,norm)")\
-                    .Define("SFStatvar_helweights", "Numba::multVec_postVFP_Wplus(helWeights,SFStatvar)")
-
+                    .Define("SFStatvar_helweights", "Numba::multVec_postVFP_Wplus(helWeights,SFStatvar)")\
+                    .Define("muprefireWeightVars_helweights", "Numba::multVec_postVFP_Wplus(helWeights,muprefireWeightVars)")
+                # node = self.d.AsNumpy(columns=["SFStatvar_helweights"])
+                # print(np.isnan(np.asarray(node['SFStatvar_helweights'][10])).any())
             elif self.syst == "_LHEPdfWeight":
                 @ROOT.Numba.Declare(["float", "float"], "RVec<double>")
                 def getCoefficients_LHEPdfWeight_postVFP_Wplus(y, pt):

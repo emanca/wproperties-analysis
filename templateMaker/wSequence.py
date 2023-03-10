@@ -40,7 +40,7 @@ def wSelectionSequence(p, systType, nodetoStart, era):
         
     elif systType < 2: #this is MC with no PDF variations
         #falling back to old lumi weight computation
-        p.branch(nodeToStart = 'defs', nodeToEnd = 'defs', modules = [ROOT.recoDefinitions(True, False), ROOT.mtDefinitions(False,ptprefix="MET_T1comp_pt", phiprefix="MET_T1comp_phi"), ROOT.SFprod(fileSFul,era=era)])
+        p.branch(nodeToStart = 'defs', nodeToEnd = 'defs', modules = [ROOT.recoDefinitions(True, False), ROOT.mtDefinitions(True,ptprefix="MET_T1comp_pt", phiprefix="MET_T1comp_phi"), ROOT.SF_ul(fileSFul,isZ=False,era=era)])
         
         p.EventFilter(nodeToStart='defs', nodeToEnd='defs', evfilter="Sum(vetoMuons)==1", filtername="{:20s}".format("vetomuon"))
         p.EventFilter(nodeToStart='defs', nodeToEnd='defs', evfilter="Sum(goodMuons)==1", filtername="{:20s}".format("onemuon"))
@@ -51,9 +51,10 @@ def wSelectionSequence(p, systType, nodetoStart, era):
         p.EventFilter(nodeToStart='defs', nodeToEnd='defs', evfilter="Flag_globalSuperTightHalo2016Filter && Flag_EcalDeadCellTriggerPrimitiveFilter && Flag_goodVertices && Flag_HBHENoiseIsoFilter && Flag_HBHENoiseFilter && Flag_BadPFMuonFilter", filtername="{:20s}".format("eventFilters"))
         p.EventFilter(nodeToStart='defs', nodeToEnd='defs', evfilter="Sum(vetoElectrons) == 0;", filtername="{:20s}".format("vetoelectrons"))
 
-        p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], variations = [])
+        # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], variations = [])
+
         # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight","SFSystvar"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk_SFSystvar'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], variations = [])
-        # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight"], types = ['float']*8,node='defs',histoname=ROOT.string('ewk_SFStatvar'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], sample=("SFStatvar",2))
+        # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight"], types = ['float']*8,node='defs',histoname=ROOT.string('ewk_SFStatvar'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], sample=("SFStatvar",4))
         # #prefire variations
         # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","lumiweight","puWeight","SF"], types = ['float']*8,node='defs',histoname=ROOT.string('ewk_prefireVar'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], sample=("muprefireWeightVars",2))
         # #jec variations
@@ -63,7 +64,7 @@ def wSelectionSequence(p, systType, nodetoStart, era):
         # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT_unclustEnDown","Mu1_relIso","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk_unclustEnDown'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], variations = [])
 
     else:
-        p.branch(nodeToStart = 'defs', nodeToEnd = 'defs', modules = [ROOT.defineHarmonics(),ROOT.recoDefinitions(True, False), ROOT.mtDefinitions(False,ptprefix="MET_T1comp_pt", phiprefix="MET_T1comp_phi"), ROOT.SFprod(fileSFul,era=era)])
+        p.branch(nodeToStart = 'defs', nodeToEnd = 'defs', modules = [ROOT.defineHarmonics(),ROOT.recoDefinitions(True, False), ROOT.mtDefinitions(True,ptprefix="MET_T1comp_pt", phiprefix="MET_T1comp_phi"), ROOT.SF_ul(fileSFul,isZ=False,era=era)])
         
         p.EventFilter(nodeToStart='defs', nodeToEnd='defs', evfilter="Sum(vetoMuons)==1", filtername="{:20s}".format("vetomuon"))
         p.EventFilter(nodeToStart='defs', nodeToEnd='defs', evfilter="Sum(goodMuons)==1", filtername="{:20s}".format("onemuon"))
@@ -74,14 +75,15 @@ def wSelectionSequence(p, systType, nodetoStart, era):
         p.EventFilter(nodeToStart='defs', nodeToEnd='defs', evfilter="Flag_globalSuperTightHalo2016Filter && Flag_EcalDeadCellTriggerPrimitiveFilter && Flag_goodVertices && Flag_HBHENoiseIsoFilter && Flag_HBHENoiseFilter && Flag_BadPFMuonFilter", filtername="{:20s}".format("eventFilters"))
         p.EventFilter(nodeToStart='defs', nodeToEnd='defs', evfilter="Sum(vetoElectrons) == 0;", filtername="{:20s}".format("vetoelectrons"))
 
-        p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins])
+        # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins])
+
         # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight","SFSystvar"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk_SFSystvar'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], variations = [])
-        # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight"], types = ['float']*8,node='defs',histoname=ROOT.string('ewk_SFStatvar'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], sample=("SFStatvar",2))
+        # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight"], types = ['float']*8,node='defs',histoname=ROOT.string('ewk_SFStatvar'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], sample=("SFStatvar",4))
         # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk_LHEPdfWeight'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], sample=("LHEPdfWeight",103))
         # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk_LHEScaleWeight'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], sample=("LHEScaleWeight",9))
         # #prefire variations
         # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","lumiweight","puWeight","SF"], types = ['float']*8,node='defs',histoname=ROOT.string('ewk_prefireVar'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], sample=("muprefireWeightVars",2))
-        # #jec variations
+        # # #jec variations
         # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT_jesTotalUp","Mu1_relIso","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk_jesTotalUp'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], variations = [])
         # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT_jesTotalDown","Mu1_relIso","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk_jesTotalDown'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], variations = [])
         # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT_unclustEnUp","Mu1_relIso","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='defs',histoname=ROOT.string('ewk_unclustEnUp'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], variations = [])
@@ -139,32 +141,34 @@ def wSelectionDifferentialSequence(p,era,sample):
 
     p.branch(nodeToStart='defs', nodeToEnd='templates', modules=mods)
     p.EventFilter(nodeToStart='templates', nodeToEnd='nominal', evfilter="Vrap_preFSR_abs<2.4 && Vpt_preFSR<60.", filtername="{:20s}".format("signal templ"))
-    p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "Vrap_preFSR_abs","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*11,node='nominal',histoname=ROOT.string('signalTemplates'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,yBins,qtBins], sample=("helWeights",9))
-    p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "Vrap_preFSR_abs","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*11,node='nominal',histoname=ROOT.string('signalTemplates_mass'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,yBins,qtBins], sample=("helmassweights",9*2))
-    p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "Vrap_preFSR_abs","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SFSystvar"], types = ['float']*11,node='nominal',histoname=ROOT.string('signalTemplates_SFSystvar'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,yBins,qtBins], sample=("helWeights",9))
+    # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "Vrap_preFSR_abs","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*11,node='nominal',histoname=ROOT.string('signalTemplates'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,yBins,qtBins], sample=("helWeights",9))
+    p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "Vrap_preFSR_abs","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*11,node='nominal',histoname=ROOT.string('signalTemplates_mass_10'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,yBins,qtBins], sample=("helmassweights",9*2))
     # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "Vrap_preFSR_abs","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SFSystvar"], types = ['float']*11,node='nominal',histoname=ROOT.string('signalTemplates_SFSystvar'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,yBins,qtBins], sample=("helWeights",9))
+    # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "Vrap_preFSR_abs","Vpt_preFSR","lumiweight","puWeight","muprefireWeight"], types = ['float']*10,node='nominal',histoname=ROOT.string('signalTemplates_SFStatvar'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,yBins,qtBins], sample=("SFStatvar_helweights",9*4))
     # #prefire variations
-    # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "Vrap_preFSR_abs","Vpt_preFSR","lumiweight","puWeight","SF"], types = ['float']*10,node='nominal',histoname=ROOT.string('signalTemplates_prefireVars'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,yBins,qtBins], sample=("muprefireWeightVars",2))
+    # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso", "Vrap_preFSR_abs","Vpt_preFSR","lumiweight","puWeight","SF"], types = ['float']*10,node='nominal',histoname=ROOT.string('signalTemplates_prefireVars'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,yBins,qtBins], sample=("muprefireWeightVars_helweights",9*2))
     # #jes
     # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT_jesTotalUp","Mu1_relIso", "Vrap_preFSR_abs","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*11,node='nominal',histoname=ROOT.string('signalTemplates_jesTotalUp'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,yBins,qtBins], sample=("helWeights",9))
     # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT_jesTotalDown","Mu1_relIso", "Vrap_preFSR_abs","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*11,node='nominal',histoname=ROOT.string('signalTemplates_jesTotalDown'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,yBins,qtBins], sample=("helWeights",9))
     # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT_unclustEnUp","Mu1_relIso", "Vrap_preFSR_abs","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*11,node='nominal',histoname=ROOT.string('signalTemplates_unclustEnUp'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,yBins,qtBins], sample=("helWeights",9))
     # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT_unclustEnDown","Mu1_relIso", "Vrap_preFSR_abs","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*11,node='nominal',histoname=ROOT.string('signalTemplates_unclustEnDown'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,yBins,qtBins], sample=("helWeights",9))
     
-    # low acceptance
+    # # low acceptance
     p.EventFilter(nodeToStart='templates', nodeToEnd='lowacc', evfilter="(Vrap_preFSR_abs>2.4 || Vpt_preFSR>60.) && Vpt_preFSR<200.", filtername="{:20s}".format("low acc"))
-    p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*10,node='lowacc',histoname=ROOT.string('lowacc'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,qtBins_syst])
-    p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='lowacc',histoname=ROOT.string('lowacc_mass'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins],sample=('massWeights',2))
-    p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='lowacc',histoname=ROOT.string('lowacc_LHEPdfWeight'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins],sample=('LHEPdfWeight',103))
-    p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*10,node='lowacc',histoname=ROOT.string('lowacc_LHEScaleWeight'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,qtBins_syst],sample=('LHEScaleWeight',9))
-    p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","lumiweight","puWeight","muprefireWeight","SF","yqtweight","coeffsweight"], types = ['float']*11,node='lowacc',histoname=ROOT.string('lowacc_rew'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins])
-    # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SFSystvar"], types = ['float']*10,node='lowacc',histoname=ROOT.string('lowacc_SFSystvar'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,qtBins_syst])
-    # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","Vpt_preFSR","lumiweight","puWeight","muprefireWeight"], types = ['float']*9,node='lowacc',histoname=ROOT.string('lowacc_SFStatvar'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,qtBins_syst],sample=('SFStatvar',2))
-
-    #prefire
-    #p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","Vpt_preFSR","lumiweight","puWeight","SF"], types = ['float']*9,node='lowacc',histoname=ROOT.string('lowacc_prefireVars'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,qtBins_syst], sample=("muprefireWeightVars",2))
+    # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*10,node='lowacc',histoname=ROOT.string('lowacc'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,qtBins_syst])
+    p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='lowacc',histoname=ROOT.string('lowacc_mass_10'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins],sample=('massWeights',2))
+    # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*9,node='lowacc',histoname=ROOT.string('lowacc_LHEPdfWeight'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins],sample=('LHEPdfWeight',103))
+    # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*10,node='lowacc',histoname=ROOT.string('lowacc_LHEScaleWeight'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,qtBins_syst],sample=('LHEScaleWeight',9))
     
-    #jec
+    # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","lumiweight","puWeight","muprefireWeight","SF","yqtweight","coeffsweight"], types = ['float']*11,node='lowacc',histoname=ROOT.string('lowacc_rew'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins])
+    
+    # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","lumiweight","puWeight","muprefireWeight","SFSystvar"], types = ['float']*9,node='lowacc',histoname=ROOT.string('lowacc_SFSystvar'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins])
+    # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","lumiweight","puWeight","muprefireWeight"], types = ['float']*8,node='lowacc',histoname=ROOT.string('lowacc_SFStatvar'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins],sample=('SFStatvar',4))
+
+    # #prefire
+    # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT","Mu1_relIso","lumiweight","puWeight","SF"], types = ['float']*8,node='lowacc',histoname=ROOT.string('lowacc_prefireVars'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins], sample=("muprefireWeightVars",2))
+    
+    # #jec
     # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT_jesTotalUp","Mu1_relIso","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*10,node='lowacc',histoname=ROOT.string('lowacc_jesTotalUp'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,qtBins_syst])
     # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT_jesTotalDown","Mu1_relIso","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*10,node='lowacc',histoname=ROOT.string('lowacc_jesTotalDown'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,qtBins_syst])
     # p.Histogram(columns = ["Mu1_eta","Mu1_pt","Mu1_charge","MT_unclustEnUp","Mu1_relIso","Vpt_preFSR","lumiweight","puWeight","muprefireWeight","SF"], types = ['float']*10,node='lowacc',histoname=ROOT.string('lowacc_unclustEnUp'),bins = [etaBins,ptBins,chargeBins,mTBins,isoBins,qtBins_syst])
