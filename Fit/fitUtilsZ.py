@@ -31,7 +31,8 @@ class fitUtilsZ:
         
         self.templSystematics = systematicsDict
 
-        self.helXsecs = ['L', 'I', 'T', 'A', 'P','7','8', '9','UL']
+        # self.helXsecs = ['L', 'I', 'T', 'A', 'P','7','8', '9','UL']
+        self.helXsecs = ['L', 'I', 'T', 'A', 'P','UL']
         
         # reduce bins to acceptance
         from binning import ptBins, etaBins, mTBins, etaBins, isoBins, chargeBins, yBins, qtBins, cosThetaBins, phiBins
@@ -70,13 +71,13 @@ class fitUtilsZ:
         self.fakeshighw2 = {}
         self.templSFStat ={} 
         for chan in self.channels:
-            self.ftempl[chan] = h5py.File('../templateMaker/templates.hdf5', mode='r+')
+            self.ftempl[chan] = h5py.File('../templateMaker/templatesFit.hdf5', mode='r+')
             self.data[chan] = self.ftempl[chan]['data_obs'][:]
             print(chan,'events in data:', np.sum(self.data[chan][...]))
-            self.templ[chan] = self.ftempl[chan]['template'][:,:self.threshold_y,:self.threshold_qt,...]
-            print(chan,'events in signal templ:', np.sum(self.templ[chan][...]))
-            self.templw2[chan] = self.ftempl[chan]['template_sumw2'][:,:self.threshold_y,:self.threshold_qt,...]
-            self.gen[chan] = self.ftempl[chan]['helicity'][:]
+            self.templ[chan] = self.ftempl[chan]['template'][:]
+            print(chan,'events in signal templ:', np.sum(self.templ[chan][...]),self.templ[chan][...].shape)
+            self.templw2[chan] = self.ftempl[chan]['template_sumw2'][:]
+            self.gen[chan] = self.ftempl[chan]['helicity'][:self.threshold_y,:self.threshold_qt,:]
             self.lowacc[chan] = self.ftempl[chan]['lowacc'][:]
             print(chan,'events in low acc templ:', np.sum(self.lowacc[chan][...]))
             self.lowaccw2[chan] = self.ftempl[chan]['lowacc_sumw2'][:]
@@ -191,10 +192,11 @@ class fitUtilsZ:
                         iY = int(proc.split('_')[2])
                         iQt = int(proc.split('_')[4])
                         # print(chan,proc,self.templ[chan].shape)
-                        dset_templ = f.create_dataset(proc, self.templ[chan][coeff,iY,iQt,...].ravel().shape, dtype=dtype,compression=compression)
-                        dset_templ[...] = self.templ[chan][coeff,iY,iQt,...].ravel()
-                        dset_templw2 = f.create_dataset(proc+'_sumw2', self.templw2[chan][coeff,iY,iQt,...].ravel().shape, dtype=dtype,compression=compression)
-                        dset_templw2[...] = self.templw2[chan][coeff,iY,iQt,...].ravel()
+
+                        dset_templ = f.create_dataset(proc, self.templ[chan][iY,iQt,...,coeff].ravel().shape, dtype=dtype,compression=compression)
+                        dset_templ[...] = self.templ[chan][iY,iQt,...,coeff].ravel()
+                        dset_templw2 = f.create_dataset(proc+'_sumw2', self.templw2[chan][iY,iQt,...,coeff].ravel().shape, dtype=dtype,compression=compression)
+                        dset_templw2[...] = self.templw2[chan][iY,iQt,...,coeff].ravel()
                         # # mass
                         # dset_templ = f.create_dataset(proc+'_massUp', templ_mass[...,iY,iQt,coeff,0].ravel().shape, dtype=dtype,compression=compression)
                         # if proc=='helXsecsA_y_2_qt_5' and 'WPlus_preVFP' in chan:
@@ -581,7 +583,7 @@ class fitUtilsZ:
                         iQt = int(proc.split('_')[4])
                         
                         dset_masked = f.create_dataset(proc, [1], dtype=dtype,compression=compression)
-                        dset_masked[...] = self.gen[chan][coeff,iY,iQt]
+                        dset_masked[...] = self.gen[chan][iY,iQt,coeff]
 
                     else:
                         dset_masked = f.create_dataset(proc, [1], dtype=dtype,compression=compression)
