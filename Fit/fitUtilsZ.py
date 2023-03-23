@@ -81,24 +81,6 @@ class fitUtilsZ:
             self.lowacc[chan] = self.ftempl[chan]['lowacc'][:]
             print(chan,'events in low acc templ:', np.sum(self.lowacc[chan][...]))
             self.lowaccw2[chan] = self.ftempl[chan]['lowacc_sumw2'][:]
-            # self.Wtau[chan] = self.ftempl[chan]['Wtau'][:]
-            # print(chan,'events in tau templ:', np.sum(self.Wtau[chan][:,:,-1,0,...]))
-            # self.Wtauw2[chan] = self.ftempl[chan]['Wtau_sumw2'][:]
-            # self.DY[chan] = self.ftempl[chan]['DY'][:]
-            # print(chan,'events in dy templ:', np.sum(self.DY[chan][:,:,-1,0,...]))
-            # self.DYw2[chan] = self.ftempl[chan]['DY_sumw2'][:]
-            # self.Top[chan] = self.ftempl[chan]['Top'][:]
-            # print(chan,'events in top templ:', np.sum(self.Top[chan][:,:,-1,0,...]))
-            # self.Topw2[chan] = self.ftempl[chan]['Top_sumw2'][:]
-            # self.Diboson[chan] = self.ftempl[chan]['Diboson'][:]
-            # print(chan,'events in diboson templ:', np.sum(self.Diboson[chan][:,:,-1,0,...]))
-            # self.Dibosonw2[chan] = self.ftempl[chan]['Diboson_sumw2'][:]
-            # self.fakeslow[chan] = self.ftempl[chan]['fakesLowMt'][:]
-            # self.fakesloww2[chan] = self.ftempl[chan]['fakesLowMt_sumw2'][:]
-            # self.fakeshigh[chan] = self.ftempl[chan]['fakesHighMt'][:]
-            # # print(chan,'events in fakes templ:', np.sum(self.fakeshigh[chan][:,:,-1,0,...]))
-            # self.fakeshighw2[chan] = self.ftempl[chan]['fakesHighMt_sumw2'][:]
-            # self.templSFStat[chan]=self.ftempl[chan]['template_SFStatvar'][...,:self.threshold_y,:self.threshold_qt,:,:]
     
     def fillProcessList(self):
         for hel in self.helXsecs:
@@ -106,8 +88,9 @@ class fitUtilsZ:
                 for j in range(len(self.qtBinsC)):
                     proc = 'helXsecs' + hel + '_y_{}'.format(i)+'_qt_{}'.format(j)
                     self.processes.append(proc)
-                    # if "helXsecsUL" in proc:
+                    #if "helXsecsUL"in proc or "helXsecsP" in proc:
                     if not "helXsecs7" in proc and not "helXsecs8" in proc and not "helXsecs9" in proc:
+                        print(proc)
                         self.signals.append(proc)
         # bkg_list = ["DY","Diboson","Top","fakesLowMt","fakesHighMt", "Wtau","LowAcc"]
         bkg_list = ["LowAcc"]
@@ -176,7 +159,7 @@ class fitUtilsZ:
         dtype = 'float64'
         compression = "gzip"
         for chan in self.channels:
-            # templ_mass = self.ftempl[chan]['template_mass'][...,:self.threshold_y,:self.threshold_qt,:,:]
+            templ_mass = self.ftempl[chan]['template_mass'][:]
             # templ_SFSyst = self.ftempl[chan]['template_SFSystvar'][...,:self.threshold_y,:self.threshold_qt,:,:]
             # templ_prefire = self.ftempl[chan]['template_prefireVars'][...,:self.threshold_y,:self.threshold_qt,:,:]
             # templ_jesUp = self.ftempl[chan]['template_jesTotalUp'][...,:self.threshold_y,:self.threshold_qt,:,:]
@@ -197,17 +180,11 @@ class fitUtilsZ:
                         dset_templ[...] = self.templ[chan][iY,iQt,...,coeff].ravel()
                         dset_templw2 = f.create_dataset(proc+'_sumw2', self.templw2[chan][iY,iQt,...,coeff].ravel().shape, dtype=dtype,compression=compression)
                         dset_templw2[...] = self.templw2[chan][iY,iQt,...,coeff].ravel()
-                        # # mass
-                        # dset_templ = f.create_dataset(proc+'_massUp', templ_mass[...,iY,iQt,coeff,0].ravel().shape, dtype=dtype,compression=compression)
-                        # if proc=='helXsecsA_y_2_qt_5' and 'WPlus_preVFP' in chan:
-                        #     dset_templ[...] = -1*templ_mass[...,iY,iQt,coeff,0].ravel()
-                        # else:
-                        #     dset_templ[...] = templ_mass[...,iY,iQt,coeff,0].ravel()
-                        # dset_templ = f.create_dataset(proc+'_massDown', templ_mass[...,iY,iQt,coeff,1].ravel().shape, dtype=dtype,compression=compression)
-                        # if proc=='helXsecsA_y_2_qt_5' and 'WPlus_preVFP' in chan:
-                        #     dset_templ[...] = -1*templ_mass[...,iY,iQt,coeff,1].ravel()
-                        # else:
-                        #     dset_templ[...] = templ_mass[...,iY,iQt,coeff,1].ravel()
+                        # mass
+                        dset_templ = f.create_dataset(proc+'_massUp', templ_mass[iY,iQt,...,coeff,0].ravel().shape, dtype=dtype,compression=compression)
+                        dset_templ[...] = templ_mass[iY,iQt,...,coeff,0].ravel()
+                        dset_templ = f.create_dataset(proc+'_massDown', templ_mass[iY,iQt,...,coeff,1].ravel().shape, dtype=dtype,compression=compression)
+                        dset_templ[...] = templ_mass[iY,iQt,...,coeff,1].ravel()
                         # # # SF
                         # # for iSF in range(shape_chan_SFStat.shape[-2]):
                         # #     dset_templ = f.create_dataset(proc+'_SFall{}Up'.format(iSF), shape_chan_SFStat[...,iY,iQt,coeff,iSF,0].ravel().shape, dtype=dtype,compression=compression)
@@ -493,11 +470,11 @@ class fitUtilsZ:
                 dset_bkgw2 = f.create_dataset("LowAcc_sumw2", self.lowacc[chan][...].ravel().shape, dtype=dtype,     compression=compression)
                 dset_bkgw2[...] = self.lowaccw2[chan][...].ravel()
 
-                # low_mass = self.ftempl[chan]['lowacc_mass'][:][...]
-                # dset_bkg = f.create_dataset("LowAcc_massUp", low_mass[...,0].ravel().shape, dtype=dtype,      compression=compression)
-                # dset_bkg[...] = low_mass[...,0].ravel()
-                # dset_bkg = f.create_dataset("LowAcc_massDown", low_mass[...,1].ravel().shape, dtype=dtype,        compression=compression)
-                # dset_bkg[...] = low_mass[...,1].ravel()
+                low_mass = self.ftempl[chan]['lowacc_mass'][:][...]
+                dset_bkg = f.create_dataset("LowAcc_massUp", low_mass[...,0].ravel().shape, dtype=dtype,      compression=compression)
+                dset_bkg[...] = low_mass[...,0].ravel()
+                dset_bkg = f.create_dataset("LowAcc_massDown", low_mass[...,1].ravel().shape, dtype=dtype,        compression=compression)
+                dset_bkg[...] = low_mass[...,1].ravel()
 
                 # low_pdf = self.ftempl[chan]['lowacc_LHEPdfWeight'][:][...]
                 # # pdf variations
@@ -741,25 +718,26 @@ class fitUtilsZ:
         #     aux[self.channel]['fakesHighMt'] = 1.
         #     self.DC.systs.append(('fakeNormHighMtBin{}'.format(i), False, 'shapeNoConstraint', [], aux))
         # list of [{bin : {process : [input file, path to shape, path to shape for uncertainty]}}]
-        # if self.doSyst:
-        #     for syst in self.templSystematics: #loop over systematics
-        #         for var in self.templSystematics[syst]["vars"]:
-        #             aux = {} #each sys will have a separate aux dict
-        #             for chan in self.channels:
-        #                 aux[chan] = {}
-        #                 aux[chan+'_xsec'] = {}
-        #                 for proc in self.processes: 
-        #                     if proc in self.templSystematics[syst]["procs"]:
-        #                         aux[chan][proc] = self.templSystematics[syst]["weight"]
-        #                         aux[chan+'_xsec'][proc] = 0.0
-        #                     else:
-        #                         if "Signal" in self.templSystematics[syst]["procs"] and proc in self.signals:
-        #                             aux[chan][proc] = self.templSystematics[syst]["weight"]
-        #                             aux[chan+'_xsec'][proc] = 0.0
-        #                         else:
-        #                             aux[chan][proc] = 0.0
-        #                             aux[chan+'_xsec'][proc] = 0.0
-        #             self.DC.systs.append((var, False, self.templSystematics[syst]["type"], [], aux))
+        if self.doSyst:
+            for syst in self.templSystematics: #loop over systematics
+                for var in self.templSystematics[syst]["vars"]:
+                    aux = {} #each sys will have a separate aux dict
+                    for chan in self.channels:
+                        aux[chan] = {}
+                        aux[chan+'_xsec'] = {}
+                        for proc in self.processes: 
+                            if proc in self.templSystematics[syst]["procs"]:
+                                aux[chan][proc] = self.templSystematics[syst]["weight"]
+                                aux[chan+'_xsec'][proc] = 0.0
+                            else:
+                                if "Signal" in self.templSystematics[syst]["procs"] and proc in self.signals:
+                                    aux[chan][proc] = self.templSystematics[syst]["weight"]
+                                    aux[chan+'_xsec'][proc] = 0.0
+                                else:
+                                    aux[chan][proc] = 0.0
+                                    aux[chan+'_xsec'][proc] = 0.0
+                    self.DC.systs.append((var, False, self.templSystematics[syst]["type"], [], aux))
+        self.DC.groups = {'mass': ['mass']}
         # self.DC.groups = {
         #                 'mass': ['mass'],
         #                 'pdfs': set(["pdf{}".format(i) for i in range(1,103)]),
@@ -785,8 +763,8 @@ class fitUtilsZ:
         self.DC.helGroups = self.helGroups
         self.DC.sumGroups = self.sumGroups
         self.DC.helMetaGroups = self.helMetaGroups
-        # self.DC.noiGroups = {'mass':['mass']}
-        self.DC.noiGroups = {}
+        self.DC.noiGroups = {'mass':['mass']}
+        # self.DC.noiGroups = {}
 
         self.DC.preconditioner  = self.preconditioner 
         self.DC.invpreconditioner  = self.invpreconditioner 

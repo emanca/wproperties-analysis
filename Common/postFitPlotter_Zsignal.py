@@ -44,122 +44,93 @@ yBinsS = yBins[1:]-yBins[:-1]
 qtBinsS = qtBins[1:]-qtBins[:-1]
 
 
-# for k,c in enumerate(coefficients):
-#     hcoeff = np.zeros([len(yBinsC),len(qtBinsC)])
-#     hcoeff_gen = np.zeros([len(yBinsC),len(qtBinsC)])
-#     hcoeff_err = np.zeros([len(yBinsC),len(qtBinsC)])
-#     hcoeff_hel = np.zeros([len(yBinsC),len(qtBinsC)])
-#     hcoeff_hel_gen = np.zeros([len(yBinsC),len(qtBinsC)])
-#     hcoeff_hel_err = np.zeros([len(yBinsC),len(qtBinsC)])
-#     bins=np.append(np.tile(qtBins[:-1],len(yBinsC)),60.)
-#     x=np.array(range(len(bins)))
-#     binsC = 0.5*(x[1:]+x[:-1])
-#     print('analysing', c, helicities[k])
-#     for ev in fitresults: #dummy because there's one event only
-#         for i in range(len(yBinsC)):
-#             for j in range(len(qtBinsC)):
-#                 try:
-#                     coeff = eval('ev.y_{i}_qt_{j}_{c}'.format(c=c, j=j, i=i))
-#                     coeff_gen = eval('ev.y_{i}_qt_{j}_{c}_gen'.format(c=c, j=j, i=i))
-#                     coeff_err = eval('ev.y_{i}_qt_{j}_{c}_err'.format(c=c, j=j, i=i))
-#                     coeff_hel = eval('ev.helXsecs{c}_y_{i}_qt_{j}_pmaskedexp'.format(c=helicities[k], j=j, i=i))
-#                     coeff_hel_err = eval('ev.helXsecs{c}_y_{i}_qt_{j}_pmaskedexp_err'.format(c=helicities[k], j=j, i=i))
-#                     coeff_hel_gen = eval('ev.helXsecs{c}_y_{i}_qt_{j}_pmaskedexp_gen'.format(c=helicities[k], j=j, i=i))
-#                     if 'unpolarizedxsec' in c:
-#                         coeff = coeff/(3./16./math.pi)/35.9/yBinsS[i]/qtBinsS[j]
-#                         coeff_gen = coeff_gen/(3./16./math.pi)/35.9/yBinsS[i]/qtBinsS[j]
-#                         coeff_err = coeff_err/(3./16./math.pi)/35.9/yBinsS[i]/qtBinsS[j]
-#                     hcoeff[i,j]=coeff
-#                     hcoeff_gen[i,j]=coeff_gen
-#                     hcoeff_err[i,j]=coeff_err
-#                     hcoeff_hel[i,j]=coeff_hel
-#                     hcoeff_hel_gen[i,j]=coeff_hel_gen
-#                     hcoeff_hel_err[i,j]=coeff_hel_err
-#                 except AttributeError:
-#                     pass
-#     fig, (ax1, ax2) = plt.subplots(nrows=2,figsize=(12, 10),gridspec_kw={'height_ratios': [3, 1]})
-#     # fig, ax1 = plt.subplots(figsize=(48, 10))
-#     hep.cms.text('work in progress', loc=1, ax=ax1)
-#     if 'unpol' in c:
-#         ax1.set_ylabel(r'$\frac{d\sigma^{U+L}}{dq_Td|y|} (fb/GeV)$', fontsize=30)
-#     else:
-#         ax1.set_ylabel(r'$A_{}$'.format(k-1))
-#     # ax1.set_xlabel('$q_T$ (GeV)')
-#     # ax1.set_xticks(x) # set tick positions
-#     # ticks = ["{:d}".format(int(v)) for v in bins]
-#     # for itick,tick in enumerate(ticks):
-#     #     if not itick==1:
-#     #         if tick=="0": ticks[itick] = "60_0"
-#     # ax1.set_xticklabels(ticks)
-#     # print(hcoeff.ravel(), "+/-", hcoeff_err.ravel())
-#     hep.histplot(hcoeff.ravel(),bins = x, yerr = hcoeff_err.ravel(),histtype = 'errorbar', color = "k", stack = False, ax=ax1, label=label_data)
-#     hep.histplot(hcoeff_gen.ravel(),bins =x, color = "r", stack = False, ax=ax1, label="prediction")
+for k,c in enumerate(coefficients):
+    hcoeff = np.zeros([len(yBinsC),len(qtBinsC)])
+    hcoeff_gen = np.zeros([len(yBinsC),len(qtBinsC)])
+    hcoeff_err = np.zeros([len(yBinsC),len(qtBinsC)])
+    hcoeff_hel = np.zeros([len(yBinsC),len(qtBinsC)])
+    hcoeff_hel_gen = np.zeros([len(yBinsC),len(qtBinsC)])
+    hcoeff_hel_err = np.zeros([len(yBinsC),len(qtBinsC)])
+    bins=np.append(np.tile(qtBins[:-1],len(yBinsC)),60.)
+    x=np.array(range(len(bins)))
+    binsC = 0.5*(x[1:]+x[:-1])
+    print('analysing', c, helicities[k])
+    for ev in fitresults: #dummy because there's one event only
+        for i in range(len(yBinsC)):
+            for j in range(len(qtBinsC)):
+                try:
+                    coeff = eval('ev.y_{i}_qt_{j}_{c}'.format(c=c, j=j, i=i))
+                    coeff_gen = eval('ev.y_{i}_qt_{j}_{c}_gen'.format(c=c, j=j, i=i))
+                    coeff_err = eval('ev.y_{i}_qt_{j}_{c}_err'.format(c=c, j=j, i=i))
+                    coeff_hel = eval('ev.helXsecs{c}_y_{i}_qt_{j}_pmaskedexp'.format(c=helicities[k], j=j, i=i))
+                    coeff_hel_err = eval('ev.helXsecs{c}_y_{i}_qt_{j}_pmaskedexp_err'.format(c=helicities[k], j=j, i=i))
+                    coeff_hel_gen = eval('ev.helXsecs{c}_y_{i}_qt_{j}_pmaskedexp_gen'.format(c=helicities[k], j=j, i=i))
+                    if 'unpolarizedxsec' in c:
+                        coeff = coeff/(3./16./math.pi)/16.8/yBinsS[i]/qtBinsS[j]
+                        coeff_gen = coeff_gen/(3./16./math.pi)/16.8/yBinsS[i]/qtBinsS[j]
+                        coeff_err = coeff_err/(3./16./math.pi)/16.8/yBinsS[i]/qtBinsS[j]
+                    hcoeff[i,j]=coeff
+                    hcoeff_gen[i,j]=coeff_gen
+                    hcoeff_err[i,j]=coeff_err
+                    hcoeff_hel[i,j]=coeff_hel
+                    hcoeff_hel_gen[i,j]=coeff_hel_gen
+                    hcoeff_hel_err[i,j]=coeff_hel_err
+                except AttributeError:
+                    pass
+    fig, (ax1, ax2) = plt.subplots(nrows=2,figsize=(12, 10),gridspec_kw={'height_ratios': [3, 1]})
+    # fig, ax1 = plt.subplots(figsize=(48, 10))
+    hep.cms.text('work in progress', loc=1, ax=ax1)
+    if 'unpol' in c:
+        ax1.set_ylabel(r'$\frac{d\sigma^{U+L}}{dq_Td|y|} (fb/GeV)$', fontsize=30)
+    else:
+        ax1.set_ylabel(r'$A_{}$'.format(k-1))
+    # ax1.set_xlabel('$q_T$ (GeV)')
+    # ax1.set_xticks(x) # set tick positions
+    # ticks = ["{:d}".format(int(v)) for v in bins]
+    # for itick,tick in enumerate(ticks):
+    #     if not itick==1:
+    #         if tick=="0": ticks[itick] = "60_0"
+    # ax1.set_xticklabels(ticks)
+    # print(hcoeff.ravel(), "+/-", hcoeff_err.ravel())
+    hep.histplot(hcoeff.ravel(),bins = x, yerr = hcoeff_err.ravel(),histtype = 'errorbar', color = "k", stack = False, ax=ax1, label=label_data)
+    hep.histplot(hcoeff_gen.ravel(),bins =x, color = "r", stack = False, ax=ax1, label="prediction")
 
-#     if 'unpol' in c:
-#         # hep.histplot(htot_reshaped/35.9/yBinsS[:,np.newaxis,np.newaxis]/qtBinsS[np.newaxis,:,np.newaxis].ravel(),bins = x, color = "b", stack = False, ax=ax1)
-#         if not asimov:
-#             hep.histplot((htot[...,:threshold_y,:threshold_qt]/35.9/yBinsS[:,np.newaxis]/qtBinsS[np.newaxis,:]).ravel(),bins = x, color = "blue", stack = False, ax=ax1, label="aMC@NLO")
-
-#         # ax2.fill_between(binsC, ratio-(hcoeff_err.ravel()/htot_reshaped_new.ravel()), ratio+(hcoeff_err.ravel()/htot_reshaped_new.ravel()), alpha=0.3, color="orange")
-
-#         err_pdf = np.sqrt(np.sum(np.square(h_powheg[...,-1,0][...,np.newaxis]-h_powheg[...,-1,1:]),axis=-1))/35.9/yBinsS[:,np.newaxis]/qtBinsS[np.newaxis,:]
-#         err_scales_up = np.abs(h_powheg_scales[...,-1,:].max(axis=-1))/35.9/yBinsS[:,np.newaxis]/qtBinsS[np.newaxis,:]
-#         err_scales_down = np.abs(h_powheg_scales[...,-1,:].min(axis=-1))/35.9/yBinsS[:,np.newaxis]/qtBinsS[np.newaxis,:]
-#         # ax1.fill_between(binsC, (err_scales_down).ravel(), (err_scales_up).ravel(), alpha=0.2, color="green",label="qcd scale uncertainty")
-#         # ax1.fill_between(binsC, (hcoeff_gen-err_pdf).ravel(), (hcoeff_gen+err_pdf).ravel(), alpha=1, color="orange",label="pdf uncertainty")
-#         ax1.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
-#         # ratio = hcoeff.ravel()/hcoeff_gen.ravel()
-#         # ratio_err= hcoeff_err.ravel()/hcoeff_gen.ravel()
-#         ratio = hcoeff.ravel()/(htot[...,:threshold_y,:threshold_qt]/35.9/yBinsS[:,np.newaxis]/qtBinsS[np.newaxis,:]).ravel()
-#         ratio_err= hcoeff_err.ravel()/(htot[...,:threshold_y,:threshold_qt]/35.9/yBinsS[:,np.newaxis]/qtBinsS[np.newaxis,:]).ravel()
-#         ax2.set_ylabel('data/aMC@NLO')
-#         ax2.set_ylim([0, 2])
-#     else:
-#         if not asimov:
-#             hep.histplot(h[...,:threshold_y,:threshold_qt,k-1].ravel(),bins = x, color = "blue", stack = False, ax=ax1,label="aMC@NLO")
-#         # hep.histplot(h_powheg[...,k-1,0].ravel(),bins =x, stack = False, ax=ax1, label="prediction 2")
-#         err_pdf = np.sqrt(np.sum(np.square(h_powheg[...,k-1,0][...,np.newaxis]-h_powheg[...,k-1,1:]),axis=-1))
-#         err_scales_up = np.abs(h_powheg[...,k-1,0]-h_powheg_scales_vars[...,k-1,:].max(axis=-1))
-#         err_scales_down = np.abs(h_powheg[...,k-1,0]-h_powheg_scales_vars[...,k-1,:].min(axis=-1))
-#         # ax1.fill_between(binsC, (hcoeff_gen-err_scales_down).ravel(), (hcoeff_gen+err_scales_up).ravel(), alpha=0.2, color="green",label="qcd scale uncertainty")
-#         # ax1.fill_between(binsC, (hcoeff_gen-err_pdf).ravel(), (hcoeff_gen+err_pdf).ravel(), alpha=1, color="orange",label="pdf uncertainty")
-#         ratio = hcoeff.ravel()-(hcoeff_gen.ravel())
-#         ratio_err = hcoeff_err.ravel()
-#         ax1.set_ylim(-5,5)
-#         ax2.set_ylabel('data-prediction')
-#         ax2.set_ylim([-2, 2])
-#     hep.histplot(ratio,bins = x, yerr=ratio_err.ravel(), histtype = 'errorbar', color = "k", stack = False, ax=ax2)
-#     ax2.set_xlabel('unrolled $q_T$-y bins')
-#     ax1.legend(loc='upper right', frameon=False)
-#     plt.tight_layout()
-#     plt.savefig('POIplots/fit{}.png'.format(c),dpi=300)
-#     plt.savefig('POIplots/fit{}.pdf'.format(c),dpi=300)
-#     plt.clf()
-#     # plot helicity cross sections
-#     fig, (ax1, ax2) = plt.subplots(nrows=2,figsize=(48, 10),gridspec_kw={'height_ratios': [3, 1]})
-#     ax1.set_title("fitted {}".format(helicities[k]), fontsize=18)
-#     ax1.set_ylabel('')
-#     ax1.set_xlabel('a.u.')
-#     ax1.set_xticks(x) # set tick positions
-#     # ax1.set_xticklabels(ticks)
-#     # print(hcoeff.ravel(), "+/-", hcoeff_err.ravel())
-#     # print(hcoeff_hel.ravel(), "+/-", hcoeff_hel_err.ravel())
+    if 'unpol' in c:
+        ratio = hcoeff.ravel()/hcoeff_gen.ravel()
+        ratio_err= hcoeff_err.ravel()/hcoeff_gen.ravel()
+        ax2.set_ylabel('data/prediction')
+        ax2.set_ylim([0, 2])
+    else:
+        ratio = hcoeff.ravel()-(hcoeff_gen.ravel())
+        ratio_err = hcoeff_err.ravel()
+        ax1.set_ylim(-5,5)
+        ax2.set_ylabel('data-prediction')
+        ax2.set_ylim([-2, 2])
+    hep.histplot(ratio,bins = x, yerr=ratio_err.ravel(), histtype = 'errorbar', color = "k", stack = False, ax=ax2)
+    ax2.set_xlabel('unrolled $q_T$-y bins')
+    ax1.legend(loc='upper right', frameon=False)
+    plt.tight_layout()
+    plt.savefig('POIplots/fit{}.png'.format(c),dpi=300)
+    plt.savefig('POIplots/fit{}.pdf'.format(c),dpi=300)
+    plt.clf()
+    # plot helicity cross sections
+    fig, (ax1, ax2) = plt.subplots(nrows=2,figsize=(48, 10),gridspec_kw={'height_ratios': [3, 1]})
+    ax1.set_title("fitted {}".format(helicities[k]), fontsize=18)
+    ax1.set_ylabel('')
+    ax1.set_xlabel('a.u.')
+    ax1.set_xticks(x) # set tick positions
+    # ax1.set_xticklabels(ticks)
+    # print(hcoeff.ravel(), "+/-", hcoeff_err.ravel())
+    # print(hcoeff_hel.ravel(), "+/-", hcoeff_hel_err.ravel())
     
-#     hep.histplot(hcoeff_hel.ravel(),bins = x, yerr = hcoeff_hel_err.ravel(),histtype = 'errorbar', color = "k", stack = False, ax=ax1, label=label_data)
-#     hep.histplot(hcoeff_hel_gen.ravel(),bins =x, color = "r", stack = False, ax=ax1, label="prediction")
-#     # if not asimov:
-#     #     hep.histplot(hhel[...,:threshold_y,:threshold_qt,k-1].ravel(),bins = x, color = "blue", stack = False, ax=ax1,label="aMC@NLO")
-    
-#     err_scales_up = np.abs(hcoeff_hel_gen-hhel_powheg_scales[...,k-1,:].max(axis=-1))
-#     err_scales_down = np.abs(hcoeff_hel_gen-hhel_powheg_scales[...,k-1,:].min(axis=-1))
-#     # ax1.fill_between(binsC, hhel_powheg_scales[...,k-1,:].max(axis=-1).ravel(), hhel_powheg_scales[...,k-1,:].min(axis=-1).ravel(), alpha=0.2, color="green",label="qcd scale uncertainty")
-#     # ax1.fill_between(binsC, 10*hhel_powheg_scales[...,k-1,:].max(axis=-1).ravel(), 1./10*hhel_powheg_scales[...,k-1,:].min(axis=-1).ravel(), alpha=0.2, color="magenta",label="qcd scale uncertainty x10")
+    hep.histplot(hcoeff_hel.ravel(),bins = x, yerr = hcoeff_hel_err.ravel(),histtype = 'errorbar', color = "k", stack = False, ax=ax1, label=label_data)
+    hep.histplot(hcoeff_hel_gen.ravel(),bins =x, color = "r", stack = False, ax=ax1, label="prediction")
 
-#     ax1.legend(loc='upper right', frameon=False)
-#     plt.tight_layout()
-#     plt.savefig('POIplots/fit{}.png'.format(helicities[k]),dpi=300)
-#     plt.savefig('POIplots/fit{}.pdf'.format(helicities[k]),dpi=300)
-#     plt.clf()
+    ax1.legend(loc='upper right', frameon=False)
+    plt.tight_layout()
+    plt.savefig('POIplots/fit{}.png'.format(helicities[k]),dpi=300)
+    plt.savefig('POIplots/fit{}.pdf'.format(helicities[k]),dpi=300)
+    plt.clf()
 
 # integrated coefficients
 for k,c in enumerate(coefficients):
@@ -183,9 +154,9 @@ for k,c in enumerate(coefficients):
                 coeff_hel_gen = eval('ev.helXsecs{c}_qt_{j}_sumxsec_gen'.format(c=helicities[k], j=j))
                 coeff_hel_err = eval('ev.helXsecs{c}_qt_{j}_sumxsec_err'.format(c=helicities[k], j=j))
                 if 'unpol' in c:
-                    coeff = coeff/(3./16./math.pi)/35.9/qtBinsS[j]
-                    coeff_gen = coeff_gen/(3./16./math.pi)/35.9/qtBinsS[j]
-                    coeff_err = coeff_err/(3./16./math.pi)/35.9/qtBinsS[j]
+                    coeff = coeff/(3./16./math.pi)/16.8/qtBinsS[j]
+                    coeff_gen = coeff_gen/(3./16./math.pi)/16.8/qtBinsS[j]
+                    coeff_err = coeff_err/(3./16./math.pi)/16.8/qtBinsS[j]
                 hcoeff[j]=coeff
                 hcoeff_gen[j]=coeff_gen
                 hcoeff_err[j]=coeff_err
@@ -200,9 +171,9 @@ for k,c in enumerate(coefficients):
                 coeff_gen_y = eval('ev.y_{i}_helmeta_{c}_gen'.format(c=c, j=j, i=i))
                 coeff_err_y = eval('ev.y_{i}_helmeta_{c}_err'.format(c=c, j=j, i=i))
                 if 'unpol' in c:
-                    coeff_y = coeff_y/(3./16./math.pi)/35.9/yBinsS[i]
-                    coeff_gen_y = coeff_gen_y/(3./16./math.pi)/35.9/yBinsS[i]
-                    coeff_err_y = coeff_err_y/(3./16./math.pi)/35.9/yBinsS[i]
+                    coeff_y = coeff_y/(3./16./math.pi)/16.8/yBinsS[i]
+                    coeff_gen_y = coeff_gen_y/(3./16./math.pi)/16.8/yBinsS[i]
+                    coeff_err_y = coeff_err_y/(3./16./math.pi)/16.8/yBinsS[i]
                 hcoeff_y[i]=coeff_y
                 hcoeff_gen_y[i]=coeff_gen_y
                 hcoeff_err_y[i]=coeff_err_y
