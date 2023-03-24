@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import mplhep as hep
 sys.path.append('data/')
 from binning import yBins, qtBins, ptBins, etaBins, mTBins, isoBins, chargeBins
-from root_numpy import hist2array
 import argparse
 
 # matplotlib stuff
@@ -22,8 +21,8 @@ parser.add_argument('-asimov', '--asimov', default=False, action='store_true', h
 args = parser.parse_args()
 asimov = args.asimov
 # file with fit results
-f = ROOT.TFile.Open('../Fit/FitRes/fit_WPlus_{}_postVFP.root'.format('asimov' if asimov else 'data'))
-f_noBBB = ROOT.TFile.Open('../Fit/FitRes/fit_WPlus_{}.root'.format('asimov_noBBB'))
+f = ROOT.TFile.Open('../Fit/FitRes/fit_Z_{}.root'.format('asimov' if asimov else 'data'))
+f_noBBB = ROOT.TFile.Open('../Fit/FitRes/fit_Z_{}.root'.format('asimov_noBBB'))
 
 threshold_y = np.digitize(2.4,yBins)-1
 threshold_qt = np.digitize(60.,qtBins)-1
@@ -44,14 +43,14 @@ for hel in helXsecs:
             processes.append(proc)
 
 hcov = f.Get('covariance_matrix_channelmu')
-cov = hist2array(hcov)[:,:]
-# for i in range(1,hcov.GetNbinsX()+1):
-#     print(i, hcov.GetXaxis().GetBinLabel(i))
+cov = np.asarray(hcov).reshape(289+2,289+2)[1:-1,1:-1]
+for i in range(1,hcov.GetNbinsX()+1):
+    print(i, hcov.GetXaxis().GetBinLabel(i))
 
-#1752-1 is mass index
+#289-1 is mass index
 
 hcov_noBBB = f_noBBB.Get('covariance_matrix_channelmu')
-cov_noBBB = hist2array(hcov_noBBB)[:,:]
+cov_noBBB = np.asarray(hcov_noBBB).reshape(289+2,289+2)[1:-1,1:-1]
 
 
 impacts = []
@@ -64,17 +63,17 @@ for i,hel in enumerate(helXsecs):
     vcovreduced = cov[-1,i*nBins:(i+1)*nBins]
     groupmcov = np.linalg.inv(cov[i*nBins:(i+1)*nBins,i*nBins:(i+1)*nBins])
     vimpact = np.sqrt(np.matmul(np.matmul(vcovreduced.T,groupmcov),vcovreduced))
-    # impacts.append(vimpact*50.) # 50 MeV is input variation
+    impacts.append(vimpact*50.) # 50 MeV is input variation
 
-vcovreduced = cov[1752-1,0:6*nBins]
+vcovreduced = cov[289-1,0:6*nBins]
 groupmcov = np.linalg.inv(cov[0:6*nBins,0:6*nBins])
 stat = np.sqrt(np.matmul(np.matmul(vcovreduced.T,groupmcov),vcovreduced))*50
 
 # get stat impact
-# impact_names.extend(helXsecs)
+impact_names.extend(helXsecs)
 # retrieve impacts per group of nuisance
 hgroupimp = f.Get('nuisance_group_impact_nois')
-groupimp = hist2array(hgroupimp)[:,:]
+groupimp = np.asarray(hgroupimp).reshape(1+2,3+2)[1:-1,1:-1]
 for i in range(groupimp.shape[1]):
     if 'mass' in hgroupimp.GetYaxis().GetBinLabel(i+1): 
         idx=i
@@ -119,5 +118,5 @@ for i in range(len(impacts)):
              color='black', alpha=0.7)
 
 plt.tight_layout()
-plt.savefig('impactsOnMass_{}.png'.format("asimov" if asimov else "data"),dpi=300)
+plt.savefig('impactsOnMassZ_{}.png'.format("asimov" if asimov else "data"),dpi=300)
 # plt.show()

@@ -32,6 +32,6 @@ for charge in charges:
     print('executing', text2hd5f) 
     os.system(text2hd5f)
     #--yieldProtectionCutoff 100. --scan helXsecsA_y_5_qt_3_pmaskedexp --binByBinStat
-    combinetf = 'combinetf.py --fitverbose 9 -t{} --seed 260292 --yieldProtectionCutoff 100. --allowNegativePOI --doh5Output --binByBinStat --saveHists {}.pkl_sparse.hdf5 -o FitRes/fit_{}_{}.root'.format(toy,charge, charge, "data" if data else type)
+    combinetf = 'combinetf.py --fitverbose 9 -t{} --seed 260292 --yieldProtectionCutoff 100. --allowNegativePOI --doh5Output --binByBinStat --saveHists --doImpacts {}.pkl_sparse.hdf5 -o FitRes/fit_{}_{}.root'.format(toy,charge, charge, "data" if data else type)
     print('executing', combinetf)
     os.system(combinetf)

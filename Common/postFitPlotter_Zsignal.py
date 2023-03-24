@@ -36,8 +36,8 @@ coefficients = ['unpolarizedxsec', "A0", "A1", "A2", "A3", "A4"]
 
 threshold_y = np.digitize(2.4,yBins)-1
 threshold_qt = np.digitize(60.,qtBins)-1
-yBins = np.array(yBins)
-qtBins = np.array(qtBins)
+yBins = np.array(yBins[:threshold_y+1])
+qtBins = np.array(qtBins[:threshold_qt+1])
 yBinsC = 0.5*(yBins[1:]+yBins[:-1])
 qtBinsC = 0.5*(qtBins[1:]+qtBins[:-1])
 yBinsS = yBins[1:]-yBins[:-1]

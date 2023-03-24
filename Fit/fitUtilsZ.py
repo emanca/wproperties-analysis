@@ -77,6 +77,7 @@ class fitUtilsZ:
             self.templ[chan] = self.ftempl[chan]['template'][:]
             print(chan,'events in signal templ:', np.sum(self.templ[chan][...]),self.templ[chan][...].shape)
             self.templw2[chan] = self.ftempl[chan]['template_sumw2'][:]
+            # print(np.nonzero(self.ftempl[chan]['template_sumw2'][:]))
             self.gen[chan] = self.ftempl[chan]['helicity'][:self.threshold_y,:self.threshold_qt,:]
             self.lowacc[chan] = self.ftempl[chan]['lowacc'][:]
             print(chan,'events in low acc templ:', np.sum(self.lowacc[chan][...]))
@@ -180,6 +181,7 @@ class fitUtilsZ:
                         dset_templ[...] = self.templ[chan][iY,iQt,...,coeff].ravel()
                         dset_templw2 = f.create_dataset(proc+'_sumw2', self.templw2[chan][iY,iQt,...,coeff].ravel().shape, dtype=dtype,compression=compression)
                         dset_templw2[...] = self.templw2[chan][iY,iQt,...,coeff].ravel()
+                        # print(np.nonzero(self.templw2[chan][iY,iQt,...,coeff].ravel()))
                         # mass
                         dset_templ = f.create_dataset(proc+'_massUp', templ_mass[iY,iQt,...,coeff,0].ravel().shape, dtype=dtype,compression=compression)
                         dset_templ[...] = templ_mass[iY,iQt,...,coeff,0].ravel()
