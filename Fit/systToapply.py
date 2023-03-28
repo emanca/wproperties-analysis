@@ -1,11 +1,11 @@
 # ["DY","Diboson","Top","fakesLowMt","fakesHighMt", "Wtau","LowAcc"]
 systematicsDict = {
-    # "CMSlumi": {
-    #    "vars":["CMSlumi"],
-    #    "procs": ["Signal","LowAcc"],
-    #    "type": "lnN",
-    #    "weight" : 1.012
-    # },
+    "CMSlumi": {
+       "vars":["CMSlumi"],
+       "procs": ["Signal","LowAcc"],
+       "type": "lnN",
+       "weight" : 1.012
+    },
     # "Topxsec":{
     #    "vars":["Topxsec"],
     #    "procs": ["Top"],
