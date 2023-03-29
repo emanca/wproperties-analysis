@@ -70,18 +70,18 @@ class fitUtilsZ:
         self.fakeshigh = {}
         self.fakeshighw2 = {}
         self.templSFStat ={} 
-        for chan in self.channels:
+        for ichan,chan in enumerate(self.channels):
             self.ftempl[chan] = h5py.File('../templateMaker/templatesFit.hdf5', mode='r+')
-            self.data[chan] = self.ftempl[chan]['data_obs'][:]
+            self.data[chan] = self.ftempl[chan]['data_obs'][:,:,ichan]
             print(chan,'events in data:', np.sum(self.data[chan][...]))
-            self.templ[chan] = self.ftempl[chan]['template'][:]
+            self.templ[chan] = self.ftempl[chan]['template'][:,:,:,:,ichan,:] #y,qt,eta,pt,charge,coefficient
             print(chan,'events in signal templ:', np.sum(self.templ[chan][...]),self.templ[chan][...].shape)
-            self.templw2[chan] = self.ftempl[chan]['template_sumw2'][:]
+            self.templw2[chan] = self.ftempl[chan]['template_sumw2'][:,:,:,:,ichan,:]
             # print(np.nonzero(self.ftempl[chan]['template_sumw2'][:]))
             self.gen[chan] = self.ftempl[chan]['helicity'][:self.threshold_y,:self.threshold_qt,:]
-            self.lowacc[chan] = self.ftempl[chan]['lowacc'][:]
+            self.lowacc[chan] = self.ftempl[chan]['lowacc'][:,:,ichan]#same as data
             print(chan,'events in low acc templ:', np.sum(self.lowacc[chan][...]))
-            self.lowaccw2[chan] = self.ftempl[chan]['lowacc_sumw2'][:]
+            self.lowaccw2[chan] = self.ftempl[chan]['lowacc_sumw2'][:,:,ichan]
     
     def fillProcessList(self):
         for hel in self.helXsecs:
@@ -159,8 +159,11 @@ class fitUtilsZ:
     def shapeFile(self):
         dtype = 'float64'
         compression = "gzip"
-        for chan in self.channels:
-            templ_mass = self.ftempl[chan]['template_mass'][:]
+        for ichan,chan in enumerate(self.channels):
+            templ_mass = self.ftempl[chan]['template_mass'][:,:,:,:,ichan,:,:]
+            low_mass = self.ftempl[chan]['lowacc_mass'][:,:,ichan,:]#last dimension is mass variation 
+            
+
             print(templ_mass.shape)
             # templ_SFSyst = self.ftempl[chan]['template_SFSystvar'][...,:self.threshold_y,:self.threshold_qt,:,:]
             # templ_prefire = self.ftempl[chan]['template_prefireVars'][...,:self.threshold_y,:self.threshold_qt,:,:]
@@ -177,7 +180,7 @@ class fitUtilsZ:
                         iY = int(proc.split('_')[2])
                         iQt = int(proc.split('_')[4])
                         # print(chan,proc,self.templ[chan].shape)
-
+                        #dumping the templates
                         dset_templ = f.create_dataset(proc, self.templ[chan][iY,iQt,...,coeff].ravel().shape, dtype=dtype,compression=compression)
                         dset_templ[...] = self.templ[chan][iY,iQt,...,coeff].ravel()
                         dset_templw2 = f.create_dataset(proc+'_sumw2', self.templw2[chan][iY,iQt,...,coeff].ravel().shape, dtype=dtype,compression=compression)
@@ -188,7 +191,6 @@ class fitUtilsZ:
                         dset_templ[...] = templ_mass[iY,iQt,...,coeff,0].ravel()
                         dset_templ = f.create_dataset(proc+'_massDown', templ_mass[iY,iQt,...,coeff,1].ravel().shape, dtype=dtype,compression=compression)
                         dset_templ[...] = templ_mass[iY,iQt,...,coeff,1].ravel()
-                        
 
                 dset_data = f.create_dataset('data_obs', self.data[chan][...].ravel().shape, dtype=dtype,compression=compression)
                 dset_data[...] = self.data[chan][...].ravel()
@@ -198,7 +200,7 @@ class fitUtilsZ:
                 dset_bkgw2 = f.create_dataset("LowAcc_sumw2", self.lowacc[chan][...].ravel().shape, dtype=dtype,     compression=compression)
                 dset_bkgw2[...] = self.lowaccw2[chan][...].ravel()
 
-                low_mass = self.ftempl[chan]['lowacc_mass'][:][...]
+        
                 dset_bkg = f.create_dataset("LowAcc_massUp", low_mass[...,0].ravel().shape, dtype=dtype,      compression=compression)
                 dset_bkg[...] = low_mass[...,0].ravel()
                 dset_bkg = f.create_dataset("LowAcc_massDown", low_mass[...,1].ravel().shape, dtype=dtype,        compression=compression)
@@ -425,5 +427,5 @@ class fitUtilsZ:
         self.DC.preconditioner  = self.preconditioner 
         self.DC.invpreconditioner  = self.invpreconditioner 
         
-        filehandler = open('{}.pkl'.format(chan.split("_")[0]), 'w')
+        filehandler = open('Wlike.pkl', 'w')
         pickle.dump(self.DC, filehandler)
