@@ -5,7 +5,7 @@ import sys
 import h5py
 import math
 import numpy as np
-from scipy import stats
+#from scipy import stats
 # import jax
 # import jax.numpy as jnp
 import matplotlib.pyplot as plt
@@ -25,7 +25,7 @@ asimov = args.asimov
 
 label_data = "asimov dataset" if asimov else "data"
 # file with fit results
-fIn = ROOT.TFile.Open('../Fit/FitRes/fit_Z_asimov_.root')
+fIn = ROOT.TFile.Open('../Fit/FitRes/fit_Wlike_asimov.root')
 fitresults = fIn.Get('fitresults')
 
 
