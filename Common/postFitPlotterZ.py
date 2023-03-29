@@ -89,7 +89,7 @@ for itype,type in enumerate(types):
     print(labels)
     '''+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++'''
     hep.histplot([data],bins = Bins, histtype = 'errorbar', color = "k", stack = False, ax=ax1,label = ["data"])
-#   hep.histplot([LowAcc],bins = Bins, histtype = 'fill',linestyle = 'solid', color =  ["aqua","red"], label=["low acc",r'$Z->\mu\mu$'], stack = True, ax=ax1)
+    hep.histplot([LowAcc],bins = Bins, histtype = 'fill',linestyle = 'solid', color =  ["aqua","red"], label=["low acc",r'$Z->\mu\mu$'], stack = True, ax=ax1)
     hep.histplot(hcons,bins = Bins, histtype = 'fill',linestyle = 'solid', color =  ["blue","orange","black","pink","purple","#005587","aqua"], label=labels, stack = True, ax=ax1)    
     ax2.set_ylim([0.9, 1.1])
     hep.histplot([(data/hewk)],bins = Bins, histtype = 'errorbar', color = "k", stack = False, ax=ax2)
