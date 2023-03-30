@@ -33,10 +33,6 @@ RNode defineHarmonics::run(RNode d)
     return harms;
   };
 
-  auto d1 = d.Define("harmonicsVec", getHarmonicsVec, {"CStheta_preFSR", "CSphi_preFSR"})
-                // .Define("harmonicsVec_BWmassWeights", vecMultiplication, {"harmonicsVec", "BWmassWeights"})
-                .Define("harmonicsVec_LHEPdfWeight", vecMultiplication, {"harmonicsVec", "LHEPdfWeight"})
-                .Define("harmonicsVec_LHEScaleWeight", vecMultiplication, {"harmonicsVec", "LHEScaleWeight"})
-                .Define("DeltaPhi", deltaPhi, {"CSphi_preFSR","Vphi_preFSR"});
+  auto d1 = d.Define("harmonicsVec", getHarmonicsVec, {"CStheta_preFSR", "CSphi_preFSR"});
   return d1;
 }

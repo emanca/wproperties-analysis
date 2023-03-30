@@ -26,24 +26,66 @@ RNode zSelection::run(RNode d) {
 
   //.Define("Mu2_hasTriggerMatch", "Muon_hasTriggerMatch[prefIdx[1]]")
 
-  auto d1 = d.Define("Mu1_eta", "Muon_eta[goodMuons && Muon_charge>0][0]")
-    .Define("Mu1_phi", "Muon_phi[goodMuons && Muon_charge>0][0]")
-    .Define("Mu1_charge", "Muon_charge[goodMuons && Muon_charge>0][0]")
-    .Define("Mu1_relIso", "Muon_pfRelIso04_all[goodMuons && Muon_charge>0][0]")
-    .Define("Mu1_pt", "Muon_pt[goodMuons && Muon_charge>0][0]")
-    .Define("Mu1_hasTriggerMatch", hasTriggerMatch, {"Mu1_eta", "Mu1_phi", "goodTrigObjs_eta", "goodTrigObjs_phi"})
-    .Define("Mu2_eta", "Muon_eta[goodMuons && Muon_charge<0][0]")
-    .Define("Mu2_phi", "Muon_phi[goodMuons && Muon_charge<0][0]")
-    .Define("Mu2_charge", "Muon_charge[goodMuons && Muon_charge<0][0]")
-    .Define("Mu2_relIso", "Muon_pfRelIso04_all[goodMuons && Muon_charge<0][0]")
-    .Define("Mu2_pt", "Muon_pt[goodMuons && Muon_charge<0][0]")
-    .Define("dimuonP4", getdimuonP4, {"Mu1_pt", "Mu1_eta", "Mu1_phi", "Mu2_pt", "Mu2_eta", "Mu2_phi"})
-    .Define("dimuonMass", [this](TLorentzVector p){ return float(p.M());}, {"dimuonP4"})
-    .Define("dimuonPt", [this](TLorentzVector p){ return float(p.Pt());}, {"dimuonP4"})
-    .Define("dimuonY", [this](TLorentzVector p){ return float(p.Rapidity());}, {"dimuonP4"})
-    .Define("nPV", [this](int p){ return float(1.*p);}, {"PV_npvsGood"})
-    .Define("uno", []() { float uno = 1.; return uno; } );
+  auto d1 = d.Define("vetoMuonsPre", "Muon_looseId && abs(Muon_dxybs) < 0.05 && Muon_charge != -99")
+                .Define("vetoMuons", "vetoMuonsPre && Muon_pt > 10. && abs(Muon_eta) < 2.4")
+                .Define("goodMuons", "vetoMuons && Muon_mediumId && Muon_isGlobal && Muon_pfRelIso04_all < 0.15 && Muon_highPurity")
+                .Define("vetoElectrons", "Electron_pt > 10 && Electron_cutBased > 0 && abs(Electron_eta) < 2.4 && abs(Electron_dxy) < 0.05 && abs(Electron_dz)< 0.2");
 
-  return d1;
+  auto d2 = d1.Define("Mu1_eta", "Muon_eta[goodMuons && Muon_charge>0][0]")
+                .Define("Mu1_phi", "Muon_phi[goodMuons && Muon_charge>0][0]")
+                .Define("Mu1_charge", "Muon_charge[goodMuons && Muon_charge>0][0]")
+                .Define("Mu1_relIso", "Muon_pfRelIso04_all[goodMuons && Muon_charge>0][0]")
+                .Define("Mu1_pt", "Muon_pt[goodMuons && Muon_charge>0][0]")
+                .Define("Mu1_hasTriggerMatch", hasTriggerMatch, {"Mu1_eta", "Mu1_phi", "goodTrigObjs_eta", "goodTrigObjs_phi"})
+                .Define("Mu2_eta", "Muon_eta[goodMuons && Muon_charge<0][0]")
+                .Define("Mu2_phi", "Muon_phi[goodMuons && Muon_charge<0][0]")
+                .Define("Mu2_charge", "Muon_charge[goodMuons && Muon_charge<0][0]")
+                .Define("Mu2_relIso", "Muon_pfRelIso04_all[goodMuons && Muon_charge<0][0]")
+                .Define("Mu2_pt", "Muon_pt[goodMuons && Muon_charge<0][0]")
+                .Define("dimuonP4", getdimuonP4, {"Mu1_pt", "Mu1_eta", "Mu1_phi", "Mu2_pt", "Mu2_eta", "Mu2_phi"})
+                .Define("dimuonMass", [this](TLorentzVector p)
+                        { return float(p.M()); },
+                        {"dimuonP4"})
+                .Define("dimuonPt", [this](TLorentzVector p)
+                        { return float(p.Pt()); },
+                        {"dimuonP4"})
+                .Define("dimuonY", [this](TLorentzVector p)
+                        { return float(p.Rapidity()); },
+                        {"dimuonP4"})
+                .Define("nPV", [this](int p)
+                        { return float(1. * p); },
+                        {"PV_npvsGood"})
+                .Define("uno", []()
+                        { float uno = 1.; return uno; });
+  // auto d1 = d.Define("wlikeMuons", "Muon_mediumId && abs(Muon_dxybs) < 0.2  && Muon_pt > 30. && abs(Muon_eta) < 2.4 && Muon_pfRelIso04_all<0.15")
+  //               .Define("metMuons", "Muon_mediumId && abs(Muon_dxybs) < 0.2  && Muon_pt > 10. && Muon_pfRelIso04_all<0.5")
+
+  //                   auto d2 = d1.Define("Mu1_eta", "Muon_eta[wlikeMuons && Muon_charge>0][0]")
+  //                                 .Define("Mu1_phi", "Muon_phi[wlikeMuons && Muon_charge>0][0]")
+  //                                 .Define("Mu1_charge", "Muon_charge[wlikeMuons && Muon_charge>0][0]")
+  //                                 .Define("Mu1_relIso", "Muon_pfRelIso04_all[wlikeMuons && Muon_charge>0][0]")
+  //                                 .Define("Mu1_pt", "Muon_pt[wlikeMuons && Muon_charge>0][0]")
+  //                                 .Define("Mu1_hasTriggerMatch", hasTriggerMatch, {"Mu1_eta", "Mu1_phi", "goodTrigObjs_eta", "goodTrigObjs_phi"})
+  //                                 .Define("Mu2_eta", "Muon_eta[metMuons && Muon_charge<0][0]")
+  //                                 .Define("Mu2_phi", "Muon_phi[metMuons && Muon_charge<0][0]")
+  //                                 .Define("Mu2_charge", "Muon_charge[metMuons && Muon_charge<0][0]")
+  //                                 .Define("Mu2_relIso", "Muon_pfRelIso04_all[metMuons && Muon_charge<0][0]")
+  //                                 .Define("Mu2_pt", "Muon_pt[metMuons && Muon_charge<0][0]")
+  //                                 .Define("dimuonP4", getdimuonP4, {"Mu1_pt", "Mu1_eta", "Mu1_phi", "Mu2_pt", "Mu2_eta", "Mu2_phi"})
+  //                                 .Define("dimuonMass", [this](TLorentzVector p)
+  //                                         { return float(p.M()); },
+  //                                         {"dimuonP4"})
+  //                                 .Define("dimuonPt", [this](TLorentzVector p)
+  //                                         { return float(p.Pt()); },
+  //                                         {"dimuonP4"})
+  //                                 .Define("dimuonY", [this](TLorentzVector p)
+  //                                         { return float(p.Rapidity()); },
+  //                                         {"dimuonP4"})
+  //                                 .Define("nPV", [this](int p)
+  //                                         { return float(1. * p); },
+  //                                         {"PV_npvsGood"})
+  //                                 .Define("uno", []()
+  //                                         { float uno = 1.; return uno; });
+  return d2;
 
 }
