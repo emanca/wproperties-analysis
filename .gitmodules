@@ -1,3 +1,6 @@
 [submodule "RDFprocessor"]
 	path = RDFprocessor
 	url = https://github.com/emanca/RDFprocessor.git
+[submodule "WRemnants"]
+        path = WRemnants
+        url = https://github.com/WMass/WRemnants
