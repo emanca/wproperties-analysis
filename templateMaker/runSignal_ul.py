@@ -29,7 +29,7 @@ ROOT.gROOT.ProcessLine("gErrorIgnoreLevel = 2001;")
 ROOT.ROOT.EnableImplicitMT(48)
 
 outputDir = 'PLOTS'
-inputFile = '/scratchnvme/wmass/NanoAOD2016-UL/postNanoDec2020/WplusJetsToMuNu_preVFP_addVars/merged/*.root'
+inputFile = '/scratchnvme/wmass/NanoAOD2016-UL/postNanoDec2020/WplusJetsToMuNu_preVFP_addVars/*.root'
 
 luminosityN = 35.9
 sumwclipped = 5895502305412.54
@@ -39,6 +39,15 @@ sumwclipped = 5895502305412.54
 # p.Histogram(columns = ["Wrap_preFSR_abs","Vpt_preFSR","CStheta_preFSR","CSphi_preFSR","lumiweight"], types = ['float']*5,node='defs',histoname=ROOT.string("xsecs"), bins = [yBins,qtBins,cosThetaBins,phiBins])
 # p.gethdf5Output()
 
+<<<<<<< Updated upstream
+=======
+for harm in harmonics:
+    pass
+    # p.Histogram(columns = ["Wrap_preFSR_abs","Vpt_preFSR","{}".format(harm),"lumiweight","pdfWeightNNPDF0"], types = ['float']*5,node='defs',histoname=ROOT.string("xsecs_{}".format(harm)),bins = [yBins,qtBins], variations = {"pdfWeightNNPDF0":"LHEPdfWeight"})
+p.Histogram(columns = ["Wrap_preFSR_abs","Vpt_preFSR","lumiweight"], types = ['float']*3,node='defs',histoname=ROOT.string("xsecs"), bins = [yBins,qtBins])
+p.gethdf5Output()
+assert(0)
+>>>>>>> Stashed changes
 fewk = h5py.File('PLOTS/test.hdf5', mode='r+')
 hFullAcc = np.array(fewk['xsecs'][:].reshape((len(yBins)-1,len(qtBins)-1, len(cosThetaBins)-1, len(phiBins)-1),order='F'),order='C')
 
