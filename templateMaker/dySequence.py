@@ -14,6 +14,7 @@ from muonSelection import muonSelection
 from getSFVariations import getSFVariations
 
 import ROOT
+# verbosity = ROOT.Experimental.RLogScopedVerbosity(ROOT.Detail.RDF.RDFLogChannel(), ROOT.Experimental.ELogLevel.kDebug+10)
 import argparse
 import copy
 import time
@@ -195,7 +196,7 @@ def build_graph_templates(df, dataset):
     isW = dataset.name in common.wprocs
     isZ = dataset.name in common.zprocs
 
-    p = RDFtree(df.Range(100))
+    p = RDFtree(df)
     p.branch(nodeToStart='input', nodeToEnd='event_count', modules=[defineWeight(dataset,True)])
     p.branch(nodeToStart='event_count', nodeToEnd='calibrations', modules=[muonSelection(dataset,args,data_calibration_helper,mc_calibration_helper,data_jpsi_crctn_helper,mc_jpsi_crctn_helper),defineWeight(dataset,False,pileup_helper,muon_efficiency_helper,muon_prefiring_helper)])
     weightsum = p.EventCount('event_count', "weight")
@@ -204,19 +205,19 @@ def build_graph_templates(df, dataset):
         
         axes = [ys_axis_red,qts_axis_red,etas_axis,pts_axis,axis_charge]
         nom_cols = ["Vrap_preFSR_abs","Vpt_preFSR", "trigMuons_eta0", "trigMuons_pt0", "trigMuons_charge0"]
-        helicity_axis = hist.axis.StrCategory(['UL','L', 'I', 'T', 'A', 'P'], name = "helicities")
+        helicity_axis = hist.axis.StrCategory(["UL","L", "I", "T", "A", "P"], name = "helicities")
         
         ## signal templates decomposed by helicity
 
         p.EventFilter(nodeToStart='theoryTools', nodeToEnd='signalTemplates_nominal', evfilter="Vrap_preFSR_abs<2.4 && Vpt_preFSR<60.", filtername="{:20s}".format("signalTemplates_nominal"))
 
         # nominal histogram
-        p.Histogram('signalTemplates_nominal', 'signalTemplates_nominal', [*nom_cols,'helWeightTensor'], axes, tensor_axes= helicity_axis)
+        p.Histogram('signalTemplates_nominal', 'signalTemplates_nominal', [*nom_cols,'helWeightTensor'], axes, tensor_axes= [helicity_axis])
         # mass variations
-        p.Histogram('signalTemplates_nominal', 'signalTemplates_mass', [*nom_cols,'massWeight_tensor_hel'], axes)
+        #p.Histogram('signalTemplates_nominal', 'signalTemplates_mass', [*nom_cols,'massWeight_tensor_hel'], axes)
 
         # sf variations
-        p.branch(nodeToStart='signalTemplates_nominal', nodeToEnd='signalTemplates_sf', modules=[getSFVariations(True,muon_efficiency_helper_stat,muon_efficiency_helper_syst)])
+        #p.branch(nodeToStart='signalTemplates_nominal', nodeToEnd='signalTemplates_sf', modules=[getSFVariations(True,muon_efficiency_helper_stat,muon_efficiency_helper_syst)])
         # for key,helper in muon_efficiency_helper_stat.items():
         #     p.Histogram('signalTemplates_sf', f'signalTemplates_effStatTnP_{key}', [*nom_cols,f"effStatTnP_{key}_tensor_hel"], axes, tensor_axes = helper.tensor_axes)
         # p.Histogram('signalTemplates_sf', 'signalTemplates_effSystTnP', [*nom_cols,"effSystTnP_tensor_hel"], axes, tensor_axes = muon_efficiency_helper_syst.tensor_axes)
@@ -265,6 +266,7 @@ with h5py.File(infile, "r") as f:
     results = narf.ioutils.pickle_load_h5py(f["results"])
     print(results['ZmumuPostVFP']['output'].keys())
     h = results['ZmumuPostVFP']["output"]["signalTemplates_nominal"].get()
+    print(h.axes)
     data_obs = results['dataPostVFP']["output"]["data_obs"].get()
     lowacc = results['ZmumuPostVFP']["output"]["lowacc"].get()
     hmass = results['ZmumuPostVFP']["output"]["signalTemplates_mass"].get()
@@ -273,7 +275,6 @@ with h5py.File(infile, "r") as f:
     # full = results['ZmumuPostVFP']["output"]["full"].get()
     # acceptance = results['ZmumuPostVFP']["output"]["acceptance"].get()
     
-print(signalTemplates_effStatTnP_sf_reco.shape)
 h = h*lumi*1000*xsec/results["ZmumuPostVFP"]["weight_sum"]
 lowacc = lowacc*lumi*1000*xsec/results["ZmumuPostVFP"]["weight_sum"]
 good_idx_mass = [5,15]
