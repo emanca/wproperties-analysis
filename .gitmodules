@@ -4,3 +4,4 @@
 [submodule "WRemnants"]
         path = WRemnants
         url = https://github.com/WMass/WRemnants
+	branch = main
