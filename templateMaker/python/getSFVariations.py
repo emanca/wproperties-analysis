@@ -33,7 +33,6 @@ class getSFVariations(module):
                 self.d = self.d.Define(f"effStatTnP_{key}_tensor", helper, [*muon_columns_stat, "passIso", "nominal_weight"])        
             else:
                 self.d = self.d.Define(f"effStatTnP_{key}_tensor", helper, [*muon_columns_stat, "nominal_weight"])
-            # name = datagroups2016.histName(base_name, syst=f"effStatTnP_{key}")
             
             print(f"effStatTnP_{key}_tensor",self.d.GetColumnType(f"effStatTnP_{key}_tensor"))
     
@@ -48,7 +47,6 @@ class getSFVariations(module):
                 self.d = self.d.Define(f"effStatTnP_{key}_tensor_unweighted", helper, [*muon_columns_stat, "passIso", "unity"])        
             else:
                 self.d = self.d.Define(f"effStatTnP_{key}_tensor_unweighted", helper, [*muon_columns_stat, "unity"])
-            # name = datagroups2016.histName(base_name, syst=f"effStatTnP_{key}")
         
         # SF syst variations
         self.d = self.d.Define("effSystTnP_weight_unweighted", self.helper_syst, [*muon_columns_syst, "unity"])

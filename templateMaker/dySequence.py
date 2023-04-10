@@ -12,6 +12,7 @@ from getHelWeights import getHelWeights
 from getMassWeights import getMassWeights
 from muonSelection import muonSelection
 from getSFVariations import getSFVariations
+from getPrefVariations import getPrefVariations
 
 import ROOT
 # verbosity = ROOT.Experimental.RLogScopedVerbosity(ROOT.Detail.RDF.RDFLogChannel(), ROOT.Experimental.ELogLevel.kDebug+10)
@@ -80,7 +81,7 @@ def build_graph(df, dataset):
     if isW or isZ:
 
         p = RDFtree(df)
-        p.branch(nodeToStart='input', nodeToEnd='defs', modules=[defineWeight(dataset),ROOT.genLeptonSelector(), ROOT.CSvariableProducer(), ROOT.genVProducer()])
+        p.branch(nodeToStart='input', nodeToEnd='defs', modules=[defineWeight(dataset,True),ROOT.genLeptonSelector(), ROOT.CSvariableProducer(), ROOT.genVProducer()])
 
         weightsum = p.EventCount('defs', "weight")
 
@@ -92,7 +93,7 @@ def build_graph(df, dataset):
     
     else:
         p = RDFtree(df)
-        p.branch(nodeToStart='input', nodeToEnd='defs', modules=[defineWeight(dataset)])
+        p.branch(nodeToStart='input', nodeToEnd='defs', modules=[defineWeight(dataset,True)])
 
         weightsum = p.EventCount('defs', "weight")
         results = []
@@ -190,6 +191,16 @@ mc_calibration_helper, data_calibration_helper, calibration_uncertainty_helper =
 # bias_helper = muon_calibration.make_muon_bias_helpers(args) if args.biasCalibration else None
 # corr_helpers = theory_corrections.load_corr_helpers(common.vprocs, args.theoryCorr)
 
+def massWeightNames(matches=None, proc=""):
+    central=10
+    nweights=21
+    names = [f"massShift{int(abs(central-i)*10)}MeV{'' if i == central else ('Down' if i < central else 'Up')}" for i in range(nweights)]
+    if proc and proc in common.zprocs_all:
+        # This is the PDG uncertainty (turned off for now since it doesn't seem to have been read into the nano)
+        names.extend(["massShift2p1MeVDown", "massShift2p1MeVUp"])
+    # If name is "" it won't be stored
+    return [x if not matches or any(y in x for y in matches) else "" for x in names]
+
 def build_graph_templates(df, dataset):
     
     logger.info(f"build graph for dataset: {dataset.name}")
@@ -205,7 +216,7 @@ def build_graph_templates(df, dataset):
         
         axes = [ys_axis_red,qts_axis_red,etas_axis,pts_axis,axis_charge]
         nom_cols = ["Vrap_preFSR_abs","Vpt_preFSR", "trigMuons_eta0", "trigMuons_pt0", "trigMuons_charge0"]
-        helicity_axis = hist.axis.StrCategory(["UL","L", "I", "T", "A", "P"], name = "helicities")
+        helicity_axis = hist.axis.StrCategory(["L", "I", "T", "A", "P","UL"], name = "helicities")
         
         ## signal templates decomposed by helicity
 
@@ -214,13 +225,16 @@ def build_graph_templates(df, dataset):
         # nominal histogram
         p.Histogram('signalTemplates_nominal', 'signalTemplates_nominal', [*nom_cols,'helWeightTensor'], axes, tensor_axes= [helicity_axis])
         # mass variations
-        #p.Histogram('signalTemplates_nominal', 'signalTemplates_mass', [*nom_cols,'massWeight_tensor_hel'], axes)
+        p.Histogram('signalTemplates_nominal', 'signalTemplates_mass', [*nom_cols,'massWeight_tensor_hel'], axes,tensor_axes=[helicity_axis,hist.axis.StrCategory(massWeightNames(proc=dataset.name), name="massShift")])
 
         # sf variations
-        #p.branch(nodeToStart='signalTemplates_nominal', nodeToEnd='signalTemplates_sf', modules=[getSFVariations(True,muon_efficiency_helper_stat,muon_efficiency_helper_syst)])
+        # p.branch(nodeToStart='signalTemplates_nominal', nodeToEnd='signalTemplates_sf', modules=[getSFVariations(True,muon_efficiency_helper_stat,muon_efficiency_helper_syst)])
         # for key,helper in muon_efficiency_helper_stat.items():
-        #     p.Histogram('signalTemplates_sf', f'signalTemplates_effStatTnP_{key}', [*nom_cols,f"effStatTnP_{key}_tensor_hel"], axes, tensor_axes = helper.tensor_axes)
-        # p.Histogram('signalTemplates_sf', 'signalTemplates_effSystTnP', [*nom_cols,"effSystTnP_tensor_hel"], axes, tensor_axes = muon_efficiency_helper_syst.tensor_axes)
+        #     p.Histogram('signalTemplates_sf', f'signalTemplates_effStatTnP_{key}', [*nom_cols,f"effStatTnP_{key}_tensor_hel"], axes, tensor_axes = [helicity_axis,*(helper.tensor_axes)])
+        # p.Histogram('signalTemplates_sf', 'signalTemplates_effSystTnP', [*nom_cols,"effSystTnP_tensor_hel"], axes, tensor_axes = [helicity_axis,*(muon_efficiency_helper_syst.tensor_axes)])
+
+        # #prefiring variations
+        # p.Histogram('signalTemplates_nominal', 'signalTemplates_mass', [*nom_cols,'massWeight_tensor_hel'], axes,tensor_axes=[helicity_axis,hist.axis.StrCategory(massWeightNames(proc=dataset.name), name="massShift")])
 
         ## low acc
         axes = [etas_axis,pts_axis,axis_charge]
@@ -230,13 +244,19 @@ def build_graph_templates(df, dataset):
         p.Histogram('lowacc', 'lowacc', [*nom_cols,"nominal_weight"], axes)
 
         # mass variation
-        p.Histogram('lowacc', 'lowacc_mass', [*nom_cols,"massWeight_tensor_wnom"], axes)
+        p.Histogram('lowacc', 'lowacc_mass', [*nom_cols,"massWeight_tensor_wnom"], axes,tensor_axes=[hist.axis.StrCategory(massWeightNames(proc=dataset.name), name="massShift")])
 
         # sf variations
         p.branch(nodeToStart='lowacc', nodeToEnd='lowacc_sf', modules=[getSFVariations(True,muon_efficiency_helper_stat,muon_efficiency_helper_syst)])
-        for key,helper in muon_efficiency_helper_stat.items():
-            p.Histogram('lowacc_sf', f'lowacc_effStatTnP_{key}', [*nom_cols,f"effStatTnP_{key}_tensor"], axes)
-        p.Histogram('lowacc_sf', 'lowacc_effSystTnP', [*nom_cols,"effSystTnP_weight"], axes)
+        # for key,helper in muon_efficiency_helper_stat.items():
+        #     p.Histogram('lowacc_sf', f'lowacc_effStatTnP_{key}', [*nom_cols,f"effStatTnP_{key}_tensor"], axes, tensor_axes = helper.tensor_axes)
+        # p.Histogram('lowacc_sf', 'lowacc_effSystTnP', [*nom_cols,"effSystTnP_weight"], axes,tensor_axes = muon_efficiency_helper_syst.tensor_axes)
+
+        # prefiring variations
+        p.branch(nodeToStart='lowacc', nodeToEnd='lowacc_pref', modules=[getPrefVariations(muon_prefiring_helper_stat,muon_prefiring_helper_syst)])
+        p.Histogram('lowacc_pref', 'lowacc_muonL1PrefireStat', [*nom_cols,"muonL1PrefireStat_tensor"], axes,tensor_axes = muon_prefiring_helper_stat.tensor_axes)
+        p.Histogram('lowacc_pref', 'lowacc_muonL1PrefireSyst', [*nom_cols,"muonL1PrefireSyst_tensor"], axes,tensor_axes = [common.down_up_axis])
+        p.Histogram('lowacc_pref', 'lowacc_ecal1L1Prefire', [*nom_cols,"ecalL1Prefire_tensor"], axes,tensor_axes = [common.down_up_axis])
 
         results = p.getObjects()
     
@@ -257,7 +277,7 @@ def build_graph_templates(df, dataset):
 resultdict = narf.build_and_run(datasets, build_graph_templates)
 print(resultdict['ZmumuPostVFP']['output'].keys())
 
-outfile = "templates.hdf5"
+outfile = "templatesTest2.hdf5"
 with h5py.File(outfile, 'w') as f:
     narf.ioutils.pickle_dump_h5py("results", resultdict, f)
 
