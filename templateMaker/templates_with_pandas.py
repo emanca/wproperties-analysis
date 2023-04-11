@@ -17,7 +17,7 @@ f = h5py.File("templatesTest2.hdf5","r")
 results = narf.ioutils.pickle_load_h5py(f["results"])
 H = results['ZmumuPostVFP']['output']['signalTemplates_nominal'].get() #boost histogram values
 t = h5py.File('templatesFit.hdf5','r') # templates file used for getting the cross sections (later will also be boost histogram)
-H3 = results['ZtautauPostVFP']['output']['signalTemplates_mass'].get() #boost histogram with systematic mass variations
+H3 = results['ZmumuPostVFP']['output']['signalTemplates_mass'].get() #boost histogram with systematic mass variations
 M = H3[:,:,:,:,:,:,[bh.loc('massShift100MeVDown') , bh.loc('massShift100MeVUp')]] #boost histogram for selected mass variations
 
 
