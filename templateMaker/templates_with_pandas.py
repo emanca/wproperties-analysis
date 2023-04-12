@@ -45,12 +45,11 @@ def fillHelGroup(yBinsC,qtBinsC,helXsecs):
     helGroups = OrderedDict()
     for i in range(len(yBinsC)):
         for j in range(len(qtBinsC)):
-            s = 'y_{i}_qt_{j}'.format(i=i,j=j)
+            s = 'y_{i}_qt_{j}'.format(i=round(yBinsC[i],1),j=round(qtBinsC[j],1))
             helGroups[s] = []
             
             for hel in helXsecs:
-                if not '7' in hel and not '8' in hel and not '9' in hel:
-                    helGroups[s].append('helXsecs'+hel+'_'+s)
+                helGroups[s].append('helXsec_'+hel+'_'+s)
             if helGroups[s] == []:
                 del helGroups[s]
     return helGroups
@@ -58,7 +57,7 @@ def fillHelGroup(yBinsC,qtBinsC,helXsecs):
 def fillHelMetaGroup(yBinsC,qtBinsC,sumGroups):
     helMetaGroups = OrderedDict()
     for i in range(len(yBinsC)):
-        s = 'y_{i}'.format(i=i)
+        s = 'y_{i}'.format(i=round(yBinsC[i],1))
         helMetaGroups[s] = []
         for key in sumGroups:
             if s in key:
@@ -68,44 +67,45 @@ def fillHelMetaGroup(yBinsC,qtBinsC,sumGroups):
                 del helMetaGroups[s]
     
     for j in range(len(qtBinsC)):
-        s = 'qt_{j}'.format(j=j)
+        s = 'qt_{j}'.format(j=round(qtBinsC[j],1))
         helMetaGroups[s] = []
         for key in sumGroups:
-            if 'qt' in key and key.split('_')[2]==str(j):
+            if 'qt' in key and key.split('_')[3]==str(round(qtBinsC[j],1)):
                 helMetaGroups[s].append(key)
     
         if helMetaGroups[s] == []:
                 del helMetaGroups[s]
+    print(helMetaGroups)
     return helMetaGroups
 
 def fillSumGroup(yBinsC,qtBinsC,helXsecs,processes):
     sumGroups = OrderedDict()
     for i in range(len(yBinsC)):
-        s = 'y_{i}'.format(i=i)
+        s = 'y_{i}'.format(i=round(yBinsC[i],1))
         for hel in helXsecs:
             for signal in processes:
-                sumGroups['helXsecs'+hel+'_'+s] = []
+                sumGroups['helXsec_'+hel+'_'+s] = []
                 for j in range(len(qtBinsC)):
                     #if 'helXsecs'+hel+'_'+'y_{i}_qt_{j}'.format(i=i,j=j) in processes:
-                    sumGroups['helXsecs'+hel+'_'+s].append('helXsecs'+hel+'_'+s+'_qt_{j}'.format(j=j))
+                    sumGroups['helXsec_'+hel+'_'+s].append('helXsec_'+hel+'_'+s+'_qt_{j}'.format(j=round(qtBinsC[j],1)))
     
     for j in range(len(qtBinsC)):
-        s = 'qt_{j}'.format(j=j)
+        s = 'qt_{j}'.format(j=round(qtBinsC[j],1))
         for hel in helXsecs:
             for signal in processes:
-                if signal.split('_')[0] == 'helXsecs'+hel and signal.split('_')[4] == str(j):
-                    sumGroups['helXsecs'+hel+'_'+s] = []
+                if signal.split('_')[0]+ '_' + signal.split('_')[1]== 'helXsec_'+hel and signal.split('_')[-1] == str(round(qtBinsC[j],1)):
+                    sumGroups['helXsec_'+hel+'_'+s] = []
                     for i in range(len(yBinsC)):
-                        #print i, signal, 'helXsecs'+hel+'_'+'y_{i}_pt_{j}'.format(i=i,j=j)
-                        #print 'append', 'helXsecs'+hel+'_y_{i}_'.format(i=i)+s, 'to', 'helXsecs'+hel+'_'+s
-                        sumGroups['helXsecs'+hel+'_'+s].append('helXsecs'+hel+'_y_{i}_'.format(i=i)+s)
+                        #print i, signal, 'helXsec_'+hel+'_'+'y_{i}_pt_{j}'.format(i=i,j=j)
+                        #print 'append', 'helXsec_'+hel+'_y_{i}_'.format(i=i)+s, 'to', 'helXsec_'+hel+'_'+s
+                        sumGroups['helXsec_'+hel+'_'+s].append('helXsec_'+hel+'_y_{i}_'.format(i=round(yBinsC[i],1))+s)
     return sumGroups
 
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~loading boost histograms and cross sections from templates hdf5 file~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
 f = h5py.File("templatesTest2.hdf5","r")
 results = narf.ioutils.pickle_load_h5py(f["results"])
 
-data_obs = results['dataPostVFP']["data_obs"].get()
+Hdata_obs = results['dataPostVFP']["output"]["data_obs"].get()
 # lumi = results['dataPostVFP']["lumi"]
 lumi = 16.8
 xsec = results['ZmumuPostVFP']["dataset"]["xsec"]
@@ -122,6 +122,7 @@ M = H3[:,:,:,:,:,:,[bh.loc('massShift100MeVDown') , bh.loc('massShift100MeVUp')]
 low_acc      = results['ZmumuPostVFP']['output']['lowacc'].get().to_numpy()[0].reshape(-1,2)
 low_acc_mass = results['ZmumuPostVFP']['output']['lowacc_mass'].get()
 low_acc_mass_array = low_acc_mass[:,:,:,[bh.loc('massShift100MeVDown') , bh.loc('massShift100MeVUp')]].to_numpy()[0].reshape(-1,2,2)
+
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Building the nominal dataframe~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
 '''Unpacking the data'''
 #first unroll the tensor in eta and pt shape: (6,8,48,60,2,6) -> (6,8,2880,2,6)
@@ -222,11 +223,11 @@ print(m_df.head())
 
 #retrieve metadata
 
-procs = []
-signals = []
+procs = list(df.query("charge==1.0").index.get_level_values(0))
+signals = list(df.query("charge==1.0 & isSignal==True").index.get_level_values(0))
 nproc = len(processes)
 nsignals = len(signals)
-maskedchans = []
+maskedchans = ['Wlike_minus','Wlike_plus']
 
 #list of groups of signal processes by charge - DON'T NEED THAT
 chargegroups = []
@@ -295,22 +296,59 @@ poly2dreggroupnames = []
 poly2dreggroupbincenters0 = []
 poly2dreggroupbincenters1 = []
 
+#list of systematic uncertainties (nuisances)
+systsd = OrderedDict()
+systs = []
+systsnoprofile = []
+systsnoconstraint = []
+
+for syst in systs:
+    if not 'NoProfile' in syst[2]:
+      systsd[syst[0]] = syst
+      systs.append(syst[0])
+for syst in systs:
+    if 'NoProfile' in syst[2]:
+      systsd[syst[0]] = syst
+      systs.append(syst[0])
+      systsnoprofile.append(syst[0])
+    if 'NoConstraint' in syst[2]:
+        systsnoconstraint.append(syst[0])
+
+nsyst = len(systs)
+  
+#list of groups of systematics (nuisances) and lists of indexes
+systgroups = []
+systgroupidxs = []
+# for group in groups:
+#     systgroups.append(group)
+#     systgroupidx = []
+#     for syst in groups[group]:
+#       systgroupidx.append(systs.index(syst))
+#     systgroupidxs.append(systgroupidx)
+
 #list of groups of systematics to be treated as additional outputs for impacts, etc (aka "nuisances of interest")
 noigroups = []
 noigroupidxs = []
-for group in noiGroups:
-  noigroups.append(group)
-  for syst in noiGroups[group]:
-    noigroupidxs.append(systs.index(syst))
+# for group in noiGroups:
+#   noigroups.append(group)
+#   for syst in noiGroups[group]:
+#     noigroupidxs.append(systs.index(syst))
 
 
 #write results to hdf5 file
 
+dtype = 'float64'
 procSize = nproc*np.dtype(dtype).itemsize
 systSize = 2*nsyst*np.dtype(dtype).itemsize
-chunkSize = np.amax([options.chunkSize,procSize,systSize])
-if chunkSize > options.chunkSize:
-  print("Warning: Maximum chunk size in bytes was increased from %d to %d to align with tensor sizes and allow more efficient reading/writing." % (options.chunkSize, chunkSize))
+defChunkSize = 4*1024**2
+chunkSize = np.amax([defChunkSize,procSize,systSize])
+
+constraintweights = np.ones([nsyst],dtype=dtype)
+for syst in systsnoconstraint:
+    constraintweights[systs.index(syst)] = 0.
+
+if chunkSize > defChunkSize:
+  print("Warning: Maximum chunk size in bytes was increased from %d to %d to align with tensor sizes and allow more efficient reading/writing." % (defChunkSize, chunkSize))
 
 #create HDF5 file (chunk cache set to the chunk size since we can guarantee fully aligned writes
 outfilename = "Wlike.hdf5"
@@ -443,8 +481,19 @@ nbytes = 0
 nbytes += writeFlatInChunks(constraintweights, f, "hconstraintweights", maxChunkBytes = chunkSize)
 constraintweights = None
 
+
+data_obs = np.concatenate((Hdata_obs.to_numpy()[0][...,0].ravel(),Hdata_obs.to_numpy()[0][...,1].ravel()))
+
 nbytes += writeFlatInChunks(data_obs, f, "hdata_obs", maxChunkBytes = chunkSize)
 data_obs = None
+
+sumw = np.concatenate((H[sum,sum,:,:,0,sum].values().ravel(),H[sum,sum,:,:,0,sum].values().ravel()))
+sumw2 = np.concatenate((H[sum,sum,:,:,0,sum].variances().ravel(),H[sum,sum,:,:,0,sum].variances().ravel()))
+
+#compute poisson parameter for Barlow-Beeston bin-by-bin statistical uncertainties
+kstat = np.square(sumw)/sumw2
+#numerical protection to avoid poorly defined constraint
+kstat = np.where(np.equal(sumw,0.), 1., kstat)
 
 nbytes += writeFlatInChunks(kstat, f, "hkstat", maxChunkBytes = chunkSize)
 kstat = None
@@ -455,18 +504,13 @@ sumw = None
 nbytes += writeFlatInChunks(sumw2, f, "hsumw2", maxChunkBytes = chunkSize)
 sumw2 = None
 
+norm = np.concatenate((np.stack(df.query("charge==-1.0")['data'].values,axis=-1),np.stack(df.query("charge==1.0")['data'].values,axis=-1),np.expand_dims(np.stack(df.query("charge==-1.0")['xsec'].values,axis=-1),axis=0),np.expand_dims(np.stack(df.query("charge==1.0")['xsec'].values,axis=-1),axis=0)),axis=0)
 nbytes += writeFlatInChunks(norm, f, "hnorm", maxChunkBytes = chunkSize)
 norm = None
 
+logk = np.zeros([5762,nproc,2,nsyst], dtype)
 nbytes += writeFlatInChunks(logk, f, "hlogk", maxChunkBytes = chunkSize)
 logk = None
 
 print("Total raw bytes in arrays = %d" % nbytes)
 print(m_df.head())
-
-m_df.loc[('low_acc',-1.0,'massShift100MeVDown'),:] = [low_acc_mass_array[:,0,0]]
-m_df.loc[('low_acc', 1.0,'massShift100MeVDown'),:] = [low_acc_mass_array[:,1,0]]
-m_df.loc[('low_acc',-1.0,'massShift100MeVUp'),:]   = [low_acc_mass_array[:,0,1]]
-m_df.loc[('low_acc', 1.0,'massShift100MeVUp'),:]   = [low_acc_mass_array[:,1,1]]
-
-print(m_df.loc['low_acc'])
