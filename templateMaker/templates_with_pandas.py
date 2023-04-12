@@ -119,8 +119,9 @@ H3 = results['ZmumuPostVFP']['output']['signalTemplates_mass'].get() #boost hist
 H3 = H3*lumi*1000*xsec/results["ZmumuPostVFP"]["weight_sum"]
 
 M = H3[:,:,:,:,:,:,[bh.loc('massShift100MeVDown') , bh.loc('massShift100MeVUp')]] #boost histogram for selected mass variations
-
-
+low_acc      = results['ZmumuPostVFP']['output']['lowacc'].get().to_numpy()[0].reshape(-1,2)
+low_acc_mass = results['ZmumuPostVFP']['output']['lowacc_mass'].get()
+low_acc_mass_array = low_acc_mass[:,:,:,[bh.loc('massShift100MeVDown') , bh.loc('massShift100MeVUp')]].to_numpy()[0].reshape(-1,2,2)
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Building the nominal dataframe~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
 '''Unpacking the data'''
 #first unroll the tensor in eta and pt shape: (6,8,48,60,2,6) -> (6,8,2880,2,6)
@@ -166,19 +167,25 @@ df = df.merge(xsec_df ,left_on=['rapidity','qt','hel','charge'], right_on=['rapi
 
 
 #setting process as index & cleaning up by removing redundant information
-df.set_index('helXsec_'+df['hel']+'_y_'+df['rapidity'].apply(lambda x: round(x,1)).apply(str)+'_qt_'+df['qt'].apply(lambda x: round(x,1)).apply(str),inplace=True)
-df.drop(columns=['rapidity','qt','hel'],inplace=True)
-df.rename_axis('process' ,inplace=True)
+df.set_index(['helXsec_'+df['hel']+'_y_'+df['rapidity'].apply(lambda x: round(x,1)).apply(str)+'_qt_'+df['qt'].apply(lambda x: round(x,1)).apply(str),df['charge']],inplace=True)
+df.drop(columns=['rapidity','qt','hel','charge'],inplace=True)
+df.rename_axis(['process','charge'] ,inplace=True)
 
 #reorganizing data into a single column labeled 'data' - contains unrolled pt/eta distribution
 df['data'] = df.loc[:,0:2879].apply(np.hstack , axis=1) 
 df.drop(columns = df.loc[:,0:2879].columns , inplace = True)
 
 #adding column for helicity group
-df['helgroups'] = df.index.map(lambda x: re.search("y.+" , x).group(0))
+df['helgroups'] = df.index.get_level_values(0).map(lambda x: re.search("y.+" , x).group(0))
+df['isSignal']  = True
 print('Nominal Dataframe:')
 print(df.head())
 
+#low acceptance
+df.loc[('low_acc',-1.0),:] = [-1 , low_acc[:,0] ,np.nan, False]
+df.loc[('low_acc', 1.0),:] = [-1 , low_acc[:,1] ,np.nan, False]
+
+print(df.loc['low_acc'])
 
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Building the dataframe for the mass variation systematics~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
 
@@ -201,9 +208,9 @@ m_multi = pd.MultiIndex.from_product(m_iterables , names = ['rapidity', 'qt' ,'s
 #building dataframe and setting index values as process strings
 m_df = pd.DataFrame(mass_swapped , index = m_multi)
 m_df.reset_index(inplace=True)
-m_df.set_index('helXsec_'+m_df['hel']+'_y_'+m_df['rapidity'].apply(lambda x: round(x,1)).apply(str)+'_qt_'+m_df['qt'].apply(lambda x: round(x,1)).apply(str),inplace=True)
-m_df.drop(columns=['rapidity','qt','hel'],inplace=True)
-m_df.rename_axis('process' ,inplace=True)
+m_df.set_index(['helXsec_'+m_df['hel']+'_y_'+m_df['rapidity'].apply(lambda x: round(x,1)).apply(str)+'_qt_'+m_df['qt'].apply(lambda x: round(x,1)).apply(str),m_df['charge'], m_df['syst']],inplace=True)
+m_df.drop(columns=['rapidity','qt','hel','charge','syst'],inplace=True)
+m_df.rename_axis(['process','charge','variation'] ,inplace=True)
 
 
 #reorganizing data into a single column labeled 'data' - contains unrolled pt/eta distribution
@@ -455,3 +462,11 @@ nbytes += writeFlatInChunks(logk, f, "hlogk", maxChunkBytes = chunkSize)
 logk = None
 
 print("Total raw bytes in arrays = %d" % nbytes)
+print(m_df.head())
+
+m_df.loc[('low_acc',-1.0,'massShift100MeVDown'),:] = [low_acc_mass_array[:,0,0]]
+m_df.loc[('low_acc', 1.0,'massShift100MeVDown'),:] = [low_acc_mass_array[:,1,0]]
+m_df.loc[('low_acc',-1.0,'massShift100MeVUp'),:]   = [low_acc_mass_array[:,0,1]]
+m_df.loc[('low_acc', 1.0,'massShift100MeVUp'),:]   = [low_acc_mass_array[:,1,1]]
+
+print(m_df.loc['low_acc'])
