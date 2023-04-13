@@ -211,15 +211,44 @@ m_df = pd.DataFrame(mass_swapped , index = m_multi)
 m_df.reset_index(inplace=True)
 m_df.set_index(['helXsec_'+m_df['hel']+'_y_'+m_df['rapidity'].apply(lambda x: round(x,1)).apply(str)+'_qt_'+m_df['qt'].apply(lambda x: round(x,1)).apply(str),m_df['charge'], m_df['syst']],inplace=True)
 m_df.drop(columns=['rapidity','qt','hel','charge','syst'],inplace=True)
-m_df.rename_axis(['process','charge','variation'] ,inplace=True)
+m_df.rename_axis(['process','charge','variation_index'] ,inplace=True)
 
 
 #reorganizing data into a single column labeled 'data' - contains unrolled pt/eta distribution
 m_df['data'] = m_df.loc[:,0:2879].apply(np.hstack , axis=1) 
 m_df.drop(columns = m_df.loc[:,0:2879].columns , inplace = True)
 
-print('\nsystematics dataframe')
+#low acceptance
+m_df.loc[('low_acc',-1.0,'massShift100MeVDown')] = [low_acc_mass_array[:,0,0]]
+m_df.loc[('low_acc', 1.0,'massShift100MeVDown')] = [low_acc_mass_array[:,1,0]]
+m_df.loc[('low_acc',-1.0,'massShift100MeVUp')]   = [low_acc_mass_array[:,0,1]]
+m_df.loc[('low_acc', 1.0,'massShift100MeVUp')]   = [low_acc_mass_array[:,1,1]]
+print('\nadding low acceptance')
+print(m_df.loc['low_acc'])
+
+#logK
+m_df['syst']      = m_df.index.get_level_values(2).map(lambda x: x.split('V')[0] + 'V')
+m_df['variation'] = m_df.index.get_level_values(2).map(lambda x: x.split('V')[1])
+m_df.reset_index(inplace=True)
+m_df.drop(columns = 'variation_index' , inplace = True)
+m_df.set_index(['process','charge'] , inplace =True)
+
+m_down = m_df.sort_index(level=['process','charge']).query("variation == 'Down'")['data']
+m_up   = m_df.sort_index(level=['process','charge']).query("variation == 'Up'")['data']
+
+nominal= df.sort_index(level=['process','charge'])['data']
+
+logk_up   =(m_up  /nominal).apply(lambda x: np.nan_to_num( np.log(x) , nan=math.log(1e-3)))
+logk_down =(m_down/nominal).apply(lambda x: np.nan_to_num(-np.log(x) , nan=math.log(1e-3)))
+
+
+m_df = pd.DataFrame({'logK':pd.concat([logk_up , logk_down]), 'variation':['Up']*578+['Down']*578}).reset_index()\
+.merge(m_df.reset_index() , left_on=['process','charge','variation'],right_on=['process','charge','variation'])\
+.drop(columns=['data'])
+
+print('\nSystematics Dataframe')
 print(m_df.head())
+'''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
 
 #retrieve metadata
 
@@ -513,4 +542,3 @@ nbytes += writeFlatInChunks(logk, f, "hlogk", maxChunkBytes = chunkSize)
 logk = None
 
 print("Total raw bytes in arrays = %d" % nbytes)
-print(m_df.head())
