@@ -103,206 +103,212 @@ def fillSumGroup(yBinsC,qtBinsC,helXsecs,processes):
 
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~loading boost histograms and cross sections from templates hdf5 file~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
 f = h5py.File("templatesTest2.hdf5","r")
+t = h5py.File('templatesFit.hdf5','r')
 results = narf.ioutils.pickle_load_h5py(f["results"])
-
 Hdata_obs = results['dataPostVFP']["output"]["data_obs"].get()
-lumi = results['dataPostVFP']["lumi"]
-xsec = results['ZmumuPostVFP']["dataset"]["xsec"]
-
-H = results['ZmumuPostVFP']['output']['signalTemplates_nominal'].get() #boost histogram values
-#rescale to match the data luminosity
-H = H*lumi*1000*xsec/results["ZmumuPostVFP"]["weight_sum"]
-
-t = h5py.File('templatesFit.hdf5','r') # templates file used for getting the cross sections (later will also be boost histogram)
-H3 = results['ZmumuPostVFP']['output']['signalTemplates_mass'].get() #boost histogram with systematic mass variations
-H3 = H3*lumi*1000*xsec/results["ZmumuPostVFP"]["weight_sum"]
-M = H3[:,:,:,:,:,:,[bh.loc('massShift50MeVDown') , bh.loc('massShift50MeVUp')]] #boost histogram for selected mass variations
-low_acc      = results['ZmumuPostVFP']['output']['lowacc'].get().to_numpy()[0].reshape(-1,2)
-low_acc = low_acc*lumi*1000*xsec/results["ZmumuPostVFP"]["weight_sum"]
-low_acc_mass = results['ZmumuPostVFP']['output']['lowacc_mass'].get()
-low_acc_mass = low_acc_mass*lumi*1000*xsec/results["ZmumuPostVFP"]["weight_sum"]
-low_acc_mass_array = low_acc_mass[:,:,:,[bh.loc('massShift50MeVDown') , bh.loc('massShift50MeVUp')]].to_numpy()[0].reshape(-1,2,2)
-
-'''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Building the nominal dataframe~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
-'''Unpacking the data'''
-#first unroll the tensor in eta and pt shape: (6,8,48,60,2,6) -> (6,8,2880,2,6)
-unrolled = H.to_numpy()[0].reshape((6,8,-1,2,6))
-#next, swap axes such that unrolled eta/pt in in last position (6,8,2880,2,6) -> (6,8,2,6,2880)
-#lastly, reshape into 2 dimensional array which will be passed into dataframe (6,8,2,6,2880) -> (576,2880)
-#one row corresponds to one unrolled pt/eta distribution (template)
-a = np.swapaxes(unrolled , 2 , -1).reshape(-1,2880) 
-
-'''Building the pandas dataframe'''
-yBinsC     = H.axes['Zrap'].centers
-qtBinsC    = H.axes['Zpt'].centers
-charges    = H.axes['charge'].centers
-helicities = list(H.axes['helicities'])
-
-#making multi index object
-iterables = [yBinsC, qtBinsC,helicities ,charges] #2charges * 6helicities *6y bins * 8qt bins =  576 rows
-multi = pd.MultiIndex.from_product(iterables , names = ['rapidity', 'qt' , 'hel','charge'])
-
-#building dataframe
-df = pd.DataFrame(a , index = multi)
-print(df.head())
-'''Adding cross section information to our dataframe by creating cross section dataframe and merging'''
-qtBins = np.array([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.,200.]) #these have to be like this for now
-yBins = np.array([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 10.0])
-
-threshold_y = np.digitize(2.4,yBins)-1
-threshold_qt = np.digitize(60.,qtBins)-1
-
-T = t['helicity'][:threshold_y,:threshold_qt,:] #cross sections
-processes = [yBinsC , qtBinsC , helicities]
-multi2 = pd.MultiIndex.from_product(processes , names = ['rapidity', 'qt' , 'hel']) #multi index to be joined on
-s = pd.Series(T.ravel(), index = multi2 , name='xsec') #series carrying cross section information
-
-xsec_df = pd.concat([s,s] ,axis=0).reset_index()       #same cross section for both charges, will need double to match dimensions
-charges =  [-1.0]*288 + [1.0]*288
-xsec_df['charge'] = charges
 
 
-#now the dataframe carries cross section column
-df = df.merge(xsec_df ,left_on=['rapidity','qt','hel','charge'], right_on=['rapidity','qt','hel','charge'])
-
-#setting process as index & cleaning up by removing redundant information
-df.set_index(['helXsec_'+df['hel']+'_y_'+df['rapidity'].apply(lambda x: round(x,1)).apply(str)+'_qt_'+df['qt'].apply(lambda x: round(x,1)).apply(str),df['charge']],inplace=True)
-df.drop(columns=['rapidity','qt','charge'],inplace=True)
-df.rename_axis(['process','charge'] ,inplace=True)
-
-#reorganizing data into a single column labeled 'data' - contains unrolled pt/eta distribution
-df['data'] = df.loc[:,0:2879].apply(np.hstack , axis=1) 
-df.drop(columns = df.loc[:,0:2879].columns , inplace = True)
-
-#adding column for helicity group
-df['helgroups'] = df.index.get_level_values(0).map(lambda x: re.search("y.+" , x).group(0))
-df['isSignal']  = True
-print('Nominal Dataframe:')
-print(df.head())
-
-norm_chan = df.loc['helXsec_T_y_{}_qt_{}'.format(round(yBinsC[1],1),round(qtBinsC[5],1))]['data'].values[1]
-
-# #low acceptance
-# df.loc[('low_acc',-1.0),:] = [-1 , low_acc[:,0] ,np.nan, False]
-# df.loc[('low_acc', 1.0),:] = [-1 , low_acc[:,1] ,np.nan, False]
-
-# print(df.loc['low_acc'])
-
-'''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Building the dataframe for the mass variation systematics~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
-
-#reshaping data 
+#constants
+process = 'ZmumuPostVFP'
+V ='Z'
+two_mass_variations = True
 good_idx_mass = [5,15]
-# print(H3.values()[0,0,...,0,good_idx_mass][H3.values()[0,0,...,0,good_idx_mass]!=0.0])
-
-mass_arr = H3.values()[...,good_idx_mass]
-# mass_arr = M.to_numpy()[0]
-# print(mass_arr[0,0,...,0,:][mass_arr[0,0,...,0,:]!=0.0],"corr")
-
-mass_unrolled = mass_arr.reshape((6,8,-1,2,6,2))                     #shape: (6,8,2880,2,6,2)
-# rapidity, qt, data, charge, hel, syst
-# 'rapidity', 'qt' , 'hel','charge', syst, data
-# swapping data for mass
-# rapidity, qt, syst, charge, hel, data
-mass_swapped = np.swapaxes(mass_unrolled , 2,-1)
-# swapping mass for hel
-# rapidity, qt, hel, charge, syst, data
-mass_swapped = np.swapaxes(mass_swapped , 2,4).reshape(-1,2880)
-
-#Building the pandas dataframe indexed by these values
-m_yBinsC               = M.axes['Zrap'].centers
-m_qtBinsC              = M.axes['Zpt'].centers
-m_charges              = M.axes['charge'].centers
-m_helicities      = list(M.axes['helicities'])
-mass_variations   = list(M.axes['massShift']) #only teo in this case
-#multi index object
-m_iterables = [m_yBinsC, m_qtBinsC,m_helicities,m_charges ,mass_variations] #order must match mass_swapped array shape
-m_multi = pd.MultiIndex.from_product(m_iterables , names = ['rapidity', 'qt' ,'hel' ,'charge','syst'])
-
-#building dataframe and setting index values as process strings
-m_df = pd.DataFrame(mass_swapped , index = m_multi)
-print(m_df.head())
-m_df.reset_index(inplace=True)
-print(m_df.head())
-m_df.set_index(['helXsec_'+m_df['hel']+'_y_'+m_df['rapidity'].apply(lambda x: round(x,1)).apply(str)+'_qt_'+m_df['qt'].apply(lambda x: round(x,1)).apply(str),m_df['charge'], m_df['syst']],inplace=True)
-print(m_df.head())
-m_df.drop(columns=['rapidity','qt','charge','syst'],inplace=True)
-print(m_df.head())
-m_df.rename_axis(['process','charge','variation_index'] ,inplace=True)
-print(m_df.head())
+lumi    = results['dataPostVFP']["lumi"]
+xsec    = results[process]["dataset"]["xsec"]
+weights = results[process]["weight_sum"]
+C       = lumi*1000*xsec/weights
 
 
-#reorganizing data into a single column labeled 'data' - contains unrolled pt/eta distribution
-m_df['data'] = m_df.loc[:,0:2879].apply(np.hstack , axis=1) 
-m_df.drop(columns = m_df.loc[:,0:2879].columns , inplace = True)
-print(m_df.head())
-# #low acceptance
-# m_df.loc[('low_acc',-1.0,'massShift50MeVDown')] = [low_acc_mass_array[:,0,0]]
-# m_df.loc[('low_acc', 1.0,'massShift50MeVDown')] = [low_acc_mass_array[:,1,0]]
-# m_df.loc[('low_acc',-1.0,'massShift50MeVUp')]   = [low_acc_mass_array[:,0,1]]
-# m_df.loc[('low_acc', 1.0,'massShift50MeVUp')]   = [low_acc_mass_array[:,1,1]]
-# print('\nadding low acceptance')
-# print(m_df.loc['low_acc'])
+#nominal boost histogram
+H = C * results[process]['output']['signalTemplates_nominal'].get()
+#low acceptance -nominal
+low_acc      = C * results[process]['output']['lowacc'].get()
+low_acc      = low_acc.to_numpy()[0].reshape(-1, len(low_acc.axes['charge'].centers))
 
-#logK
-m_df['syst']      = m_df.index.get_level_values(2).map(lambda x: x.split('V')[0] + 'V')
-m_df['variation'] = m_df.index.get_level_values(2).map(lambda x: x.split('V')[1])
-print(m_df.head())
-print(m_df.loc['helXsec_T_y_{}_qt_{}'.format(round(yBinsC[1],1),round(qtBinsC[5],1))].query("variation == 'Down'")['data'].values)
-data = m_df.loc['helXsec_T_y_{}_qt_{}'.format(round(yBinsC[1],1),round(qtBinsC[5],1))].query("variation == 'Down'")['data'].values[1]
-print(data[data!=0.0])
+#Systematics boost histogram(s) plus low accpetance
+if two_mass_variations == True:
+    M = C * results[process]['output']['signalTemplates_mass'].get()[:,:,:,:,:,:,good_idx_mass]
+    low_acc_mass = C * results[process]['output']['lowacc_mass'].get()[:,:,:,good_idx_mass]
+    low_acc_mass = low_acc_mass.to_numpy()[0].reshape(-1 ,\
+                                                      len(low_acc_mass.axes['charge'].centers),\
+                                                      len(low_acc_mass.axes['massShift'].centers))
+else: 
+    M = C * results[process]['output']['signalTemplates_mass'].get() 
+    low_acc_mass = C * results[process]['output']['lowacc_mass'].get()
+    low_acc_mass = low_acc_mass.to_numpy()[0].reshape(-1 ,\
+                                                      len(low_acc_mass.axes['charge'].centers),\
+                                                      len(low_acc_mass.axes['massShift'].centers))
 
-m_df.reset_index(inplace=True)
-print(m_df.head())
-m_df.drop(columns = 'variation_index' , inplace = True)
-m_df.set_index(['process','charge'] , inplace =True)
+def make_dataFrames(H ,M ,V ,two_mass_variarions = True):
+    
+    #Bin information
+    yBinsC     = H.axes[V+'rap'].centers
+    qtBinsC    = H.axes[V+'pt'].centers
+    charges    = H.axes['charge'].centers
+    eta        = H.axes['mueta'].centers
+    pt         = H.axes['mupt'].centers
+    mass_variations = list(M.axes['massShift'])
+    helicities   = list(H.axes['helicities'])
+    unrolled_dim = len(eta) * len(pt)
 
-m_down = m_df.query("variation == 'Down'")['data']
-m_up   = m_df.query("variation == 'Up'")['data']
-print(m_down.head())
-nominal= df['data']
+    
+    #Reshaping the data. 2d format. one row per unrolled pt-eta distribution
+    unrolled_and_stacked = np.swapaxes(H.to_numpy()[0].reshape(\
+                           (len(yBinsC),len(qtBinsC),-1,len(charges),len(helicities)))\
+                            ,2,-1).reshape(-1,unrolled_dim)
+    mass_unrolled_and_stacked = np.swapaxes(M.to_numpy()[0].reshape(\
+                            (len(yBinsC),len(qtBinsC),-1,len(charges),len(helicities),len(mass_variations))),\
+                            2,-1).reshape(-1,unrolled_dim)
+    
+    #Generating multi index 
+    iterables = [yBinsC, qtBinsC,helicities ,charges]
+    multi = pd.MultiIndex.from_product(iterables , names = ['rapidity', 'qt' , 'hel','charge'])
+    
+    
+    m_iterables = [yBinsC, qtBinsC, helicities, charges , mass_variations]
+    m_multi = pd.MultiIndex.from_product(m_iterables , names = ['rapidity', 'qt' ,'hel' ,'charge','syst'])
+    
+    '''Building the nominal DataFrame'''
+    
+    #building dataframe
+    df = pd.DataFrame(unrolled_and_stacked , index = multi)
+    print('\nnominal dataframe\n' , df.head())
 
-logkepsilon = math.log(1e-3)
+    #Adding cross section information to our dataframe by creating cross section dataframe and merging
+    qtBins = np.array([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.,200.]) 
+    yBins = np.array([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 10.0])
 
-#m_down = m_df.set_index(['process','charge']).query("variation == 'Down'")['data']
-#m_up   = m_df.set_index(['process','charge']).query("variation == 'Up'")['data']
+    threshold_y = np.digitize(2.4,yBins)-1
+    threshold_qt = np.digitize(60.,qtBins)-1
+    T = t['helicity'][:threshold_y,:threshold_qt,:] #cross sections
+    
+    processes = [yBinsC , qtBinsC , helicities]
+    multi2 = pd.MultiIndex.from_product(processes , names = ['rapidity', 'qt' , 'hel']) #multi index to be joined on
+    s = pd.Series(T.ravel(), index = multi2 , name='xsec') #series carrying cross section information
 
-#nominal= df.sort_index(level=['process','charge'])['data']
+    xsec_df = pd.concat([s,s] ,axis=0).reset_index()       #same cross section for both charges, will need double to match dimensions
+    charges =  [-1.0]*288 + [1.0]*288
+    xsec_df['charge'] = charges
 
-logk_up   = (m_up/nominal).apply(lambda x: np.log(x))
-logk_down = (m_down/nominal).apply(lambda x: -np.log(x))
+    #now the dataframe carries cross section column
+    df = df.merge(xsec_df ,left_on=['rapidity','qt','hel','charge'], right_on=['rapidity','qt','hel','charge'])
+    print('\nadded cross-sections\n',df.head())
+    #setting process as index & cleaning up by removing redundant information
+    df.set_index(['helXsec_'+df['hel']+'_y_'+df['rapidity'].apply(lambda x: round(x,1)).apply(str)+'_qt_'+df['qt'].apply(lambda x: round(x,1)).apply(str),df['charge']],inplace=True)
+    df.drop(columns=['rapidity','qt','charge'],inplace=True)
+    df.rename_axis(['process','charge'] ,inplace=True)
+    print('\nre-indexing\n',df.head())
+
+    #reorganizing data into a single column labeled 'data' - contains unrolled pt/eta distribution
+    df['data'] = df.loc[:,0:unrolled_dim-1].apply(np.hstack , axis=1) 
+    df.drop(columns = df.loc[:,0:unrolled_dim-1].columns , inplace = True)
+
+    #adding column for helicity group
+    df['helgroups'] = df.index.get_level_values(0).map(lambda x: re.search("y.+" , x).group(0))
+    df['isSignal']  = True
+    
+    #low acceptance
+    df.loc[('low_acc',-1.0),:] = [np.nan, -1 , low_acc[:,0] ,np.nan, False]
+    df.loc[('low_acc', 1.0),:] = [np.nan, -1 , low_acc[:,1] ,np.nan, False]
+    
+    print('\nreorganizing and adding low acceptance\n',df.head(),df.tail())
+    
+    '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~building the systematics DataFrame~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
+    #building dataframe and setting index values as process strings
+    m_df = pd.DataFrame(mass_unrolled_and_stacked , index = m_multi)
+    print('\nsystematics dataframe\n',m_df.head())
+    m_df.reset_index(inplace=True)
+    print(m_df.head())
+    m_df.set_index(['helXsec_'+m_df['hel']+'_y_'+m_df['rapidity'].apply(lambda x: round(x,1)).apply(str)+'_qt_'+m_df['qt'].apply(lambda x: round(x,1)).apply(str),m_df['charge'], m_df['syst']],inplace=True)
+    print(m_df.head())
+    m_df.drop(columns=['rapidity','qt','charge','syst'],inplace=True)
+    print(m_df.head())
+    m_df.rename_axis(['process','charge','variation_index'] ,inplace=True)
+    print(m_df.head())
 
 
-#true if product is positive
-truth_up   = (nominal*m_up).apply(lambda x: np.equal(np.sign(x),1))
-truth_down = (nominal*m_down).apply(lambda x: np.equal(np.sign(x),1))
+    #reorganizing data into a single column labeled 'data' - contains unrolled pt/eta distribution
+    m_df['data'] = m_df.loc[:,0:unrolled_dim-1].apply(np.hstack , axis=1) 
+    m_df.drop(columns = m_df.loc[:,0:unrolled_dim-1].columns , inplace = True)
+    print(m_df.head())
+    
+    #Adding low acceptance for mass shift systematic
+    low_acceptance_df = pd.DataFrame(low_acc_mass.swapaxes(0,-1).reshape(-1,unrolled_dim),index=\
+           pd.MultiIndex.from_product([['low_acc'],H.axes['charge'].centers,list(M.axes['massShift'])]))
+    low_acceptance_df['hel']  = np.nan
+    
+
+    m_df = pd.concat([m_df,low_acceptance_df])
+    
+    m_df['data'] = m_df.loc[:,0:unrolled_dim-1].apply(np.hstack , axis=1) 
+    m_df.drop(columns = m_df.loc[:,0:unrolled_dim-1].columns , inplace = True)
+    print(m_df.head())
+
+    #logK
+    m_df['syst']      = m_df.index.get_level_values(2).map(lambda x: x.split('V')[0] + 'V')
+    m_df['variation'] = m_df.index.get_level_values(2).map(lambda x: x.split('V')[1])
+    print(m_df.head())
+    print(m_df.loc['helXsec_T_y_{}_qt_{}'.format(round(yBinsC[1],1),round(qtBinsC[5],1))].query("variation == 'Down'")['data'].values)
+    data = m_df.loc['helXsec_T_y_{}_qt_{}'.format(round(yBinsC[1],1),round(qtBinsC[5],1))].query("variation == 'Down'")['data'].values[1]
+    print(data[data!=0.0])
+
+    m_df.reset_index(inplace=True)
+    print(m_df.head())
+    m_df.drop(columns = 'variation_index' , inplace = True)
+    m_df.set_index(['process','charge'] , inplace =True)
+
+    m_down = m_df.query("variation == 'Down'")['data']
+    m_up   = m_df.query("variation == 'Up'")['data']
+    print(m_down.head())
+    nominal= df['data']
+
+    logkepsilon = math.log(1e-3)
+
+    #m_down = m_df.set_index(['process','charge']).query("variation == 'Down'")['data']
+    #m_up   = m_df.set_index(['process','charge']).query("variation == 'Up'")['data']
+
+    #nominal= df.sort_index(level=['process','charge'])['data']
+
+    logk_up   = (m_up/nominal).apply(lambda x: np.log(x))
+    logk_down = (m_down/nominal).apply(lambda x: -np.log(x))
 
 
-epsilon_up   =   logk_up.apply(lambda x: logkepsilon*np.ones_like(x))
-epsilon_down = logk_down.apply(lambda x: -logkepsilon*np.ones_like(x))
+    #true if product is positive
+    truth_up   = (nominal*m_up).apply(lambda x: np.equal(np.sign(x),1))
+    truth_down = (nominal*m_down).apply(lambda x: np.equal(np.sign(x),1))
 
 
-logk_up   = pd.Series([np.where(truth_up.values[i]\
-          ,(m_up/nominal).apply(lambda x: np.log(x)).values[i]\
-          , epsilon_up.values[i])\
-             for i in range(len(logk_up))] , index = logk_up.index)
-logk_down = pd.Series([np.where(truth_down.values[i]\
-          ,(m_down/nominal).apply(lambda x: -np.log(x)).values[i]\
-          , epsilon_down.values[i])\
-             for i in range(len(logk_up))] , index = logk_down.index)
+    epsilon_up   =   logk_up.apply(lambda x: logkepsilon*np.ones_like(x))
+    epsilon_down = logk_down.apply(lambda x: -logkepsilon*np.ones_like(x))
 
-logk_up   = pd.DataFrame({'logK':logk_up , 'variation':'Up'})
-logk_down = pd.DataFrame({'logK':logk_down , 'variation':'Down'})
 
-m_df = pd.concat([logk_up,logk_down])
+    logk_up   = pd.Series([np.where(truth_up.values[i]\
+              ,(m_up/nominal).apply(lambda x: np.log(x)).values[i]\
+              , epsilon_up.values[i])\
+                 for i in range(len(logk_up))] , index = logk_up.index)
+    logk_down = pd.Series([np.where(truth_down.values[i]\
+              ,(m_down/nominal).apply(lambda x: -np.log(x)).values[i]\
+              , epsilon_down.values[i])\
+                 for i in range(len(logk_up))] , index = logk_down.index)
 
-print('\nSystematics Dataframe')
-print(m_df.head())
+    logk_up   = pd.DataFrame({'logK':logk_up , 'variation':'Up'})
+    logk_down = pd.DataFrame({'logK':logk_down , 'variation':'Down'})
 
-# print(m_df.loc['helXsec_T_y_{}_qt_{}'.format(round(yBinsC[1],1),round(qtBinsC[5],1))].query("variation == 'Down'")['logK'].values[1])
-# data2 = m_df.loc['helXsec_T_y_{}_qt_{}'.format(round(yBinsC[1],1),round(qtBinsC[5],1))].query("variation == 'Down'")['logK'].values[1]
-# # print(norm_chan[norm_chan>0])
-# # data2 = np.where(np.equal(np.sign(norm_chan*data),1), data2, -logkepsilon*np.ones_like(data2))
-# print(data2[data2<6.9])
+    m_df = pd.concat([logk_up,logk_down])
+
+    print('\nSystematics Dataframe')
+    print(m_df.head())
+
+    # print(m_df.loc['helXsec_T_y_{}_qt_{}'.format(round(yBinsC[1],1),round(qtBinsC[5],1))].query("variation == 'Down'")['logK'].values[1])
+    # data2 = m_df.loc['helXsec_T_y_{}_qt_{}'.format(round(yBinsC[1],1),round(qtBinsC[5],1))].query("variation == 'Down'")['logK'].values[1]
+    # # print(norm_chan[norm_chan>0])
+    # # data2 = np.where(np.equal(np.sign(norm_chan*data),1), data2, -logkepsilon*np.ones_like(data2))
+    # print(data2[data2<6.9])
+
+    return df,m_df,yBinsC,qtBinsC,helicities
+
+df,m_df,yBinsC,qtBinsC,helicities = make_dataFrames(H,M,V)
+
 
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
 
