@@ -101,72 +101,27 @@ def fillSumGroup(yBinsC,qtBinsC,helXsecs,processes):
                         sumGroups['helXsec_'+hel+'_'+s].append('helXsec_'+hel+'_y_{i}_'.format(i=round(yBinsC[i],1))+s)
     return sumGroups
 
-'''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~loading boost histograms and cross sections from templates hdf5 file~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
-f = h5py.File("templatesTest2.hdf5","r")
-t = h5py.File('templatesFit.hdf5','r')
-results = narf.ioutils.pickle_load_h5py(f["results"])
-Hdata_obs = results['dataPostVFP']["output"]["data_obs"].get()
-
-
-#constants
-process = 'ZmumuPostVFP'
-V ='Z'
-two_mass_variations = True
-good_idx_mass = [5,15]
-lumi    = results['dataPostVFP']["lumi"]
-xsec    = results[process]["dataset"]["xsec"]
-weights = results[process]["weight_sum"]
-C       = lumi*1000*xsec/weights
-
-
-#nominal boost histogram
-H = C * results[process]['output']['signalTemplates_nominal'].get()
-#low acceptance -nominal
-low_acc      = C * results[process]['output']['lowacc'].get()
-low_acc      = low_acc.to_numpy()[0].reshape(-1, len(low_acc.axes['charge'].centers))
-
-#Systematics boost histogram(s) plus low accpetance
-if two_mass_variations == True:
-    M = C * results[process]['output']['signalTemplates_mass'].get()[:,:,:,:,:,:,good_idx_mass]
-    low_acc_mass = C * results[process]['output']['lowacc_mass'].get()[:,:,:,good_idx_mass]
-    low_acc_mass = low_acc_mass.to_numpy()[0].reshape(-1 ,\
-                                                      len(low_acc_mass.axes['charge'].centers),\
-                                                      len(low_acc_mass.axes['massShift'].centers))
-else: 
-    M = C * results[process]['output']['signalTemplates_mass'].get() 
-    low_acc_mass = C * results[process]['output']['lowacc_mass'].get()
-    low_acc_mass = low_acc_mass.to_numpy()[0].reshape(-1 ,\
-                                                      len(low_acc_mass.axes['charge'].centers),\
-                                                      len(low_acc_mass.axes['massShift'].centers))
-
-def make_dataFrames(H ,M ,V ,two_mass_variarions = True):
+def make_nominal_df(nominal_histos):
     
+    H = nominal_histos[0] #TODO: pick by name
+
     #Bin information
     yBinsC     = H.axes[V+'rap'].centers
     qtBinsC    = H.axes[V+'pt'].centers
     charges    = H.axes['charge'].centers
     eta        = H.axes['mueta'].centers
     pt         = H.axes['mupt'].centers
-    mass_variations = list(M.axes['massShift'])
     helicities   = list(H.axes['helicities'])
     unrolled_dim = len(eta) * len(pt)
-
     
     #Reshaping the data. 2d format. one row per unrolled pt-eta distribution
     unrolled_and_stacked = np.swapaxes(H.to_numpy()[0].reshape(\
                            (len(yBinsC),len(qtBinsC),-1,len(charges),len(helicities)))\
                             ,2,-1).reshape(-1,unrolled_dim)
-    mass_unrolled_and_stacked = np.swapaxes(M.to_numpy()[0].reshape(\
-                            (len(yBinsC),len(qtBinsC),-1,len(charges),len(helicities),len(mass_variations))),\
-                            2,-1).reshape(-1,unrolled_dim)
     
     #Generating multi index 
     iterables = [yBinsC, qtBinsC,helicities ,charges]
     multi = pd.MultiIndex.from_product(iterables , names = ['rapidity', 'qt' , 'hel','charge'])
-    
-    
-    m_iterables = [yBinsC, qtBinsC, helicities, charges , mass_variations]
-    m_multi = pd.MultiIndex.from_product(m_iterables , names = ['rapidity', 'qt' ,'hel' ,'charge','syst'])
     
     '''Building the nominal DataFrame'''
     
@@ -175,6 +130,7 @@ def make_dataFrames(H ,M ,V ,two_mass_variarions = True):
     print('\nnominal dataframe\n' , df.head())
 
     #Adding cross section information to our dataframe by creating cross section dataframe and merging
+    #TODO: pass boost histograms format
     qtBins = np.array([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.,200.]) 
     yBins = np.array([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 10.0])
 
@@ -207,14 +163,39 @@ def make_dataFrames(H ,M ,V ,two_mass_variarions = True):
     df['helgroups'] = df.index.get_level_values(0).map(lambda x: re.search("y.+" , x).group(0))
     df['isSignal']  = True
     
-    #low acceptance
-    df.loc[('low_acc',-1.0),:] = [np.nan, -1 , low_acc[:,0] ,np.nan, False]
-    df.loc[('low_acc', 1.0),:] = [np.nan, -1 , low_acc[:,1] ,np.nan, False]
+    #now add bkg processes
+    for histo in nominal_histos:
+      histo = histo.to_numpy()[0].reshape(-1, len(histo.axes['charge'].centers))
+      df.loc[('low_acc',-1.0),:] = [np.nan, -1 , histo[:,0] ,np.nan, False]
+      df.loc[('low_acc', 1.0),:] = [np.nan, -1 , histo[:,1] ,np.nan, False]
     
     print('\nreorganizing and adding low acceptance\n',df.head(),df.tail())
     
+    return df
+
+def addSystVariation(nom_df,syst_dict,results,C):
     '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~building the systematics DataFrame~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
+    
+    # syst_dict ={
+    # "mass" : {
+    #     "vars":["massShift50MeVDown","massShift50MeVUp"],
+    #     "procs": ["signalTemplates","lowacc"],
+    #     "type": "shapeNoConstraint",
+    #     "weight" : 1.
+    #   },
+    # }
+    #loop over systematics:
+    for syst,syst_tools in syst_dict.items():
+        #get variations
+        for proc in syst_tools['procs']:
+          syst_histo = C * results['ZmumuPostVFP']['output']['{proc}_{syst}'.format(proc=proc,syst=syst)].get()
+          #select slices in systematics based on "vars"
+          
+          syst_histo = syst_histo[...,[hist.loc(["massShift50MeVDown","massShift50MeVUp"])]] #find a way to make this generic
+          print(syst_histo)
+    return nom_df
     #building dataframe and setting index values as process strings
+    
     m_df = pd.DataFrame(mass_unrolled_and_stacked , index = m_multi)
     print('\nsystematics dataframe\n',m_df.head())
     m_df.reset_index(inplace=True)
@@ -307,8 +288,43 @@ def make_dataFrames(H ,M ,V ,two_mass_variarions = True):
 
     return df,m_df,yBinsC,qtBinsC,helicities
 
-df,m_df,yBinsC,qtBinsC,helicities = make_dataFrames(H,M,V)
+'''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~loading boost histograms and cross sections from templates hdf5 file~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
+f = h5py.File("templatesTest2.hdf5","r")
+t = h5py.File('templatesFit.hdf5','r')
+results = narf.ioutils.pickle_load_h5py(f["results"])
+Hdata_obs = results['dataPostVFP']["output"]["data_obs"].get()
 
+
+#constants
+process = 'ZmumuPostVFP'
+V ='Z'
+two_mass_variations = True
+good_idx_mass = [5,15]
+lumi    = results['dataPostVFP']["lumi"]
+xsec    = results[process]["dataset"]["xsec"]
+weights = results[process]["weight_sum"]
+C       = lumi*1000*xsec/weights
+
+
+#nominal boost histogram
+H = C * results[process]['output']['signalTemplates_nominal'].get()
+#low acceptance -nominal
+low_acc      = C * results[process]['output']['lowacc'].get()
+
+nominal_histos = [H,low_acc]
+
+df = make_nominal_df(nominal_histos)
+
+syst_dict ={
+    "mass" : {
+        "vars":["massShift50MeVDown","massShift50MeVUp"],
+        "procs": ["signalTemplates","lowacc"],
+        "type": "shapeNoConstraint",
+        "weight" : 1.
+    },
+}
+
+df = addSystVariation(df,syst_dict,results,C)
 
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
 
