@@ -178,115 +178,63 @@ def addSystVariation(nom_df,syst_dict,results,C):
     
     # syst_dict ={
     # "mass" : {
-    #     "vars":["massShift50MeVDown","massShift50MeVUp"],
+    #     "vars":["massShift"],
     #     "procs": ["signalTemplates","lowacc"],
     #     "type": "shapeNoConstraint",
     #     "weight" : 1.
     #   },
     # }
+    #getting multi index from nom dataframe    
+    multi = nom_df.index
+    print(multi)
+
+    #Bin information
+    yBinsC     = H.axes[V+'rap'].centers
+    qtBinsC    = H.axes[V+'pt'].centers
+    charges    = H.axes['charge'].centers
+    eta        = H.axes['mueta'].centers
+    pt         = H.axes['mupt'].centers
+    helicities   = list(H.axes['helicities'])
+    unrolled_dim = len(eta) * len(pt) * 2 # 2 is up/down
+
     #loop over systematics:
     for syst,syst_tools in syst_dict.items():
         #get variations
+        var_histos=[]
         for proc in syst_tools['procs']:
-          syst_histo = C * results['ZmumuPostVFP']['output']['{proc}_{syst}'.format(proc=proc,syst=syst)].get()
-          #select slices in systematics based on "vars"
-          
-          syst_histo = syst_histo[...,[hist.loc(["massShift50MeVDown","massShift50MeVUp"])]] #find a way to make this generic
-          print(syst_histo)
+            print(proc)
+            syst_histo = C * results['ZmumuPostVFP']['output']['{proc}_{syst}'.format(proc=proc,syst=syst)].get()
+            #select slices in systematics based on "vars"
+            syst_histo = syst_histo[...,[hist.loc(shift) for shift in syst_tools["vars"]]] #find a way to make this generic
+            syst_arr = syst_histo.to_numpy()[0]
+            if proc == "signalTemplates":
+                #Reshaping the data. 2d format. one row per unrolled pt-eta distribution
+                syst_arr = np.expand_dims(syst_arr,-2)
+                syst_arr = syst_arr.reshape((len(yBinsC),len(qtBinsC),-1,len(charges),len(helicities),1,len(syst_tools["vars"])))
+                # rapidity, qt, data, charge, hel, syst, up/down
+                # swapping data for syst
+                # rapidity, qt, syst, charge, hel, data, up/down
+                syst_arr = np.swapaxes(syst_arr , 2,-2)
+                # swapping syst for hel
+                # rapidity, qt, hel, charge, syst, data, up/down
+                syst_arr = np.swapaxes(syst_arr , 2,4).reshape(-1,unrolled_dim)
+                print(syst_arr.shape,"syst_array")
+            else:
+                syst_arr = np.expand_dims(syst_arr,-2)
+                syst_arr = syst_arr.reshape(-1,unrolled_dim)
+            var_histos.append(syst_arr)
+        # single_syst_dict[syst]=syst_tools["vars"]
+        single_syst_list = ('mass','mass')
+        columns = pd.MultiIndex.from_tuples(single_syst_list)
+        for h in var_histos:
+            print(h.shape)
+        var_histos = np.concatenate(var_histos,axis=0)
+        syst_df = pd.Series(list(var_histos))
+        # Reshape the dataframe to have 576 rows and 1 column
+        syst_df = syst_df.set_axis(multi)
+        nom_df[syst]=syst_df
+
     return nom_df
-    #building dataframe and setting index values as process strings
-    
-    m_df = pd.DataFrame(mass_unrolled_and_stacked , index = m_multi)
-    print('\nsystematics dataframe\n',m_df.head())
-    m_df.reset_index(inplace=True)
-    print(m_df.head())
-    m_df.set_index(['helXsec_'+m_df['hel']+'_y_'+m_df['rapidity'].apply(lambda x: round(x,1)).apply(str)+'_qt_'+m_df['qt'].apply(lambda x: round(x,1)).apply(str),m_df['charge'], m_df['syst']],inplace=True)
-    print(m_df.head())
-    m_df.drop(columns=['rapidity','qt','charge','syst'],inplace=True)
-    print(m_df.head())
-    m_df.rename_axis(['process','charge','variation_index'] ,inplace=True)
-    print(m_df.head())
-
-
-    #reorganizing data into a single column labeled 'data' - contains unrolled pt/eta distribution
-    m_df['data'] = m_df.loc[:,0:unrolled_dim-1].apply(np.hstack , axis=1) 
-    m_df.drop(columns = m_df.loc[:,0:unrolled_dim-1].columns , inplace = True)
-    print(m_df.head())
-    
-    #Adding low acceptance for mass shift systematic
-    low_acceptance_df = pd.DataFrame(low_acc_mass.swapaxes(0,-1).reshape(-1,unrolled_dim),index=\
-           pd.MultiIndex.from_product([['low_acc'],H.axes['charge'].centers,list(M.axes['massShift'])]))
-    low_acceptance_df['hel']  = np.nan
-    
-
-    m_df = pd.concat([m_df,low_acceptance_df])
-    
-    m_df['data'] = m_df.loc[:,0:unrolled_dim-1].apply(np.hstack , axis=1) 
-    m_df.drop(columns = m_df.loc[:,0:unrolled_dim-1].columns , inplace = True)
-    print(m_df.head())
-
-    #logK
-    m_df['syst']      = m_df.index.get_level_values(2).map(lambda x: x.split('V')[0] + 'V')
-    m_df['variation'] = m_df.index.get_level_values(2).map(lambda x: x.split('V')[1])
-    print(m_df.head())
-    print(m_df.loc['helXsec_T_y_{}_qt_{}'.format(round(yBinsC[1],1),round(qtBinsC[5],1))].query("variation == 'Down'")['data'].values)
-    data = m_df.loc['helXsec_T_y_{}_qt_{}'.format(round(yBinsC[1],1),round(qtBinsC[5],1))].query("variation == 'Down'")['data'].values[1]
-    print(data[data!=0.0])
-
-    m_df.reset_index(inplace=True)
-    print(m_df.head())
-    m_df.drop(columns = 'variation_index' , inplace = True)
-    m_df.set_index(['process','charge'] , inplace =True)
-
-    m_down = m_df.query("variation == 'Down'")['data']
-    m_up   = m_df.query("variation == 'Up'")['data']
-    print(m_down.head())
-    nominal= df['data']
-
-    logkepsilon = math.log(1e-3)
-
-    #m_down = m_df.set_index(['process','charge']).query("variation == 'Down'")['data']
-    #m_up   = m_df.set_index(['process','charge']).query("variation == 'Up'")['data']
-
-    #nominal= df.sort_index(level=['process','charge'])['data']
-
-    logk_up   = (m_up/nominal).apply(lambda x: np.log(x))
-    logk_down = (m_down/nominal).apply(lambda x: -np.log(x))
-
-
-    #true if product is positive
-    truth_up   = (nominal*m_up).apply(lambda x: np.equal(np.sign(x),1))
-    truth_down = (nominal*m_down).apply(lambda x: np.equal(np.sign(x),1))
-
-
-    epsilon_up   =   logk_up.apply(lambda x: logkepsilon*np.ones_like(x))
-    epsilon_down = logk_down.apply(lambda x: -logkepsilon*np.ones_like(x))
-
-
-    logk_up   = pd.Series([np.where(truth_up.values[i]\
-              ,(m_up/nominal).apply(lambda x: np.log(x)).values[i]\
-              , epsilon_up.values[i])\
-                 for i in range(len(logk_up))] , index = logk_up.index)
-    logk_down = pd.Series([np.where(truth_down.values[i]\
-              ,(m_down/nominal).apply(lambda x: -np.log(x)).values[i]\
-              , epsilon_down.values[i])\
-                 for i in range(len(logk_up))] , index = logk_down.index)
-
-    logk_up   = pd.DataFrame({'logK':logk_up , 'variation':'Up'})
-    logk_down = pd.DataFrame({'logK':logk_down , 'variation':'Down'})
-
-    m_df = pd.concat([logk_up,logk_down])
-
-    print('\nSystematics Dataframe')
-    print(m_df.head())
-
-    # print(m_df.loc['helXsec_T_y_{}_qt_{}'.format(round(yBinsC[1],1),round(qtBinsC[5],1))].query("variation == 'Down'")['logK'].values[1])
-    # data2 = m_df.loc['helXsec_T_y_{}_qt_{}'.format(round(yBinsC[1],1),round(qtBinsC[5],1))].query("variation == 'Down'")['logK'].values[1]
-    # # print(norm_chan[norm_chan>0])
-    # # data2 = np.where(np.equal(np.sign(norm_chan*data),1), data2, -logkepsilon*np.ones_like(data2))
-    # print(data2[data2<6.9])
-
-    return df,m_df,yBinsC,qtBinsC,helicities
 
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~loading boost histograms and cross sections from templates hdf5 file~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
 f = h5py.File("templatesTest2.hdf5","r")
@@ -317,7 +265,7 @@ df = make_nominal_df(nominal_histos)
 
 syst_dict ={
     "mass" : {
-        "vars":["massShift50MeVDown","massShift50MeVUp"],
+        "vars":["massShift50MeVDown","massShift50MeVDown"],
         "procs": ["signalTemplates","lowacc"],
         "type": "shapeNoConstraint",
         "weight" : 1.
@@ -325,6 +273,8 @@ syst_dict ={
 }
 
 df = addSystVariation(df,syst_dict,results,C)
+
+print(df)
 
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
 
