@@ -75,7 +75,6 @@ def fillHelMetaGroup(yBinsC,qtBinsC,sumGroups):
     
         if helMetaGroups[s] == []:
                 del helMetaGroups[s]
-    print(helMetaGroups)
     return helMetaGroups
 
 def fillSumGroup(yBinsC,qtBinsC,helXsecs,processes):
@@ -101,193 +100,198 @@ def fillSumGroup(yBinsC,qtBinsC,helXsecs,processes):
                         sumGroups['helXsec_'+hel+'_'+s].append('helXsec_'+hel+'_y_{i}_'.format(i=round(yBinsC[i],1))+s)
     return sumGroups
 
-def make_nominal_df(nominal_histos):
-    
-    H = nominal_histos[0] #TODO: pick by name
-
-    #Bin information
-    yBinsC     = H.axes[V+'rap'].centers
-    qtBinsC    = H.axes[V+'pt'].centers
-    charges    = H.axes['charge'].centers
-    eta        = H.axes['mueta'].centers
-    pt         = H.axes['mupt'].centers
-    helicities   = list(H.axes['helicities'])
-    unrolled_dim = len(eta) * len(pt)
-    
-    #Reshaping the data. 2d format. one row per unrolled pt-eta distribution
-    unrolled_and_stacked = np.swapaxes(H.to_numpy()[0].reshape(\
-                           (len(yBinsC),len(qtBinsC),-1,len(charges),len(helicities)))\
-                            ,2,-1).reshape(-1,unrolled_dim)
-    
-    #Generating multi index 
-    iterables = [yBinsC, qtBinsC,helicities ,charges]
-    multi = pd.MultiIndex.from_product(iterables , names = ['rapidity', 'qt' , 'hel','charge'])
-    
-    '''Building the nominal DataFrame'''
-    
-    #building dataframe
-    df = pd.DataFrame(unrolled_and_stacked , index = multi)
-    print('\nnominal dataframe\n' , df.head())
-
-    #Adding cross section information to our dataframe by creating cross section dataframe and merging
-    #TODO: pass boost histograms format
-    qtBins = np.array([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.,200.]) 
-    yBins = np.array([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 10.0])
-
-    threshold_y = np.digitize(2.4,yBins)-1
-    threshold_qt = np.digitize(60.,qtBins)-1
-    T = t['helicity'][:threshold_y,:threshold_qt,:] #cross sections
-    
-    processes = [yBinsC , qtBinsC , helicities]
-    multi2 = pd.MultiIndex.from_product(processes , names = ['rapidity', 'qt' , 'hel']) #multi index to be joined on
-    s = pd.Series(T.ravel(), index = multi2 , name='xsec') #series carrying cross section information
-
-    xsec_df = pd.concat([s,s] ,axis=0).reset_index()       #same cross section for both charges, will need double to match dimensions
-    charges =  [-1.0]*288 + [1.0]*288
-    xsec_df['charge'] = charges
-
-    #now the dataframe carries cross section column
-    df = df.merge(xsec_df ,left_on=['rapidity','qt','hel','charge'], right_on=['rapidity','qt','hel','charge'])
-    print('\nadded cross-sections\n',df.head())
-    #setting process as index & cleaning up by removing redundant information
-    df.set_index(['helXsec_'+df['hel']+'_y_'+df['rapidity'].apply(lambda x: round(x,1)).apply(str)+'_qt_'+df['qt'].apply(lambda x: round(x,1)).apply(str),df['charge']],inplace=True)
-    df.drop(columns=['rapidity','qt','charge'],inplace=True)
-    df.rename_axis(['process','charge'] ,inplace=True)
-    print('\nre-indexing\n',df.head())
-
-    #reorganizing data into a single column labeled 'data' - contains unrolled pt/eta distribution
-    df['data'] = df.loc[:,0:unrolled_dim-1].apply(np.hstack , axis=1) 
-    df.drop(columns = df.loc[:,0:unrolled_dim-1].columns , inplace = True)
-
-    #adding column for helicity group
-    df['helgroups'] = df.index.get_level_values(0).map(lambda x: re.search("y.+" , x).group(0))
-    df['isSignal']  = True
-    
-    #now add bkg processes
-    for histo in nominal_histos:
-      histo = histo.to_numpy()[0].reshape(-1, len(histo.axes['charge'].centers))
-      df.loc[('low_acc',-1.0),:] = [np.nan, -1 , histo[:,0] ,np.nan, False]
-      df.loc[('low_acc', 1.0),:] = [np.nan, -1 , histo[:,1] ,np.nan, False]
-    
-    print('\nreorganizing and adding low acceptance\n',df.head(),df.tail())
-    
-    return df
-
-def addSystVariation(nom_df,syst_dict,results,C):
-    '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~building the systematics DataFrame~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
-    
-    # syst_dict ={
-    # "mass" : {
-    #     "vars":["massShift"],
-    #     "procs": ["signalTemplates","lowacc"],
-    #     "type": "shapeNoConstraint",
-    #     "weight" : 1.
-    #   },
-    # }
-    #getting multi index from nom dataframe    
-    multi = nom_df.index
-    print(multi)
-
-    #Bin information
-    yBinsC     = H.axes[V+'rap'].centers
-    qtBinsC    = H.axes[V+'pt'].centers
-    charges    = H.axes['charge'].centers
-    eta        = H.axes['mueta'].centers
-    pt         = H.axes['mupt'].centers
-    helicities   = list(H.axes['helicities'])
-    unrolled_dim = len(eta) * len(pt) * 2 # 2 is up/down
-
-    #loop over systematics:
-    for syst,syst_tools in syst_dict.items():
-        #get variations
-        var_histos=[]
-        for proc in syst_tools['procs']:
-            print(proc)
-            syst_histo = C * results['ZmumuPostVFP']['output']['{proc}_{syst}'.format(proc=proc,syst=syst)].get()
-            #select slices in systematics based on "vars"
-            syst_histo = syst_histo[...,[hist.loc(shift) for shift in syst_tools["vars"]]] #find a way to make this generic
-            syst_arr = syst_histo.to_numpy()[0]
-            if proc == "signalTemplates":
-                #Reshaping the data. 2d format. one row per unrolled pt-eta distribution
-                syst_arr = np.expand_dims(syst_arr,-2)
-                syst_arr = syst_arr.reshape((len(yBinsC),len(qtBinsC),-1,len(charges),len(helicities),1,len(syst_tools["vars"])))
-                # rapidity, qt, data, charge, hel, syst, up/down
-                # swapping data for syst
-                # rapidity, qt, syst, charge, hel, data, up/down
-                syst_arr = np.swapaxes(syst_arr , 2,-2)
-                # swapping syst for hel
-                # rapidity, qt, hel, charge, syst, data, up/down
-                syst_arr = np.swapaxes(syst_arr , 2,4).reshape(-1,unrolled_dim)
-                print(syst_arr.shape,"syst_array")
-            else:
-                syst_arr = np.expand_dims(syst_arr,-2)
-                syst_arr = syst_arr.reshape(-1,unrolled_dim)
-            var_histos.append(syst_arr)
-        # single_syst_dict[syst]=syst_tools["vars"]
-        single_syst_list = ('mass','mass')
-        columns = pd.MultiIndex.from_tuples(single_syst_list)
-        for h in var_histos:
-            print(h.shape)
-        var_histos = np.concatenate(var_histos,axis=0)
-        syst_df = pd.Series(list(var_histos))
-        # Reshape the dataframe to have 576 rows and 1 column
-        syst_df = syst_df.set_axis(multi)
-        nom_df[syst]=syst_df
-
-    return nom_df
-
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~loading boost histograms and cross sections from templates hdf5 file~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
-f = h5py.File("templatesTest2.hdf5","r")
+f = h5py.File("templatesTest3.hdf5","r")
 t = h5py.File('templatesFit.hdf5','r')
 results = narf.ioutils.pickle_load_h5py(f["results"])
+print(results['ZmumuPostVFP']["output"])
 Hdata_obs = results['dataPostVFP']["output"]["data_obs"].get()
 
 
 #constants
 process = 'ZmumuPostVFP'
 V ='Z'
-two_mass_variations = True
-good_idx_mass = [5,15]
 lumi    = results['dataPostVFP']["lumi"]
 xsec    = results[process]["dataset"]["xsec"]
 weights = results[process]["weight_sum"]
 C       = lumi*1000*xsec/weights
 
+procs = ["lowacc"]
 
-#nominal boost histogram
-H = C * results[process]['output']['signalTemplates_nominal'].get()
-#low acceptance -nominal
-low_acc      = C * results[process]['output']['lowacc'].get()
+#first add nominal boost histogram for signal
+H = C*results[process]['output']['signal_nominal'].get()
+#Bin information
+yBinsC     = H.axes[V+'rap'].centers
+qtBinsC    = H.axes[V+'pt'].centers
+charges    = H.axes['charge'].centers
+eta        = H.axes['mueta'].centers
+pt         = H.axes['mupt'].centers
+helicities   = list(H.axes['helicities'])
+unrolled_dim = len(eta) * len(pt)
+qtBins = H.axes[V+'pt'].edges
+yBins = H.axes[V+'rap'].edges
 
-nominal_histos = [H,low_acc]
+#Reshaping the data. 2d format. one row per unrolled pt-eta distribution
+unrolled_and_stacked = np.swapaxes(H.to_numpy()[0].reshape(\
+                           (len(yBinsC),len(qtBinsC),-1,len(charges),len(helicities)))\
+                            ,2,-1).reshape(-1,unrolled_dim)
 
-df = make_nominal_df(nominal_histos)
+#TODO add bkg processes to this
+sumw = np.concatenate((H[sum,sum,:,:,0,sum].values().ravel(),H[sum,sum,:,:,1,sum].values().ravel()))
+sumw2 = np.concatenate((H[sum,sum,:,:,0,sum].variances().ravel(),H[sum,sum,:,:,1,sum].variances().ravel()))
 
-syst_dict ={
-    "mass" : {
-        "vars":["massShift50MeVDown","massShift50MeVDown"],
-        "procs": ["signalTemplates","lowacc"],
-        "type": "shapeNoConstraint",
-        "weight" : 1.
-    },
-}
+#clean memory
+H = None
+#Generating multi index 
+iterables = [yBinsC, qtBinsC,helicities ,charges]
+multi = pd.MultiIndex.from_product(iterables , names = ['rapidity', 'qt' , 'hel','charge'])
 
-df = addSystVariation(df,syst_dict,results,C)
+'''Building the nominal DataFrame'''
+    
+#building dataframe
+df = pd.Series(list(unrolled_and_stacked),index=multi, name="nominal")
+df = pd.DataFrame(df)
+print('\nnominal dataframe\n' , df.head())
 
-print(df)
+unrolled_and_stacked = None
+#Adding cross section information to our dataframe by creating cross section dataframe and merging
+#TODO: pass boost histograms format
+
+threshold_y = np.digitize(2.4,yBins)-1
+threshold_qt = np.digitize(60.,qtBins)-1
+T = t['helicity'][:threshold_y,:threshold_qt,:] #cross sections
+    
+iterables = [yBinsC , qtBinsC , helicities]
+multi = pd.MultiIndex.from_product(iterables = [yBinsC , qtBinsC , helicities]
+ , names = ['rapidity', 'qt' , 'hel']) #multi index to be joined on
+s = pd.Series(T.ravel(), index = multi , name='xsec') #series carrying cross section information
+
+xsec_df = pd.concat([s,s] ,axis=0).reset_index()       #same cross section for both charges, will need double to match dimensions
+charges_xsec =  [-1.0]*288 + [1.0]*288
+xsec_df['charge'] = charges_xsec
+
+#now the dataframe carries cross section column
+df = df.merge(xsec_df ,left_on=['rapidity','qt','hel','charge'], right_on=['rapidity','qt','hel','charge'])
+print('\nadded cross-sections\n',df.head())
+
+#setting process as index & cleaning up by removing redundant information
+df.set_index(['helXsec_'+df['hel']+'_y_'+df['rapidity'].apply(lambda x: round(x,1)).apply(str)+'_qt_'+df['qt'].apply(lambda x: round(x,1)).apply(str),df['charge']],inplace=True)
+df.drop(columns=['rapidity','qt','charge','hel'],inplace=True)
+df.rename_axis(['process','charge'] ,inplace=True)
+print('\nre-indexing\n',df.head())
+
+#adding column for helicity group
+# df['helgroups'] = df.index.get_level_values(0).map(lambda x: re.search("y.+" , x).group(0))
+df['isSignal']  = True
+
+print('\nnominal dataframe\n' , df.head())
+
+#now add other procs
+for proc in procs:
+    histo=C*results[process]['output']['{}_nominal'.format(proc)].get()
+    unrolled = histo.to_numpy()[0].reshape(len(charges),-1)
+    histo=None
+    #add data
+    iterables_proc = [[proc],charges]
+    multi_proc = pd.MultiIndex.from_product(iterables_proc , names = ['process','charge'])
+    print(charges,iterables_proc,multi_proc)
+    df_proc = pd.Series(list(unrolled),index=multi_proc, name="nominal")
+    df_proc = pd.DataFrame(df_proc)
+    unrolled=None
+    df_proc['isSignal'] = False
+    df_proc['xsec'] = -1
+    df = pd.concat([df,df_proc],axis=0)
+    
+print('\nreorganizing and adding other procs\n',df.head(),df.tail())
+import pdb; pdb.set_trace()
+#add systematics
+
+systs = ["mass"]
+procs = ["signal"]+procs #careful!! this must be the same order as before!
+nominal_cols = ['Zrap', 'Zpt', 'mueta', 'mupt', 'charge', 'helicities','downUpVar']
+multi = df.index
+
+#loop over systematics:
+for syst in systs:
+    #get variations
+    var_histos=[]
+    for proc in procs:
+        #TODO add exception for histograms not found
+        print(proc)
+        syst_histo = C * results[process]['output']['{proc}_{syst}'.format(proc=proc,syst=syst)].get()
+        #select slices in systematics based on "vars"
+        syst_arr = syst_histo.to_numpy()[0]
+        syst_axes = [axis for axis in syst_histo.axes if axis.name not in nominal_cols]
+        nsysts = 1
+        for axis in syst_axes:
+            nsysts = nsysts*len(axis.centers)
+        print("nsysts",nsysts)
+        syst_histo = None
+        if proc == "signal":
+            #Reshaping the data. 2d format. one row per unrolled pt-eta distribution
+            syst_arr = syst_arr.reshape((len(yBinsC),len(qtBinsC),-1,len(charges),len(helicities),nsysts,2)) #last axis is always up/down
+            # rapidity, qt, data, charge, hel, syst, up/down
+            # swapping data for syst
+            # rapidity, qt, syst, charge, hel, data, up/down
+            syst_arr = np.swapaxes(syst_arr , 2,-2)
+            # swapping syst for hel
+            # rapidity, qt, hel, charge, syst, data, up/down
+            syst_arr = np.swapaxes(syst_arr , 2,4).reshape(-1,unrolled_dim*2)
+            print(syst_arr.shape,"syst_array")
+            var_histos.append(syst_arr)
+        else:
+            #data, charge, syst, up/down
+            syst_arr = np.moveaxis(syst_arr,0,-2)
+            syst_arr = syst_arr.reshape(-1,unrolled_dim*2)
+            var_histos.append(syst_arr)
+            
+    for h in var_histos:
+        print(h.shape,'h.shape')
+    var_histos = np.concatenate(var_histos,axis=0)
+    print(var_histos.shape)
+    syst_df = pd.Series(list(var_histos))
+    # Reshape the dataframe to have 576 rows and 1 column
+    syst_df = syst_df.set_axis(multi)
+    df[syst]=syst_df
+    #reshape as syst,unrolled,up/down
+    df[syst]=df[syst].apply(lambda arr: arr.reshape((-1,unrolled_dim,2)))
+    print(df[syst].loc[('helXsec_L_y_0.2_qt_1.5',-1)].shape,'shape')
+
+print('\nadding systematics\n',df.head(),df.tail())
+
+
+for syst in systs:
+    #now divide by nominal
+    df["{}_logk".format(syst)]=df.apply(lambda x: x[syst]/np.expand_dims(x['nominal'],axis=(0,-1)),axis='columns')
+    print('\ndivide by nominal\n',df.head(),df.tail())
+    # import pdb; pdb.set_trace()
+    #take log
+    df["{}_logk".format(syst)]=df["{}_logk".format(syst)].map(lambda x: np.log(x))
+
+    #remove spurious nans
+    logkepsilon = math.log(1e-3)
+    print('\n before regularization\n',df.head(),df.tail())
+    df["{}_logk".format(syst)]=df.apply(lambda x: np.where(np.equal(np.sign(x[syst]*np.expand_dims(x['nominal'],axis=(0,-1))),1),x["{}_logk".format(syst)],logkepsilon*np.ones_like(x[syst])),axis='columns')
+
+    #multiply down times -1
+    mask = np.stack([-1*np.ones_like(df[syst].loc[('helXsec_L_y_0.2_qt_1.5',-1)][...,0]),np.ones_like(df[syst].loc[('helXsec_L_y_0.2_qt_1.5',-1)][...,0])],axis=-1)
+    print(mask.shape)
+    df["{}_logk".format(syst)]=df["{}_logk".format(syst)].apply(lambda x: mask*x)
+    
+    print('\nfinal df\n',df.head(),df.tail())
+    # pdb.set_trace()
+
+
 
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
 
 #retrieve metadata
 
 procs = list(df.query("charge==1.0").index.get_level_values(0))
-procs2 = list(m_df.query("charge==1.0").index.get_level_values(0))
-for p1,p2 in zip(procs,procs2):
-    print(p1,p2)
 signals = list(df.query("charge==1.0 & isSignal==True").index.get_level_values(0))
 nproc = len(procs)
 nsignals = len(signals)
-maskedchans = ['Wlike_minus']
+maskedchans = ['Wlike_minus','Wlike_plus']
 
 #list of groups of signal processes by charge - DON'T NEED THAT
 chargegroups = []
@@ -312,7 +316,7 @@ for group in helGroups:
 sumgroups = []
 sumgroupsegmentids = []
 sumgroupidxs = []
-sumGroups = fillSumGroup(yBinsC,qtBinsC,helicities,procs)
+sumGroups = fillSumGroup(yBinsC,qtBinsC,helicities,signals)
 for igroup,group in enumerate(sumGroups):
   sumgroups.append(group)
   for proc in sumGroups[group]:
@@ -543,18 +547,11 @@ constraintweights = None
 
 
 data_obs = np.concatenate((Hdata_obs.to_numpy()[0][...,0].ravel(),Hdata_obs.to_numpy()[0][...,1].ravel()))
-# data_obs = Hdata_obs.to_numpy()[0][...,1].ravel()
+Hdata_obs = None
 
 
 nbytes += writeFlatInChunks(data_obs, f, "hdata_obs", maxChunkBytes = chunkSize)
 data_obs = None
-
-sumw = np.concatenate((H[sum,sum,:,:,0,sum].values().ravel(),H[sum,sum,:,:,1,sum].values().ravel()))
-sumw2 = np.concatenate((H[sum,sum,:,:,0,sum].variances().ravel(),H[sum,sum,:,:,1,sum].variances().ravel()))
-
-# sumw = H[sum,sum,:,:,0,sum].values().ravel()
-# sumw2 = H[sum,sum,:,:,0,sum].variances().ravel()
-
 
 #compute poisson parameter for Barlow-Beeston bin-by-bin statistical uncertainties
 kstat = np.square(sumw)/sumw2
@@ -570,56 +567,58 @@ sumw = None
 nbytes += writeFlatInChunks(sumw2, f, "hsumw2", maxChunkBytes = chunkSize)
 sumw2 = None
 
-norm = np.concatenate((np.stack(df.query("charge==-1.")['data'].values,axis=-1),np.stack(df.query("charge==1.")['data'].values,axis=-1),np.expand_dims(np.stack(df.query("charge==-1.")['xsec'].values,axis=-1),axis=0),np.expand_dims(np.stack(df.query("charge==1.")['xsec'].values,axis=-1),axis=0)),axis=0)
+#n.b data and expected have shape [nbins]
+#sumw and sumw2 keep track of total nominal statistical uncertainty per bin and have shape [nbins]
+
+#norm has shape [nbinsfull, nproc] and keeps track of expected normalization
+
+#logk has shape [nbinsfull, nproc, 2, nsyst] and keep track of systematic variations
+#per nuisance-parameter, per-process, per-bin
+#the second-last dimension, of size 2, indexes "logkavg" and "logkhalfdiff" for asymmetric uncertainties
+#where logkavg = 0.5*(logkup + logkdown) and logkhalfdiff = 0.5*(logkup - logkdown)
+
+#n.b, in case of masked channels, nbinsfull includes the masked channels where nbins does not
+
+
+# retrieve norm
+norm = np.concatenate((np.stack(df.query("charge==-1.")['nominal'].values,axis=-1),np.stack(df.query("charge==1.")['nominal'].values,axis=-1),np.expand_dims(np.stack(df.query("charge==-1.")['xsec'].values,axis=-1),axis=0),np.expand_dims(np.stack(df.query("charge==1.")['xsec'].values,axis=-1),axis=0)),axis=0)
 nbytes += writeFlatInChunks(norm, f, "hnorm", maxChunkBytes = chunkSize)
+
+# df = df.drop(columns=['nominal'],inplace=True) #why this doesn't work?
+print('\ndrop nominal\n',df.head())
+logk_systs = []
+for syst in systs:
+    print(df.query("charge==-1.")["{}_logk".format(syst)].values[0].shape)
+    print(df.query("charge==-1.")['nominal'].values[0].shape)
+    logk_syst = np.moveaxis(np.concatenate((np.stack(df.query("charge==-1.")["{}_logk".format(syst)].values,axis=-2),np.stack(df.query("charge==1.")["{}_logk".format(syst)].values,axis=-2)),axis=1),0,-1)
+    logk_systs.append(logk_syst)
+    print(logk_syst.shape)
+print(logk_systs[0].shape)
+logk_systs = np.concatenate(logk_systs,axis=-1) #concatenate along syst axis
+print('logk_systs.shape',logk_systs.shape)
+
+# retrieve logk
+logk_up = logk_systs[...,1,:]
+logk_down = logk_systs[...,0,:]
+
+print(logk_up.shape,logk_down.shape)
+
+logkavg = 0.5*(logk_up + logk_down)
+logkhalfdiff = 0.5*(logk_up - logk_down)
+
+print(logkavg.shape)
+#ensure that systematic tensor is sparse where normalization matrix is sparse
+logkavg = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkavg)
+logkhalfdiff = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkhalfdiff)
+
 norm = None
 
-# norm = np.concatenate((np.stack(df.query("charge==1.")['data'].values,axis=-1),np.expand_dims(np.stack(df.query("charge==1.")['xsec'].values,axis=-1),axis=0)),axis=0)
-# nbytes += writeFlatInChunks(norm, f, "hnorm", maxChunkBytes = chunkSize)
-
-# m_df = m_df[m_df.index.get_level_values(0).map(lambda x: x.find('UL') > 1 or x.find('L') > 1)]
-print("logk shape",m_df['logK'].values[0].shape)
-logk_ups = np.stack(m_df.query("charge==-1.0  & variation == 'Up'")['logK'].values,axis=-1)
-logk_downs = np.stack(m_df.query("charge==-1.0  & variation =='Down'")['logK'].values,axis=-1)
-
-logkavg = 0.5*(logk_ups + logk_downs)
-logkhalfdiff = 0.5*(logk_ups - logk_downs)
-
-# #ensure that systematic tensor is sparse where normalization matrix is sparse
-# logkavg = np.where(np.equal(norm,0.), 0., logkavg)
-# logkhalfdiff = np.where(np.equal(norm,0.), 0., logkhalfdiff)
-
-logk_minus = np.stack((logkavg,logkhalfdiff),axis=-1)
-
-#same for plus
-
-logk_ups = np.stack(m_df.query("charge==1.0 & variation == 'Up'")['logK'].values,axis=-1)
-logk_downs = np.stack(m_df.query("charge==1.0 & variation =='Down'")['logK'].values,axis=-1)
-
-logkavg = 0.5*(logk_ups + logk_downs)
-logkhalfdiff = 0.5*(logk_ups - logk_downs)
-
-# #ensure that systematic tensor is sparse where normalization matrix is sparse
-# logkavg = np.where(np.equal(norm,0.), 0., logkavg)
-# logkhalfdiff = np.where(np.equal(norm,0.), 0., logkhalfdiff)
-
-logk_plus = np.stack((logkavg,logkhalfdiff),axis=-1)
-
-print(logk_plus.shape,logk_minus.shape)
-
-logk = np.concatenate((logk_minus,logk_plus,np.zeros((1,nproc,2)),np.zeros((1,nproc,2))), axis=0)
-
-# logk = np.concatenate((logk_minus,np.zeros((1,nproc,2))), axis=0)
-
-# logk = np.zeros([5762,nproc,2,nsyst], dtype)
-# print(nproc)
-# logk[:,-1,:,0] = np.concatenate((logk_minus,logk_plus,np.zeros((1,289,2)),np.zeros((1,289,2))), axis=0)[:,-1,:]
-logk = np.expand_dims(logk,axis=-1) #placeholder
-
-# logk=np.nan_to_num(logk,0.0)
-
+logk = np.stack((logkavg,logkhalfdiff),axis=-2)
+print(logk.shape)
+logk = np.concatenate((logk,np.zeros((2,nproc,2,nsyst))),axis=0)
 print(logk.shape)
 nbytes += writeFlatInChunks(logk, f, "hlogk", maxChunkBytes = chunkSize)
 logk = None
 
 print("Total raw bytes in arrays = %d" % nbytes)
+
