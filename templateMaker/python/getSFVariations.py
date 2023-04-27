@@ -24,8 +24,10 @@ class getSFVariations(module):
             muon_columns_syst = ["trigMuons_pt0", "trigMuons_eta0", "trigMuons_SApt0", "trigMuons_SAeta0", "trigMuons_charge0",
             "nonTrigMuons_pt0", "nonTrigMuons_eta0", "nonTrigMuons_SApt0", "nonTrigMuons_SAeta0", "nonTrigMuons_charge0"]
         else:
-            muon_columns_stat = ["goodMuons_pt0", "goodMuons_eta0", "goodMuons_charge0"]
-            muon_columns_syst = ["goodMuons_pt0", "goodMuons_eta0", "goodMuons_SApt0", "goodMuons_SAeta0", "goodMuons_charge0", "passIso"]
+            # muon_columns_stat = ["goodMuons_pt0", "goodMuons_eta0", "goodMuons_charge0"]
+            # muon_columns_syst = ["goodMuons_pt0", "goodMuons_eta0", "goodMuons_SApt0", "goodMuons_SAeta0", "goodMuons_charge0", "passIso"]
+            muon_columns_stat = ["trigMuons_pt0", "trigMuons_eta0", "trigMuons_charge0"]
+            muon_columns_syst = ["trigMuons_pt0", "trigMuons_eta0", "trigMuons_SApt0", "trigMuons_SAeta0", "trigMuons_charge0","passIso"]
 
         # SF stat variations
         for key,helper in self.helper_stat.items():
@@ -37,8 +39,8 @@ class getSFVariations(module):
             print(f"effStatTnP_{key}_tensor",self.d.GetColumnType(f"effStatTnP_{key}_tensor"))
     
         # SF syst variations
-        self.d = self.d.Define("effSystTnP_weight", self.helper_syst, [*muon_columns_syst, "nominal_weight"])
-        print("effSystTnP_weight",self.d.GetColumnType("effSystTnP_weight"))
+        # self.d = self.d.Define("effSystTnP_weight", self.helper_syst, [*muon_columns_syst, "nominal_weight"])
+        # print("effSystTnP_weight",self.d.GetColumnType("effSystTnP_weight"))
 
         # redefine without weight for helicity multiplication
         # SF stat variations
@@ -50,7 +52,7 @@ class getSFVariations(module):
         
         # SF syst variations
         self.d = self.d.Define("effSystTnP_weight_unweighted", self.helper_syst, [*muon_columns_syst, "unity"])
-
+        
         '''
         effStatTnP_sf_reco_tensor Eigen::TensorFixedSize<double,Eigen::Sizes<48,4,2,2>,0,long>
         effStatTnP_sf_tracking_tensor Eigen::TensorFixedSize<double,Eigen::Sizes<48,3,2,2>,0,long>
@@ -65,7 +67,7 @@ class getSFVariations(module):
             self.helper = ROOT.helSystSFHelper[dims[ikey]]()
             self.d = self.d.Define(f"effStatTnP_{key}_tensor_hel",self.helper,["helWeightTensor", f"effStatTnP_{key}_tensor_unweighted"])
         
-        self.helper = ROOT.helSystHelper[5]()
-        self.d = self.d.Define("effSystTnP_tensor_hel",self.helper,["helWeightTensor", "effSystTnP_weight_unweighted"])
-
+        # self.helper = ROOT.helSystHelper[5]()
+        # self.d = self.d.Define("effSystTnP_tensor_hel",self.helper,["helWeightTensor", "effSystTnP_weight_unweighted"])
+        
         return self.d
