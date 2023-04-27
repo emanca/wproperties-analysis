@@ -116,7 +116,8 @@ xsec    = results[process]["dataset"]["xsec"]
 weights = results[process]["weight_sum"]
 C       = lumi*1000*xsec/weights
 
-procs = ["lowacc"]
+# procs = ["lowacc"]
+procs = []
 
 #first add nominal boost histogram for signal
 H = C*results[process]['output']['signal_nominal'].get()
@@ -203,7 +204,7 @@ for proc in procs:
     df = pd.concat([df,df_proc],axis=0)
     
 print('\nreorganizing and adding other procs\n',df.head(),df.tail())
-import pdb; pdb.set_trace()
+
 #add systematics
 
 systs = ["mass"]
@@ -264,7 +265,6 @@ for syst in systs:
     #now divide by nominal
     df["{}_logk".format(syst)]=df.apply(lambda x: x[syst]/np.expand_dims(x['nominal'],axis=(0,-1)),axis='columns')
     print('\ndivide by nominal\n',df.head(),df.tail())
-    # import pdb; pdb.set_trace()
     #take log
     df["{}_logk".format(syst)]=df["{}_logk".format(syst)].map(lambda x: np.log(x))
 
@@ -279,7 +279,7 @@ for syst in systs:
     df["{}_logk".format(syst)]=df["{}_logk".format(syst)].apply(lambda x: mask*x)
     
     print('\nfinal df\n',df.head(),df.tail())
-    # pdb.set_trace()
+
 
 
 
@@ -391,12 +391,13 @@ systgroupidxs = []
 #     systgroupidxs.append(systgroupidx)
 
 #list of groups of systematics to be treated as additional outputs for impacts, etc (aka "nuisances of interest")
+noiGroups = {'mass':['mass']}
 noigroups = []
 noigroupidxs = []
-# for group in noiGroups:
-#   noigroups.append(group)
-#   for syst in noiGroups[group]:
-#     noigroupidxs.append(systs.index(syst))
+for group in noiGroups:
+  noigroups.append(group)
+  for syst in noiGroups[group]:
+    noigroupidxs.append(systs.index(syst))
 
 
 #write results to hdf5 file
