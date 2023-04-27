@@ -25,9 +25,11 @@ asimov = args.asimov
 
 label_data = "asimov dataset" if asimov else "data"
 # file with fit results
-fIn = ROOT.TFile.Open('../Fit/FitRes/fit_Wlike_asimov.root')
+fIn = ROOT.TFile.Open('../Fit/FitRes/fit_Wlike.root')
 fitresults = fIn.Get('fitresults')
-
+#branches = fitresults.GetListOfBranches()
+#branch_names = [x.GetName() for x in branches]
+#print(branch_names[:10])
 
 # matplotlib stuff
 plt.style.use([hep.style.CMS])
@@ -59,12 +61,12 @@ for k,c in enumerate(coefficients):
         for i in range(len(yBinsC)):
             for j in range(len(qtBinsC)):
                 try:
-                    coeff = eval('ev.y_{i}_qt_{j}_{c}'.format(c=c, j=j, i=i))
-                    coeff_gen = eval('ev.y_{i}_qt_{j}_{c}_gen'.format(c=c, j=j, i=i))
-                    coeff_err = eval('ev.y_{i}_qt_{j}_{c}_err'.format(c=c, j=j, i=i))
-                    coeff_hel = eval('ev.helXsecs{c}_y_{i}_qt_{j}_pmaskedexp'.format(c=helicities[k], j=j, i=i))
-                    coeff_hel_err = eval('ev.helXsecs{c}_y_{i}_qt_{j}_pmaskedexp_err'.format(c=helicities[k], j=j, i=i))
-                    coeff_hel_gen = eval('ev.helXsecs{c}_y_{i}_qt_{j}_pmaskedexp_gen'.format(c=helicities[k], j=j, i=i))
+                    coeff = getattr(ev,'y_{:.1f}_qt_{:.1f}_{}'.format(yBinsC[i] , qtBinsC[j] , c))
+                    coeff_gen = getattr(ev,'y_{:.1f}_qt_{:.1f}_{}_gen'.format(yBinsC[i] , qtBinsC[j] , c))
+                    coeff_err = getattr(ev,'y_{:.1f}_qt_{:.1f}_{}_err'.format(yBinsC[i] , qtBinsC[j] , c))
+                    coeff_hel = getattr(ev,'helXsec_{}_y_{:.1f}_qt_{:.1f}_pmaskedexp'.format(helicities[k],yBinsC[i], qtBinsC[j]))
+                    coeff_hel_err = getattr(ev,'helXsec_{}_y_{:.1f}_qt_{:.1f}_pmaskedexp_err'.format(helicities[k],yBinsC[i], qtBinsC[j]))
+                    coeff_hel_gen = getattr(ev,'helXsec_{}_y_{:.1f}_qt_{:.1f}_pmaskedexp_gen'.format(helicities[k],yBinsC[i], qtBinsC[j]))
                     if 'unpolarizedxsec' in c:
                         coeff = coeff/(3./16./math.pi)/16.8/yBinsS[i]/qtBinsS[j]
                         coeff_gen = coeff_gen/(3./16./math.pi)/16.8/yBinsS[i]/qtBinsS[j]
@@ -103,7 +105,7 @@ for k,c in enumerate(coefficients):
     else:
         ratio = hcoeff.ravel()-(hcoeff_gen.ravel())
         ratio_err = hcoeff_err.ravel()
-        ax1.set_ylim(-5,5)
+        #ax1.set_ylim(-5,5)
         ax2.set_ylabel('data-prediction')
         ax2.set_ylim([-2, 2])
     hep.histplot(ratio,bins = x, yerr=ratio_err.ravel(), histtype = 'errorbar', color = "k", stack = False, ax=ax2)
@@ -147,12 +149,12 @@ for k,c in enumerate(coefficients):
     for ev in fitresults: #dummy because there's one event only
         for j in range(len(qtBinsC)):
             try:
-                coeff = eval('ev.qt_{j}_helmeta_{c}'.format(c=c, j=j))
-                coeff_gen = eval('ev.qt_{j}_helmeta_{c}_gen'.format(c=c, j=j))
-                coeff_err = eval('ev.qt_{j}_helmeta_{c}_err'.format(c=c, j=j))
-                coeff_hel = eval('ev.helXsecs{c}_qt_{j}_sumxsec'.format(c=helicities[k], j=j))
-                coeff_hel_gen = eval('ev.helXsecs{c}_qt_{j}_sumxsec_gen'.format(c=helicities[k], j=j))
-                coeff_hel_err = eval('ev.helXsecs{c}_qt_{j}_sumxsec_err'.format(c=helicities[k], j=j))
+                coeff = getattr(ev,'qt_{:.1f}_helmeta_{}'.format(qtBinsC[j] , c))
+                coeff_gen = getattr(ev,'qt_{:.1f}_helmeta_{}_gen'.format(qtBinsC[j] , c))
+                coeff_err = getattr(ev,'qt_{:.1f}_helmeta_{}_err'.format(qtBinsC[j] , c))
+                coeff_hel = getattr(ev,'helXsec_{}_qt_{:.1f}_sumxsec'.format(helicities[k], qtBinsC[j]))
+                coeff_hel_gen = getattr(ev,'helXsec_{}_qt_{:.1f}_sumxsec_gen'.format(helicities[k], qtBinsC[j]))
+                coeff_hel_err = getattr(ev,'helXsec_{}_qt_{:.1f}_sumxsec_err'.format(helicities[k], qtBinsC[j]))
                 if 'unpol' in c:
                     coeff = coeff/(3./16./math.pi)/16.8/qtBinsS[j]
                     coeff_gen = coeff_gen/(3./16./math.pi)/16.8/qtBinsS[j]
@@ -167,9 +169,9 @@ for k,c in enumerate(coefficients):
                 pass
         for i in range(len(yBinsC)):
             try:
-                coeff_y = eval('ev.y_{i}_helmeta_{c}'.format(c=c, j=j, i=i))
-                coeff_gen_y = eval('ev.y_{i}_helmeta_{c}_gen'.format(c=c, j=j, i=i))
-                coeff_err_y = eval('ev.y_{i}_helmeta_{c}_err'.format(c=c, j=j, i=i))
+                coeff_y = getattr(ev,'y_{:.1f}_helmeta_{}'.format(yBinsC[i] , c))
+                coeff_gen_y = getattr(ev,'y_{:.1f}_helmeta_{}_gen'.format(yBinsC[i] , c))
+                coeff_err_y = getattr(ev,'y_{:.1f}_helmeta_{}_err'.format(yBinsC[i] , c))
                 if 'unpol' in c:
                     coeff_y = coeff_y/(3./16./math.pi)/16.8/yBinsS[i]
                     coeff_gen_y = coeff_gen_y/(3./16./math.pi)/16.8/yBinsS[i]
