@@ -23,7 +23,7 @@ class getMassWeights(module):
                         .Define("massWeight_tensor", f"Eigen::TensorFixedSize<double, Eigen::Sizes<1,2>>(wrem::vec_to_tensor_t<double, {2}>(massVec).reshape(std::array<Eigen::Index, 2>{{1, 2}}))")\
                         .Define("massWeight_tensor_wnom", "auto res = massWeight_tensor; res = nominal_weight*res; return res;")
         #.Define("massWeight_tensor", f"wrem::vec_to_tensor_t<double, {nweights}>(MEParamWeight)")\
-        self.helper = ROOT.helSystHelper[2]()
+        self.helper = ROOT.helMassHelper[2]()
         self.d = self.d.Define("massWeight_tensor_hel",self.helper,["helWeightTensor", "massWeight_tensor"])
         # print(self.d.GetColumnType("massWeight_tensor_hel"))
         # print(self.d.GetColumnType("massWeight_tensor"))

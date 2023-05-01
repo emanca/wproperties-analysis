@@ -6,16 +6,16 @@
 #include <eigen3/unsupported/Eigen/CXX11/Tensor>
 
 
-using helicity_tensor_t = Eigen::TensorFixedSize<double, Eigen::Sizes<6>>;
 
 template <Eigen::Index D>
-class helSystHelper
+class helMassHelper
 {
 public:
-    helSystHelper() {}
+    helMassHelper() {}
 
     using mass_tensor_t = Eigen::TensorFixedSize<double, Eigen::Sizes<1,D>>;
     using helicity_mass_tensor_t = Eigen::TensorFixedSize<double, Eigen::Sizes<6, 1, D>>;
+    using helicity_tensor_t = Eigen::TensorFixedSize<double, Eigen::Sizes<6>>;
 
     auto operator()(helicity_tensor_t &helicity_tensor, mass_tensor_t &mass_tensor)
     {
@@ -36,7 +36,65 @@ public:
     }
 };
 
-template <Eigen::Index NptEig, Eigen::Index NCharges>
+template <Eigen::Index D1, Eigen::Index D2>
+class helSystHelper
+{
+public:
+    helSystHelper() {}
+
+    using mass_tensor_t = Eigen::TensorFixedSize<double, Eigen::Sizes<D1>>;
+    using helicity_mass_tensor_t = Eigen::TensorFixedSize<double, Eigen::Sizes<D2, D1>>;
+    using helicity_tensor_t = Eigen::TensorFixedSize<double, Eigen::Sizes<D2>>;
+
+    auto operator()(helicity_tensor_t &helicity_tensor, mass_tensor_t &mass_tensor)
+    {
+
+        constexpr Eigen::Index nhelicity = D2;
+
+        constexpr std::array<Eigen::Index, 2> broadcastmasses = {1, D1};
+        constexpr std::array<Eigen::Index, 2> broadcasthelicities = {nhelicity, 1};
+
+        helicity_mass_tensor_t helicity_mass_tensor;
+        helicity_mass_tensor = helicity_tensor.reshape(broadcasthelicities).broadcast(broadcastmasses) * mass_tensor.reshape(broadcastmasses).broadcast(broadcasthelicities);
+
+        // std::cout << "-----------------------" << std::endl;
+        // std::cout << helicity_mass_tensor << std::endl;
+        // std::cout << "-----------------------" << std::endl;
+
+        return helicity_mass_tensor;
+    }
+};
+
+template <Eigen::Index D1, Eigen::Index D2>
+class helMassPoissHelper
+{
+public:
+    helMassPoissHelper() {}
+
+    using helicity_mass_tensor_t = Eigen::TensorFixedSize<double, Eigen::Sizes<6 ,1, D1>>;
+    using poiss_tensor_t = Eigen::TensorFixedSize<double, Eigen::Sizes<D2>>;
+    using helicity_mass_poiss_tensor_t = Eigen::TensorFixedSize<double, Eigen::Sizes<6, 1, D1, D2>>;
+
+    auto operator()(helicity_mass_tensor_t &helicity_mass_tensor, poiss_tensor_t &poiss_tensor)
+    {
+
+        constexpr Eigen::Index npoiss = D2;
+
+        constexpr std::array<Eigen::Index, 4> broadcastpoiss = {1, 1, 1, npoiss};
+        constexpr std::array<Eigen::Index, 4> broadcasmassthelicities = {6, 1, D1, 1};
+
+        helicity_mass_poiss_tensor_t helicity_mass_poiss_tensor;
+        helicity_mass_poiss_tensor = helicity_mass_tensor.reshape(broadcasmassthelicities).broadcast(broadcastpoiss) * poiss_tensor.reshape(broadcastpoiss).broadcast(broadcasmassthelicities);
+
+        // std::cout << "-----------------------" << std::endl;
+        // std::cout << helicity_mass_tensor << std::endl;
+        // std::cout << "-----------------------" << std::endl;
+
+        return helicity_mass_poiss_tensor;
+    }
+};
+
+template <Eigen::Index NptEig>
 class helSystSFHelper
 {
 public:

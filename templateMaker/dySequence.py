@@ -14,6 +14,7 @@ from muonSelection import muonSelection
 from muonCalibration import muonCalibration
 from getSFVariations import getSFVariations
 from getPrefVariations import getPrefVariations
+from bootstrap import bootstrap
 
 import ROOT
 # verbosity = ROOT.Experimental.RLogScopedVerbosity(ROOT.Detail.RDF.RDFLogChannel(), ROOT.Experimental.ELogLevel.kDebug+10)
@@ -39,6 +40,7 @@ parser = common.set_parser_default(parser, "filterProcs", common.vprocs+["dataPo
 # custom args
 parser.add_argument("-Wlike", "--Wlike", action='store_true', help="run analysis on Wlike")
 parser.add_argument("-runHel", "--runHel", action='store_true', help="get helicity cross sections")
+parser.add_argument("-bstrp", "--bstrp", action='store_true', help="randomize templates by bootstrapping")
 
 args = parser.parse_args()
 
@@ -58,6 +60,7 @@ ROOT.gSystem.Load('bin/libAnalysis.so')
 
 isWlike = args.Wlike
 runHel = args.runHel
+bstrp = args.bstrp
 era = args.era
 
 qts_axis_W = hist.axis.Variable([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.,200.],underflow=False, overflow=False, name = "Vpt")
@@ -271,18 +274,27 @@ def build_graph_templates(df, dataset):
             nom_cols = [f"{flag}_eta0", f"{flag}_pt0", f"{flag}_charge0","passMT","passIso","Vrap_preFSR_abs","Vpt_preFSR"]
         
         helicity_axis = hist.axis.StrCategory(["L", "I", "T", "A", "P","UL"], name = "helicities")
-        
+
         ## signal templates decomposed by helicity
         p.EventFilter(nodeToStart='theoryTools', nodeToEnd='theoryTools', evfilter=f"{flag}_pt0> 25. && {flag}_pt0< 55. && fabs({flag}_eta0)< 2.4", filtername="{:20s}".format("accept"))
         p.EventFilter(nodeToStart='theoryTools', nodeToEnd='signal_nominal', evfilter="Vrap_preFSR_abs<2.4 && Vpt_preFSR<60.", filtername="{:20s}".format("signal_nominal"))
-        # p.getCutFlowReport("signal_nominal").Print()
-
-        # nominal histogram
-        p.Histogram('signal_nominal', 'signal_nominal', [*nom_cols,'helWeightTensor'], axes, tensor_axes= [helicity_axis])
-
         storage = hist.storage.Double()
-        # mass variations
-        p.Histogram('signal_nominal', 'signal_mass_var', [*nom_cols,'massWeight_tensor_hel'], axes,tensor_axes=[helicity_axis,hist.axis.StrCategory(["mass_var"], name="mass_var"),common.down_up_axis],storage=storage)
+        if not bstrp:
+            # p.getCutFlowReport("signal_nominal").Print()
+
+            # nominal histogram
+            p.Histogram('signal_nominal', 'signal_nominal', [*nom_cols,'helWeightTensor'], axes, tensor_axes= [helicity_axis])
+
+            # mass variations
+            p.Histogram('signal_nominal', 'signal_mass_var', [*nom_cols,'massWeight_tensor_hel'], axes,tensor_axes=[helicity_axis,hist.axis.StrCategory(["mass_var"], name="mass_var"),common.down_up_axis],storage=storage)
+        else:
+            p.branch(nodeToStart='signal_nominal', nodeToEnd='bootstrap', modules=[bootstrap()])
+            poisson_axis = hist.axis.Integer(0,100, name = "bootstap")
+            # nominal histogram
+            p.Histogram('signal_nominal', 'signal_nominal', [*nom_cols,'rndPoisson_tensor_hel'], axes, tensor_axes= [helicity_axis,poisson_axis])
+            # mass variations
+            # p.displayColumn("signal_nominal", columnList=["massVec_size","MEParamWeight_size"])
+            p.Histogram('signal_nominal', 'signal_mass_var', [*nom_cols,'rndPoisson_tensor_hel_mass'], axes,tensor_axes=[helicity_axis,hist.axis.StrCategory(["mass"], name="mass"),common.down_up_axis,poisson_axis],storage=storage)
 
         # # muon calibration uncertainties
         # p.Histogram('signal_nominal', 'signal_jpsi_var', [*nom_cols,'jpsiWeight_tensor_hel'], axes,tensor_axes = [helicity_axis,*(jpsi_crctn_data_unc_helper.tensor_axes)],storage=storage)
@@ -345,12 +357,22 @@ outfile = "templatesTest_testW_swapped.hdf5"
 with h5py.File(outfile, 'w') as f:
     narf.ioutils.pickle_dump_h5py("results", resultdict, f)
 
+<<<<<<< HEAD
 infile = "templatesTest_testW_swapped.hdf5"
 with h5py.File(infile, "r") as f:
     results = narf.ioutils.pickle_load_h5py(f["results"])
     print(results['WplusmunuPostVFP']['output'].keys())
     print(results['WplusmunuPostVFP']["output"]["signal_nominal"].get())
 #     print(h.axes)
+=======
+infile = "templatesTest_redstat.hdf5"
+with h5py.File(infile, "r") as f:
+    print(list(f.keys()))
+    results = narf.ioutils.pickle_load_h5py(f["results"])
+    print(results['ZmumuPostVFP']['output'].keys())
+    h = results['ZmumuPostVFP']["output"]["signal_nominal"].get()
+    print(h.values().shape)
+>>>>>>> c42d370 (implementing bootstrap for testing mc uncertainties)
 #     data_obs = results['dataPostVFP']["output"]["data_obs"].get()
 #     lowacc = results['ZmumuPostVFP']["output"]["lowacc_nominal"].get()
 #     hmass = results['ZmumuPostVFP']["output"]["signal_mass"].get()
