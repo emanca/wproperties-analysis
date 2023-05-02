@@ -54,17 +54,18 @@ class getSFVariations(module):
         self.d = self.d.Define("effSystTnP_weight_unweighted", self.helper_syst, [*muon_columns_syst, "unity"])
         
         '''
-        effStatTnP_sf_reco_tensor Eigen::TensorFixedSize<double,Eigen::Sizes<48,4,2,2>,0,long>
-        effStatTnP_sf_tracking_tensor Eigen::TensorFixedSize<double,Eigen::Sizes<48,3,2,2>,0,long>
-        effStatTnP_sf_idip_tensor Eigen::TensorFixedSize<double,Eigen::Sizes<48,4,2,2>,0,long>
-        effStatTnP_sf_trigger_tensor Eigen::TensorFixedSize<double,Eigen::Sizes<48,4,2,2>,0,long>
-        effStatTnP_sf_iso_effData_tensor Eigen::TensorFixedSize<double,Eigen::Sizes<48,5,2,2>,0,long>
-        effStatTnP_sf_iso_effMC_tensor Eigen::TensorFixedSize<double,Eigen::Sizes<48,5,2,2>,0,long>
+        effStatTnP_sf_reco_tensor Eigen::TensorFixedSize<double,Eigen::Sizes<1,4,2,2>,0,long>
+        effStatTnP_sf_tracking_tensor Eigen::TensorFixedSize<double,Eigen::Sizes<1,3,2,2>,0,long>
+        effStatTnP_sf_idip_tensor Eigen::TensorFixedSize<double,Eigen::Sizes<1,4,2,2>,0,long>
+        effStatTnP_sf_trigger_tensor Eigen::TensorFixedSize<double,Eigen::Sizes<1,4,2,2>,0,long>
+        effStatTnP_sf_iso_effData_tensor Eigen::TensorFixedSize<double,Eigen::Sizes<1,5,1,2>,0,long>
+        effStatTnP_sf_iso_effMC_tensor Eigen::TensorFixedSize<double,Eigen::Sizes<1,5,1,2>,0,long>
         '''
-        dims = [4,3,4,4,5,5]
+        nPtEig = [4,3,4,4,5,5]
+        nCharges = [2,2,2,2,1,1]
         for ikey,key in enumerate(self.helper_stat):
             # multiply by helicity
-            self.helper = ROOT.helSystSFHelper[dims[ikey]]()
+            self.helper = ROOT.helSystSFHelper[nPtEig[ikey],nCharges[ikey]]()
             self.d = self.d.Define(f"effStatTnP_{key}_tensor_hel",self.helper,["helWeightTensor", f"effStatTnP_{key}_tensor_unweighted"])
         
         # self.helper = ROOT.helSystHelper[5]()

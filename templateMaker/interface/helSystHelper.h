@@ -36,21 +36,20 @@ public:
     }
 };
 
-
-template <Eigen::Index NptEig>
+template <Eigen::Index NptEig, Eigen::Index NCharges>
 class helSystSFHelper
 {
 public:
     helSystSFHelper() {}
 
-    using SF_tensor_t = Eigen::TensorFixedSize<double, Eigen::Sizes<1, NptEig, 2, 2>>;
-    using helicity_sf_tensor_t = Eigen::TensorFixedSize<double, Eigen::Sizes<6, 1, NptEig, 2, 2>>;
+    using SF_tensor_t = Eigen::TensorFixedSize<double, Eigen::Sizes<1, NptEig, NCharges, 2>>;
+    using helicity_sf_tensor_t = Eigen::TensorFixedSize<double, Eigen::Sizes<6, 1, NptEig, NCharges, 2>>;
 
     auto operator()(helicity_tensor_t &helicity_tensor, const SF_tensor_t &sf_tensor)
     {
         constexpr Eigen::Index nhelicity = 6;
 
-        constexpr std::array<Eigen::Index, 5> broadcastSF = {1, 1, NptEig, 2, 2};
+        constexpr std::array<Eigen::Index, 5> broadcastSF = {1, 1, NptEig, NCharges, 2};
         constexpr std::array<Eigen::Index, 5> broadcasthelicities = {nhelicity, 1, 1, 1, 1};
 
         helicity_sf_tensor_t helicity_sf_tensor;

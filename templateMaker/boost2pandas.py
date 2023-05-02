@@ -12,6 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import re
 from collections import OrderedDict
+import pdb
 
 def writeFlatInChunks(arr, h5group, outname, maxChunkBytes = 1024**2):    
   arrflat = arr.reshape(-1)
@@ -101,7 +102,7 @@ def fillSumGroup(yBinsC,qtBinsC,helXsecs,processes):
     return sumGroups
 
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~loading boost histograms and cross sections from templates hdf5 file~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
-f = h5py.File("templatesTest3.hdf5","r")
+f = h5py.File("templatesTest_withSF.hdf5","r")
 t = h5py.File('templatesFit.hdf5','r')
 results = narf.ioutils.pickle_load_h5py(f["results"])
 print(results['ZmumuPostVFP']["output"])
@@ -207,61 +208,70 @@ print('\nreorganizing and adding other procs\n',df.head(),df.tail())
 
 #add systematics
 
-systs = ["mass"]
+systs_groups = {} # this is a list over groups of systematics
+# systs_groups['mass']=['mass']
+systs_groups['sf']=['effStatTnP_sf_reco','effStatTnP_sf_tracking','effStatTnP_sf_idip','effStatTnP_sf_trigger'] #these correspond to the names of histograms to recall from file
+
 procs = ["signal"]+procs #careful!! this must be the same order as before!
-nominal_cols = ['Zrap', 'Zpt', 'mueta', 'mupt', 'charge', 'helicities','downUpVar']
+nominal_cols = ['Zrap', 'Zpt', 'mueta', 'mupt', 'charge', 'helicities']
 multi = df.index
 
 #loop over systematics:
-for syst in systs:
+for proc in procs:
     #get variations
-    var_histos=[]
-    for proc in procs:
+    for syst,nuisances in systs_groups.items():
         #TODO add exception for histograms not found
         print(proc)
-        syst_histo = C * results[process]['output']['{proc}_{syst}'.format(proc=proc,syst=syst)].get()
-        #select slices in systematics based on "vars"
-        syst_arr = syst_histo.to_numpy()[0]
-        syst_axes = [axis for axis in syst_histo.axes if axis.name not in nominal_cols]
-        nsysts = 1
-        for axis in syst_axes:
-            nsysts = nsysts*len(axis.centers)
-        print("nsysts",nsysts)
-        syst_histo = None
-        if proc == "signal":
-            #Reshaping the data. 2d format. one row per unrolled pt-eta distribution
-            syst_arr = syst_arr.reshape((len(yBinsC),len(qtBinsC),-1,len(charges),len(helicities),nsysts,2)) #last axis is always up/down
-            # rapidity, qt, data, charge, hel, syst, up/down
-            # swapping data for syst
-            # rapidity, qt, syst, charge, hel, data, up/down
-            syst_arr = np.swapaxes(syst_arr , 2,-2)
-            # swapping syst for hel
-            # rapidity, qt, hel, charge, syst, data, up/down
-            syst_arr = np.swapaxes(syst_arr , 2,4).reshape(-1,unrolled_dim*2)
-            print(syst_arr.shape,"syst_array")
-            var_histos.append(syst_arr)
-        else:
-            #data, charge, syst, up/down
-            syst_arr = np.moveaxis(syst_arr,0,-2)
-            syst_arr = syst_arr.reshape(-1,unrolled_dim*2)
-            var_histos.append(syst_arr)
-            
-    for h in var_histos:
-        print(h.shape,'h.shape')
-    var_histos = np.concatenate(var_histos,axis=0)
-    print(var_histos.shape)
-    syst_df = pd.Series(list(var_histos))
-    # Reshape the dataframe to have 576 rows and 1 column
-    syst_df = syst_df.set_axis(multi)
-    df[syst]=syst_df
-    #reshape as syst,unrolled,up/down
-    df[syst]=df[syst].apply(lambda arr: arr.reshape((-1,unrolled_dim,2)))
-    print(df[syst].loc[('helXsec_L_y_0.2_qt_1.5',-1)].shape,'shape')
+        syst_dfs = []
+        for nuisance in nuisances:
+            print('{proc}_{nuisance}'.format(proc=proc,nuisance=nuisance))
+            syst_histo = C * results[process]['output']['{proc}_{nuisance}'.format(proc=proc,nuisance=nuisance)].get()
+            axes = [axis for axis in syst_histo.axes]
+            #select slices in systematics based on "vars"
+            syst_arr = syst_histo.to_numpy()[0]
+            syst_axes = [axis for axis in syst_histo.axes if axis.name not in nominal_cols]
+            nsysts = 1 #this is the total number of systematics after considering all the bins
+            for axis in syst_axes:
+                nsysts = nsysts*len(axis.centers)
+            print("nsysts",nsysts)
+            syst_histo = None
+            if proc == "signal":
+                #Reshaping the data. 2d format. one row per unrolled pt-eta distribution
+                syst_arr = syst_arr.reshape((len(yBinsC),len(qtBinsC),-1,len(charges),len(helicities),nsysts))
+                # rapidity, qt, data, charge, hel, syst, up/down
+                syst_arr = np.moveaxis(syst_arr,2,-1).reshape(-1,unrolled_dim)
+                names = ['rapidity', 'qt' , 'hel','charge']+[axis.name for axis in syst_axes]
+                iterables = [yBinsC, qtBinsC,helicities ,charges] + [axis.centers for axis in syst_axes]
+                multi = pd.MultiIndex.from_product(iterables, names = names)
+                print(multi)
+                df = pd.Series(list(syst_arr),index=multi, name=syst)
+                df = pd.DataFrame(df).reset_index()
+                idx_strings = ['helXsec_'+df['hel']+'_y_'+df['rapidity'].apply(lambda x: round(x,1)).apply(str)+'_qt_'+df['qt'].apply(lambda x: round(x,1)).apply(str),df['charge']]
+                syst_string = f"{nuisance}_"
+                for axis in syst_axes:
+                    syst_string+=axis.name.replace(' ','')+'_'+df[axis.name].apply(str)+'_'
+                syst_string = syst_string.apply(lambda s: s[:-1] if s.endswith('_') else s)
+                idx_strings.append(syst_string)
+                df.set_index(idx_strings,inplace=True)
+                df.drop(columns=[axis.name for axis in syst_axes],inplace=True)
+                df.drop(columns=['rapidity','qt','charge','hel'],inplace=True)
+                df.rename_axis(['process','charge','syst'] ,inplace=True)
+                syst_dfs.append(df)
+            else:
+                pass
+                #data, charge, syst, up/down
+                syst_arr = np.moveaxis(syst_arr,0,-2)
+                syst_arr = syst_arr.reshape(-1,unrolled_dim)
+
+        # now merge all the dataframes within the group
+        syst_df_merged = pd.concat(syst_dfs, axis=0)
+        print(syst_df_merged.head())
+        df[syst]=syst_df_merged
 
 print('\nadding systematics\n',df.head(),df.tail())
 
 
-for syst in systs:
+for syst in systs_groups:
     #now divide by nominal
     df["{}_logk".format(syst)]=df.apply(lambda x: x[syst]/np.expand_dims(x['nominal'],axis=(0,-1)),axis='columns')
     print('\ndivide by nominal\n',df.head(),df.tail())
@@ -362,7 +372,7 @@ poly2dreggroupbincenters1 = []
 
 #list of systematic uncertainties (nuisances)
 systsd = OrderedDict()
-systs = ['mass']
+systs = [systs for systs in systs_groups]
 systsnoprofile = []
 systsnoconstraint = ['mass']
 
@@ -383,12 +393,12 @@ nsyst = len(systs)
 #list of groups of systematics (nuisances) and lists of indexes
 systgroups = []
 systgroupidxs = []
-# for group in groups:
-#     systgroups.append(group)
-#     systgroupidx = []
-#     for syst in groups[group]:
-#       systgroupidx.append(systs.index(syst))
-#     systgroupidxs.append(systgroupidx)
+for group in systs_groups:
+    systgroups.append(group)
+    systgroupidx = []
+    for syst in systs_groups[group]:
+      systgroupidx.append(systs.index(syst))
+    systgroupidxs.append(systgroupidx)
 
 #list of groups of systematics to be treated as additional outputs for impacts, etc (aka "nuisances of interest")
 noiGroups = {'mass':['mass']}
