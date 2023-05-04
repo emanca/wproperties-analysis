@@ -119,6 +119,7 @@ C       = lumi*1000*xsec/weights
 
 # procs = ["lowacc"]
 procs = []
+systs_groups = {}
 
 #first add nominal boost histogram for signal
 H = C*results[process]['output']['signal_nominal'].get()
@@ -208,21 +209,21 @@ print('\nreorganizing and adding other procs\n',df.head(),df.tail())
 
 #add systematics
 
-systs_groups = {} # this is a list over groups of systematics
-# systs_groups['mass']=['mass']
-systs_groups['sf']=['effStatTnP_sf_reco','effStatTnP_sf_tracking','effStatTnP_sf_idip','effStatTnP_sf_trigger'] #these correspond to the names of histograms to recall from file
+systs_macrogroups = {} # this is a list over groups of systematics
+systs_macrogroups['mass']=['mass_var']
+systs_macrogroups['sf']=['effStatTnP_sf_reco','effStatTnP_sf_tracking','effStatTnP_sf_idip','effStatTnP_sf_trigger'] #these correspond to the names of histograms to recall from file
 
 procs = ["signal"]+procs #careful!! this must be the same order as before!
-nominal_cols = ['Zrap', 'Zpt', 'mueta', 'mupt', 'charge', 'helicities']
+nominal_cols = ['Zrap', 'Zpt', 'mueta', 'mupt', 'charge', 'helicities','downUpVar']
 multi = df.index
 
 #loop over systematics:
 for proc in procs:
     #get variations
-    for syst,nuisances in systs_groups.items():
+    for syst,nuisances in systs_macrogroups.items():
         #TODO add exception for histograms not found
-        print(proc)
         syst_dfs = []
+        print(syst,nuisances)
         for nuisance in nuisances:
             print('{proc}_{nuisance}'.format(proc=proc,nuisance=nuisance))
             syst_histo = C * results[process]['output']['{proc}_{nuisance}'.format(proc=proc,nuisance=nuisance)].get()
@@ -237,41 +238,52 @@ for proc in procs:
             syst_histo = None
             if proc == "signal":
                 #Reshaping the data. 2d format. one row per unrolled pt-eta distribution
-                syst_arr = syst_arr.reshape((len(yBinsC),len(qtBinsC),-1,len(charges),len(helicities),nsysts))
+                syst_arr = syst_arr.reshape((len(yBinsC),len(qtBinsC),-1,len(charges),len(helicities),nsysts,2))#last axis is always up/down
                 # rapidity, qt, data, charge, hel, syst, up/down
-                syst_arr = np.moveaxis(syst_arr,2,-1).reshape(-1,unrolled_dim)
+                syst_arr = np.moveaxis(syst_arr,2,-2)
+                # rapidity, qt, charge, hel, syst, data, up/down
+                syst_arr = np.swapaxes(syst_arr,2,3).reshape(-1,unrolled_dim*2)
+                # rapidity, qt, hel, charge, syst, data, up/down
                 names = ['rapidity', 'qt' , 'hel','charge']+[axis.name for axis in syst_axes]
                 iterables = [yBinsC, qtBinsC,helicities ,charges] + [axis.centers for axis in syst_axes]
                 multi = pd.MultiIndex.from_product(iterables, names = names)
-                print(multi)
-                df = pd.Series(list(syst_arr),index=multi, name=syst)
-                df = pd.DataFrame(df).reset_index()
-                idx_strings = ['helXsec_'+df['hel']+'_y_'+df['rapidity'].apply(lambda x: round(x,1)).apply(str)+'_qt_'+df['qt'].apply(lambda x: round(x,1)).apply(str),df['charge']]
+                # print(multi)
+                syst_df = pd.Series(list(syst_arr),index=multi,name=syst)
+                print(syst_df.head())
+                syst_df = pd.DataFrame(syst_df).reset_index()
+                idx_strings = ['helXsec_'+syst_df['hel']+'_y_'+syst_df['rapidity'].apply(lambda x: round(x,1)).apply(str)+'_qt_'+syst_df['qt'].apply(lambda x: round(x,1)).apply(str),syst_df['charge']]
                 syst_string = f"{nuisance}_"
                 for axis in syst_axes:
-                    syst_string+=axis.name.replace(' ','')+'_'+df[axis.name].apply(str)+'_'
+                    syst_string+=axis.name.replace(' ','')+'_'+syst_df[axis.name].apply(str)+'_'
                 syst_string = syst_string.apply(lambda s: s[:-1] if s.endswith('_') else s)
                 idx_strings.append(syst_string)
-                df.set_index(idx_strings,inplace=True)
-                df.drop(columns=[axis.name for axis in syst_axes],inplace=True)
-                df.drop(columns=['rapidity','qt','charge','hel'],inplace=True)
-                df.rename_axis(['process','charge','syst'] ,inplace=True)
-                syst_dfs.append(df)
+                syst_df.set_index(idx_strings,inplace=True)
+                syst_df.drop(columns=[axis.name for axis in syst_axes],inplace=True)
+                syst_df.drop(columns=['rapidity','qt','charge','hel'],inplace=True)
+                syst_df.rename_axis(['process','charge','syst'] ,inplace=True)
+                syst_dfs.append(syst_df)
             else:
                 pass
                 #data, charge, syst, up/down
                 syst_arr = np.moveaxis(syst_arr,0,-2)
                 syst_arr = syst_arr.reshape(-1,unrolled_dim)
-
         # now merge all the dataframes within the group
         syst_df_merged = pd.concat(syst_dfs, axis=0)
+        # get list of systematics and drop index
+        syst_list = list(syst_df_merged.query("process == 'helXsec_L_y_0.2_qt_1.5' & charge==1.0").index.get_level_values(2))
+        # pdb.set_trace()
+        systs_groups[syst]=syst_list
+        syst_df_merged= syst_df_merged.droplevel('syst')
+        # group by process and charge, and concatenate the arrays
+        syst_df_merged = syst_df_merged.groupby(["process", "charge"])[syst].agg(np.concatenate)
+        syst_df_merged = syst_df_merged.map(lambda x: x.reshape((-1,unrolled_dim,2)))
+        print(syst_df_merged.loc[('helXsec_L_y_0.2_qt_1.5',-1)].shape)
         print(syst_df_merged.head())
         df[syst]=syst_df_merged
 
 print('\nadding systematics\n',df.head(),df.tail())
 
-
-for syst in systs_groups:
+for syst in systs_macrogroups:
     #now divide by nominal
     df["{}_logk".format(syst)]=df.apply(lambda x: x[syst]/np.expand_dims(x['nominal'],axis=(0,-1)),axis='columns')
     print('\ndivide by nominal\n',df.head(),df.tail())
@@ -372,9 +384,11 @@ poly2dreggroupbincenters1 = []
 
 #list of systematic uncertainties (nuisances)
 systsd = OrderedDict()
-systs = [systs for systs in systs_groups]
+systs = []
+for group, nuisances in systs_groups.items():
+    systs.extend(nuisances)
 systsnoprofile = []
-systsnoconstraint = ['mass']
+systsnoconstraint = ['mass_var_mass_var_0.5']
 
 # for syst in systs:
 #     if not 'NoProfile' in syst[2]:
@@ -393,6 +407,7 @@ nsyst = len(systs)
 #list of groups of systematics (nuisances) and lists of indexes
 systgroups = []
 systgroupidxs = []
+# pdb.set_trace()
 for group in systs_groups:
     systgroups.append(group)
     systgroupidx = []
@@ -401,7 +416,7 @@ for group in systs_groups:
     systgroupidxs.append(systgroupidx)
 
 #list of groups of systematics to be treated as additional outputs for impacts, etc (aka "nuisances of interest")
-noiGroups = {'mass':['mass']}
+noiGroups = {'mass':['mass_var_mass_var_0.5']}
 noigroups = []
 noigroupidxs = []
 for group in noiGroups:
@@ -598,7 +613,7 @@ nbytes += writeFlatInChunks(norm, f, "hnorm", maxChunkBytes = chunkSize)
 # df = df.drop(columns=['nominal'],inplace=True) #why this doesn't work?
 print('\ndrop nominal\n',df.head())
 logk_systs = []
-for syst in systs:
+for syst in systs_groups:
     print(df.query("charge==-1.")["{}_logk".format(syst)].values[0].shape)
     print(df.query("charge==-1.")['nominal'].values[0].shape)
     logk_syst = np.moveaxis(np.concatenate((np.stack(df.query("charge==-1.")["{}_logk".format(syst)].values,axis=-2),np.stack(df.query("charge==1.")["{}_logk".format(syst)].values,axis=-2)),axis=1),0,-1)

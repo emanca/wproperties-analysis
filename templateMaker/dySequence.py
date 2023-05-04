@@ -226,7 +226,7 @@ def build_graph_templates(df, dataset):
         p.Histogram('signal_nominal', 'signal_nominal', [*nom_cols,'helWeightTensor'], axes, tensor_axes= [helicity_axis])
         # mass variations
         # p.displayColumn("signal_nominal", columnList=["massVec_size","MEParamWeight_size"])
-        p.Histogram('signal_nominal', 'signal_mass', [*nom_cols,'massWeight_tensor_hel'], axes,tensor_axes=[helicity_axis,hist.axis.StrCategory(["mass"], name="mass"),common.down_up_axis])
+        p.Histogram('signal_nominal', 'signal_mass_var', [*nom_cols,'massWeight_tensor_hel'], axes,tensor_axes=[helicity_axis,hist.axis.StrCategory(["mass_var"], name="mass_var"),common.down_up_axis])
 
         # sf variations
         p.branch(nodeToStart='signal_nominal', nodeToEnd='signal_sf', modules=[getSFVariations(isWlike=False,helper_stat=muon_efficiency_helper_stat,helper_syst=muon_efficiency_helper_syst)])
@@ -245,7 +245,7 @@ def build_graph_templates(df, dataset):
         # p.Histogram('lowacc', 'lowacc_nominal', [*nom_cols,"nominal_weight"], axes)
 
         # mass variation
-        # p.Histogram('lowacc', 'lowacc_mass', [*nom_cols,"massWeight_tensor_wnom"], axes,tensor_axes=[hist.axis.StrCategory(["mass"], name="mass"),common.down_up_axis])
+        # p.Histogram('lowacc', 'lowacc_mass_var', [*nom_cols,"massWeight_tensor_wnom"], axes,tensor_axes=[hist.axis.StrCategory(["mass_var"], name="mass_var"),common.down_up_axis])
 
         # sf variations
         p.branch(nodeToStart='lowacc', nodeToEnd='lowacc_sf', modules=[getSFVariations(isWlike=False,helper_stat=muon_efficiency_helper_stat,helper_syst=muon_efficiency_helper_syst)])
