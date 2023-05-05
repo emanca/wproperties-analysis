@@ -188,14 +188,15 @@ def transport_smearing_weights_to_reco(hist_gensmear, nominal_reco, nominal_gens
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~loading boost histograms and cross sections from templates hdf5 file~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
 f = h5py.File("templatesTest_newQtBins.hdf5","r")
 t = h5py.File('templatesFit.hdf5','r')
-results = narf.ioutils.pickle_load_h5py(f["results"])
+results  = narf.ioutils.pickle_load_h5py(f["results"])
+results2 = narf.ioutils.pickle_load_h5py(f2["results"])
 print(results['ZmumuPostVFP']["output"])
 # Hdata_obs = results['dataPostVFP']["output"]["data_obs"].get()
 
 #constants
 process = 'ZmumuPostVFP'
 V ='Z'
-lumi    = results['dataPostVFP']["lumi"]
+lumi    = 16.8  #results['dataPostVFP']["lumi"]
 xsec    = results[process]["dataset"]["xsec"]
 weights = results[process]["weight_sum"]
 C       = lumi*1000*xsec/weights
@@ -206,7 +207,6 @@ systs_groups = {}
 
 #first add nominal boost histogram for signal
 H = C*results[process]['output']['signal_nominal'].get()
-
 #Bin information
 yBinsC     = H.axes[V+'rap'].centers
 qtBinsC    = H.axes[V+'pt'].centers
@@ -220,12 +220,20 @@ yBins = H.axes[V+'rap'].edges
 
 #Reshaping the data. 2d format. one row per unrolled pt-eta distribution
 unrolled_and_stacked = np.swapaxes(H.to_numpy()[0].reshape(\
-                           (len(yBinsC),len(qtBinsC),-1,len(charges),len(helicities)))\
+                        (len(yBinsC),len(qtBinsC),-1,len(charges),len(helicities)))\
                             ,2,-1).reshape(-1,unrolled_dim)
 
+'''$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$'''
 #TODO add bkg processes to this
-sumw = np.concatenate((H[sum,sum,:,:,0,sum].values().ravel(),H[sum,sum,:,:,1,sum].values().ravel()))
-sumw2 = np.concatenate((H[sum,sum,:,:,0,sum].variances().ravel(),H[sum,sum,:,:,1,sum].variances().ravel()))
+#sumw = np.concatenate((H[sum,sum,:,:,0,sum].values().ravel(),H[sum,sum,:,:,1,sum].values().ravel()))
+#sumw = H[sum,sum,:,:,1,sum].values().ravel()
+sumw = Hdata_obs[...,1].values().ravel() #picking the positive charge
+
+#sumw2 = np.concatenate((H[sum,sum,:,:,0,sum].variances().ravel(),H[sum,sum,:,:,1,sum].variances().ravel())) #two charges
+#sumw2 = H[sum,sum,:,:,1,sum].variances().ravel() #single charge
+sumw2 = Hdata_obs[...,1].variances().ravel() #single charge, running on positive charge only
+'''$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$'''
+
 
 #clean memory
 H = None
@@ -250,7 +258,7 @@ T = t['helicity'][:threshold_y,:threshold_qt,:] #cross sections
     
 iterables = [yBinsC , qtBinsC , helicities]
 multi = pd.MultiIndex.from_product(iterables = [yBinsC , qtBinsC , helicities]
- , names = ['rapidity', 'qt' , 'hel']) #multi index to be joined on
+, names = ['rapidity', 'qt' , 'hel']) #multi index to be joined on
 s = pd.Series(T.ravel(), index = multi , name='xsec') #series carrying cross section information
 
 xsec_df = pd.concat([s,s] ,axis=0).reset_index()       #same cross section for both charges, will need double to match dimensions
@@ -425,11 +433,11 @@ helgroups = []
 helgroupidxs = []
 helGroups = fillHelGroup(yBinsC,qtBinsC,helicities)
 for group in helGroups:
-  helgroups.append(group)
-  helgroupidx = []
-  for proc in helGroups[group]:
-    helgroupidx.append(procs.index(proc))
-  helgroupidxs.append(helgroupidx)
+    helgroups.append(group)
+    helgroupidx = []
+    for proc in helGroups[group]:
+        helgroupidx.append(procs.index(proc))
+    helgroupidxs.append(helgroupidx)
 
 #list of groups of signal processes to be summed
 sumgroups = []
@@ -437,15 +445,15 @@ sumgroupsegmentids = []
 sumgroupidxs = []
 sumGroups = fillSumGroup(yBinsC,qtBinsC,helicities,signals)
 for igroup,group in enumerate(sumGroups):
-  sumgroups.append(group)
-  for proc in sumGroups[group]:
-    sumgroupsegmentids.append(igroup)
-    sumgroupidxs.append(procs.index(proc))
+    sumgroups.append(group)
+    for proc in sumGroups[group]:
+        sumgroupsegmentids.append(igroup)
+        sumgroupidxs.append(procs.index(proc))
     
 #list of groups of signal processes by chargemeta - DON'T NEED THAT
 chargemetagroups = []
 chargemetagroupidxs = []
-  
+
 #list of groups of signal processes by ratiometa - DON'T NEED THAT
 ratiometagroups = []
 ratiometagroupidxs = []
@@ -455,16 +463,16 @@ helmetagroups = []
 helmetagroupidxs = []
 helMetaGroups = fillHelMetaGroup(yBinsC,qtBinsC,sumGroups)
 for group in helMetaGroups:
-  helmetagroups.append(group)
-  helmetagroupidx = []
-  for proc in helMetaGroups[group]:
-    helmetagroupidx.append(sumgroups.index(proc))
-  helmetagroupidxs.append(helmetagroupidx)
+    helmetagroups.append(group)
+    helmetagroupidx = []
+    for proc in helMetaGroups[group]:
+        helmetagroupidx.append(sumgroups.index(proc))
+    helmetagroupidxs.append(helmetagroupidx)
 
 #list of groups of signal processes for regularization - DON'T NEED THAT
 reggroups = []
 reggroupidxs = []
-  
+
 poly1dreggroups = []
 poly1dreggroupfirstorder = []
 poly1dreggrouplastorder = []
@@ -500,7 +508,7 @@ systsnoconstraint = ['mass_var_mass_var_0.5']
 #         systsnoconstraint.append(syst[0])
 
 nsyst = len(systs)
-  
+
 #list of groups of systematics (nuisances) and lists of indexes
 systgroups = []
 systgroupidxs = []
@@ -517,8 +525,8 @@ noiGroups = {'mass':['mass_var_mass_var_0.5']}
 noigroups = []
 noigroupidxs = []
 for group in noiGroups:
-  noigroups.append(group)
-  for syst in noiGroups[group]:
+    noigroups.append(group)
+for syst in noiGroups[group]:
     noigroupidxs.append(systs.index(syst))
 
 
@@ -535,10 +543,11 @@ for syst in systsnoconstraint:
     constraintweights[systs.index(syst)] = 0.
 
 if chunkSize > defChunkSize:
-  print("Warning: Maximum chunk size in bytes was increased from %d to %d to align with tensor sizes and allow more efficient reading/writing." % (defChunkSize, chunkSize))
+    print("Warning: Maximum chunk size in bytes was increased from %d to %d to align with tensor sizes and allow more efficient reading/writing." % (defChunkSize, chunkSize))
 
 #create HDF5 file (chunk cache set to the chunk size since we can guarantee fully aligned writes
-outfilename = "Wlike.hdf5"
+outfilename = "Wlike_iteration_{}.hdf5".format(N_bootstrap)
+print('file name:', outfilename)
 f = h5py.File(outfilename, rdcc_nbytes=chunkSize, mode='w')
 
 #save some lists of strings to the file for later use
@@ -675,8 +684,14 @@ nbytes = 0
 nbytes += writeFlatInChunks(constraintweights, f, "hconstraintweights", maxChunkBytes = chunkSize)
 constraintweights = None
 
+'''$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$'''
+#data_obs = np.concatenate((Hdata_obs.to_numpy()[0][...,0].ravel(),Hdata_obs.to_numpy()[0][...,1].ravel()))
+#data_obs  = Hdata_obs.to_numpy()[0][...,1].ravel() #single charge
+np.random.seed(N_bootstrap)
+data_obs  = pd.Series(Hdata_obs.to_numpy()[0][...,1].ravel()).apply(lambda x: x+np.random.poisson(lam=x)).values  #adding poisson noise to templates to generate new dataset
+print('pseudo data:' , data_obs[:50])
+'''$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$'''
 
-data_obs = np.concatenate((Hdata_obs.to_numpy()[0][...,0].ravel(),Hdata_obs.to_numpy()[0][...,1].ravel()))
 Hdata_obs = None
 
 nbytes += writeFlatInChunks(data_obs, f, "hdata_obs", maxChunkBytes = chunkSize)
@@ -710,7 +725,9 @@ sumw2 = None
 
 
 # retrieve norm
-norm = np.concatenate((np.stack(df.query("charge==-1.")['nominal'].values,axis=-1),np.stack(df.query("charge==1.")['nominal'].values,axis=-1),np.expand_dims(np.stack(df.query("charge==-1.")['xsec'].values,axis=-1),axis=0),np.expand_dims(np.stack(df.query("charge==1.")['xsec'].values,axis=-1),axis=0)),axis=0)
+
+#norm = np.concatenate((np.stack(df.query("charge==-1.")['nominal'].values,axis=-1),np.stack(df.query("charge==1.")['nominal'].values,axis=-1),np.expand_dims(np.stack(df.query("charge==-1.")['xsec'].values,axis=-1),axis=0),np.expand_dims(np.stack(df.query("charge==1.")['xsec'].values,axis=-1),axis=0)),axis=0)
+norm = np.concatenate((np.stack(df.query("charge==1.")['nominal'].values,axis=-1),np.expand_dims(np.stack(df.query("charge==1.")['xsec'].values,axis=-1),axis=0)),axis=0)
 nbytes += writeFlatInChunks(norm, f, "hnorm", maxChunkBytes = chunkSize)
 
 nonzero = np.nonzero(norm)
@@ -736,7 +753,8 @@ logk_systs = []
 for syst in systs_groups:
     print(df.query("charge==-1.")["{}_logk".format(syst)].values[0].shape)
     print(df.query("charge==-1.")['nominal'].values[0].shape)
-    logk_syst = np.moveaxis(np.concatenate((np.stack(df.query("charge==-1.")["{}_logk".format(syst)].values,axis=-2),np.stack(df.query("charge==1.")["{}_logk".format(syst)].values,axis=-2)),axis=1),0,-1)
+    #logk_syst = np.moveaxis(np.concatenate((np.stack(df.query("charge==-1.")["{}_logk".format(syst)].values,axis=-2),np.stack(df.query("charge==1.")["{}_logk".format(syst)].values,axis=-2)),axis=1),0,-1)
+    logk_syst = np.moveaxis(np.stack(df.query("charge==1.")["{}_logk".format(syst)].values,axis=-2),0,-1)
     logk_systs.append(logk_syst)
     print(logk_syst.shape)
 print(logk_systs[0].shape)
@@ -754,14 +772,16 @@ logkhalfdiff = 0.5*(logk_up - logk_down)
 
 print(logkavg.shape)
 #ensure that systematic tensor is sparse where normalization matrix is sparse
-logkavg = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkavg)
-logkhalfdiff = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkhalfdiff)
+#logkavg = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkavg)
+logkavg = np.where(np.equal(np.expand_dims(norm[:-1,:],axis=-1),0.), np.zeros_like(logkavg), logkavg)
+#logkhalfdiff = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkhalfdiff) for both charges
+logkhalfdiff = np.where(np.equal(np.expand_dims(norm[:-1,:],axis=-1),0.), np.zeros_like(logkavg), logkhalfdiff)
 
 norm = None
 
 logk = np.stack((logkavg,logkhalfdiff),axis=-2)
 print(logk.shape)
-logk = np.concatenate((logk,np.zeros((2,nproc,2,nsyst))),axis=0)
+logk = np.concatenate((logk,np.zeros((1,nproc,2,nsyst))),axis=0)
 print(logk.shape)
 
 # logk = logk.reshape([logk.shape[0]*nproc,2*nsyst])
