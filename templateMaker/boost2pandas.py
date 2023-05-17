@@ -101,6 +101,28 @@ def fillSumGroup(yBinsC,qtBinsC,helXsecs,processes):
                         sumGroups['helXsec_'+hel+'_'+s].append('helXsec_'+hel+'_y_{i}_'.format(i=round(yBinsC[i],1))+s)
     return sumGroups
 
+def mirrorHisto(nom,var):
+    '''
+    Parameters
+    ==========
+    nom: nominal boost histogram
+    var: boost histogram corresponding to systematic variation
+    Returns
+    =======
+    Mirrored Histogram: Boost histogram with new two dimensional axis labeled downUpVar. Index '0' corresponds to 
+    'down' variation defined as nom/var and index '1' corresponds to 'up' variation defined as var/nom. 
+    0/0 division is taken to be 1.
+    '''
+    downup_axis = common.down_up_axis
+    down = hh.divideHists(nom,var)
+    up = hh.divideHists(var,nom)
+    data = np.stack([down,up],axis=-1)
+    new_histo = hist.Hist(*nom.axes,downup_axis, name=var.name, data=data, storage = hist.storage.Weight())
+    return new_histo
+
+
+
+
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~loading boost histograms and cross sections from templates hdf5 file~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
 f = h5py.File("templatesTest_withSF.hdf5","r")
 t = h5py.File('templatesFit.hdf5','r')
