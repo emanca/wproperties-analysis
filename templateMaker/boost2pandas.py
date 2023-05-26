@@ -121,7 +121,14 @@ def mirrorHisto(nom,var):
     return new_histo
 
 
-
+def setPreconditionVec():
+    f=h5py.File('../Fit/fitresults_260292.hdf5', 'r')
+    hessian = f['hess'][:]
+    eig, U = np.linalg.eigh(hessian)
+    M1 = np.matmul(np.diag(1./np.sqrt(eig)),U.T)
+    # print(M1,np.linalg.inv(np.linalg.inv(M1)))
+    preconditioner = M1
+    return preconditioner
 
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~loading boost histograms and cross sections from templates hdf5 file~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
 f = h5py.File("templatesTest_withSF.hdf5","r")
