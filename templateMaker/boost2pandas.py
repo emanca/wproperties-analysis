@@ -572,11 +572,15 @@ hpoly2dreggroupbincenters0[...] = poly2dreggroupbincenters0
 hpoly2dreggroupbincenters1 = f.create_dataset("hpoly2dreggroupbincenters1", [len(poly2dreggroupbincenters1)], dtype=h5py.special_dtype(vlen=np.dtype('float64')), compression="gzip")
 hpoly2dreggroupbincenters1[...] = poly2dreggroupbincenters1
 
-# hpreconditioner = f.create_dataset("hpreconditioner", preconditioner.shape, dtype='float64', compression="gzip")
-# hpreconditioner[...] = preconditioner
+#Saving Preconditioner
+preconditioner = setPreconditionVec()
+hpreconditioner = f.create_dataset("hpreconditioner", preconditioner.shape, dtype='float64', compression="gzip")
+hpreconditioner[...] = preconditioner
 
-# hinvpreconditioner = f.create_dataset("hinvpreconditioner", invpreconditioner.shape, dtype='float64', compression="gzip")
-# hinvpreconditioner[...] = invpreconditioner
+
+invpreconditioner = np.linalg.inv(preconditioner)
+hinvpreconditioner = f.create_dataset("hinvpreconditioner", invpreconditioner.shape, dtype='float64', compression="gzip")
+hinvpreconditioner[...] = invpreconditioner
 
 hnoigroups = f.create_dataset("hnoigroups", [len(noigroups)], dtype=h5py.special_dtype(vlen=str), compression="gzip")
 hnoigroups[...] = noigroups
