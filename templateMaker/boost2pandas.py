@@ -122,7 +122,7 @@ def mirrorHisto(nom,var):
 
 
 def setPreconditionVec():
-    f=h5py.File('../Fit/fitresults_260292.hdf5', 'r')
+    f=h5py.File('../Fit/FitRes/fit_Wlike_asimov.hdf5.hdf5', 'r')
     hessian = f['hess'][:]
     eig, U = np.linalg.eigh(hessian)
     M1 = np.matmul(np.diag(1./np.sqrt(eig)),U.T)
@@ -135,8 +135,7 @@ f = h5py.File("templatesTest_withSF.hdf5","r")
 t = h5py.File('templatesFit.hdf5','r')
 results = narf.ioutils.pickle_load_h5py(f["results"])
 print(results['ZmumuPostVFP']["output"])
-Hdata_obs = results['dataPostVFP']["output"]["data_obs"].get()
-
+# Hdata_obs = results['dataPostVFP']["output"]["data_obs"].get()
 
 #constants
 process = 'ZmumuPostVFP'
@@ -145,7 +144,7 @@ lumi    = results['dataPostVFP']["lumi"]
 xsec    = results[process]["dataset"]["xsec"]
 weights = results[process]["weight_sum"]
 C       = lumi*1000*xsec/weights
-
+Hdata_obs = C*results['ZmumuPostVFP']['output']['signal_nominal'].get()[sum,sum,:,:,:,sum]
 # procs = ["lowacc"]
 procs = []
 systs_groups = {}
@@ -240,7 +239,7 @@ print('\nreorganizing and adding other procs\n',df.head(),df.tail())
 
 systs_macrogroups = {} # this is a list over groups of systematics
 systs_macrogroups['mass']=['mass_var']
-systs_macrogroups['sf']=['effStatTnP_sf_reco','effStatTnP_sf_tracking','effStatTnP_sf_idip','effStatTnP_sf_trigger'] #these correspond to the names of histograms to recall from file
+# systs_macrogroups['sf']=['effStatTnP_sf_reco','effStatTnP_sf_tracking','effStatTnP_sf_idip','effStatTnP_sf_trigger'] #these correspond to the names of histograms to recall from file
 
 procs = ["signal"]+procs #careful!! this must be the same order as before!
 nominal_cols = ['Zrap', 'Zpt', 'mueta', 'mupt', 'charge', 'helicities','downUpVar']
@@ -486,6 +485,9 @@ hsysts[...] = systs
 hsystsnoprofile = f.create_dataset("hsystsnoprofile", [len(systsnoprofile)], dtype=h5py.special_dtype(vlen=str), compression="gzip")
 hsystsnoprofile[...] = systsnoprofile
 
+hsystsnoconstraint = f.create_dataset("hsystsnoconstraint", [len(systsnoconstraint)], dtype=h5py.special_dtype(vlen=str), compression="gzip")
+hsystsnoconstraint[...] = systsnoconstraint
+
 hsystgroups = f.create_dataset("hsystgroups", [len(systgroups)], dtype=h5py.special_dtype(vlen=str), compression="gzip")
 hsystgroups[...] = systgroups
 
@@ -605,9 +607,11 @@ nbytes += writeFlatInChunks(constraintweights, f, "hconstraintweights", maxChunk
 constraintweights = None
 
 
-data_obs = np.concatenate((Hdata_obs.to_numpy()[0][...,0].ravel(),Hdata_obs.to_numpy()[0][...,1].ravel()))
+# data_obs = np.concatenate((Hdata_obs.to_numpy()[0][...,0].ravel(),Hdata_obs.to_numpy()[0][...,1].ravel()))
+data_obs = Hdata_obs.to_numpy()[0][...,0].ravel()
 Hdata_obs = None
-
+data_obs = np.random.poisson(lam=data_obs)
+data_obs = np.array(data_obs,dtype='float64')
 
 nbytes += writeFlatInChunks(data_obs, f, "hdata_obs", maxChunkBytes = chunkSize)
 data_obs = None
@@ -640,7 +644,8 @@ sumw2 = None
 
 
 # retrieve norm
-norm = np.concatenate((np.stack(df.query("charge==-1.")['nominal'].values,axis=-1),np.stack(df.query("charge==1.")['nominal'].values,axis=-1),np.expand_dims(np.stack(df.query("charge==-1.")['xsec'].values,axis=-1),axis=0),np.expand_dims(np.stack(df.query("charge==1.")['xsec'].values,axis=-1),axis=0)),axis=0)
+# norm = np.concatenate((np.stack(df.query("charge==-1.")['nominal'].values,axis=-1),np.stack(df.query("charge==1.")['nominal'].values,axis=-1),np.expand_dims(np.stack(df.query("charge==-1.")['xsec'].values,axis=-1),axis=0),np.expand_dims(np.stack(df.query("charge==1.")['xsec'].values,axis=-1),axis=0)),axis=0)
+norm = np.concatenate((np.stack(df.query("charge==-1.")['nominal'].values,axis=-1),np.expand_dims(np.stack(df.query("charge==-1.")['xsec'].values,axis=-1),axis=0)),axis=0)
 nbytes += writeFlatInChunks(norm, f, "hnorm", maxChunkBytes = chunkSize)
 
 # df = df.drop(columns=['nominal'],inplace=True) #why this doesn't work?
@@ -649,7 +654,8 @@ logk_systs = []
 for syst in systs_groups:
     print(df.query("charge==-1.")["{}_logk".format(syst)].values[0].shape)
     print(df.query("charge==-1.")['nominal'].values[0].shape)
-    logk_syst = np.moveaxis(np.concatenate((np.stack(df.query("charge==-1.")["{}_logk".format(syst)].values,axis=-2),np.stack(df.query("charge==1.")["{}_logk".format(syst)].values,axis=-2)),axis=1),0,-1)
+    # logk_syst = np.moveaxis(np.concatenate((np.stack(df.query("charge==-1.")["{}_logk".format(syst)].values,axis=-2),np.stack(df.query("charge==1.")["{}_logk".format(syst)].values,axis=-2)),axis=1),0,-1)
+    logk_syst = np.moveaxis(np.stack(df.query("charge==-1.")["{}_logk".format(syst)].values,axis=-2),0,-1)
     logk_systs.append(logk_syst)
     print(logk_syst.shape)
 print(logk_systs[0].shape)
@@ -667,14 +673,17 @@ logkhalfdiff = 0.5*(logk_up - logk_down)
 
 print(logkavg.shape)
 #ensure that systematic tensor is sparse where normalization matrix is sparse
-logkavg = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkavg)
-logkhalfdiff = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkhalfdiff)
+# logkavg = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkavg)
+# logkhalfdiff = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkhalfdiff)
+logkavg = np.where(np.equal(np.expand_dims(norm[:-1,:],axis=-1),0.), np.zeros_like(logkavg), logkavg)
+logkhalfdiff = np.where(np.equal(np.expand_dims(norm[:-1,:],axis=-1),0.), np.zeros_like(logkavg), logkhalfdiff)
 
 norm = None
 
 logk = np.stack((logkavg,logkhalfdiff),axis=-2)
 print(logk.shape)
-logk = np.concatenate((logk,np.zeros((2,nproc,2,nsyst))),axis=0)
+# logk = np.concatenate((logk,np.zeros((2,nproc,2,nsyst))),axis=0)
+logk = np.concatenate((logk,np.zeros((1,nproc,2,nsyst))),axis=0)
 print(logk.shape)
 nbytes += writeFlatInChunks(logk, f, "hlogk", maxChunkBytes = chunkSize)
 logk = None
