@@ -8,8 +8,10 @@ import hist
 import hdf5plugin
 import math
 import boost_histogram as bh
+from utilities import boostHistHelpers as hh,common
 import numpy as np
 import matplotlib.pyplot as plt
+import mplhep as hep
 import re
 from collections import OrderedDict
 import pdb
@@ -117,18 +119,48 @@ def mirrorHisto(nom,var):
     down = hh.divideHists(nom,var)
     up = hh.divideHists(var,nom)
     data = np.stack([down,up],axis=-1)
-    new_histo = hist.Hist(*nom.axes,downup_axis, name=var.name, data=data, storage = hist.storage.Weight())
-    return new_histo
+    mirr_histo = hist.Hist(*nom.axes,downup_axis, name=var.name, data=data, storage = hist.storage.Weight())
+    return mirr_histo
 
 
 def setPreconditionVec():
-    f=h5py.File('../Fit/FitRes/fit_Wlike_asimov.hdf5.hdf5', 'r')
+    f=h5py.File('../Fit/FitRes/fit_Wlike_asimov.hdf5', 'r')
     hessian = f['hess'][:]
     eig, U = np.linalg.eigh(hessian)
     M1 = np.matmul(np.diag(1./np.sqrt(eig)),U.T)
     # print(M1,np.linalg.inv(np.linalg.inv(M1)))
     preconditioner = M1
     return preconditioner
+
+def decorrelateInEta(nominal,rawvars):
+    nEtaBins = 48
+    j_indices = np.arange(nEtaBins)
+    # print(nominal.shape,rawvars.shape)
+    # create new histogram with expanded eta axis
+    SFaxes = list(rawvars.axes)
+    mod_axis = [axis for axis in SFaxes if axis.name=='SF eta'][0]
+    idx = SFaxes.index(mod_axis)
+    SFaxes[idx] = hist.axis.Regular(48, -2.4, 2.4, underflow=False, overflow=False, name='SF eta')
+    dec_histo = hist.Hist(*SFaxes, name=rawvars.name,storage = hist.storage.Double())
+
+    # create data by patching nominal and variations
+    diff_shape = dec_histo.shape[len(nominal.shape):]
+    # print(diff_shape)
+    tmp = np.tile(nominal.values()[:,:,:,:,:,:,np.newaxis,np.newaxis,np.newaxis,np.newaxis], diff_shape)
+    # print(tmp.shape,dec_histo.shape)
+    for i  in range(nEtaBins):
+        tmp[:,:,i,:,:,:,i,...] = rawvars.values()[:,:,i,:,:,:,0,...]
+    # print(tmp.shape)
+    dec_histo[...] = tmp
+
+    # print(rawvars.shape)
+    # fig, ax1 = plt.subplots(figsize=(48,10))
+    # hep.histplot(dec_histo[0,0,:,:,0, 4, 24, 0, 0, 0].values().ravel()/rawvars[0,0,:,:,0, 4, 0, 0, 0, 0].values().ravel())
+    # hep.histplot(dec_histo[0,0,:,:,0, 4, 24, 0, 0, 0].values().ravel()/nominal[0,0,:,:,0, 4].values().ravel())
+    # ax1.set_ylim(0.99,1.01)
+    # plt.show()
+
+    return dec_histo
 
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~loading boost histograms and cross sections from templates hdf5 file~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
 f = h5py.File("templatesTest_withSF.hdf5","r")
@@ -151,6 +183,7 @@ systs_groups = {}
 
 #first add nominal boost histogram for signal
 H = C*results[process]['output']['signal_nominal'].get()
+
 #Bin information
 yBinsC     = H.axes[V+'rap'].centers
 qtBinsC    = H.axes[V+'pt'].centers
@@ -239,7 +272,7 @@ print('\nreorganizing and adding other procs\n',df.head(),df.tail())
 
 systs_macrogroups = {} # this is a list over groups of systematics
 systs_macrogroups['mass']=['mass_var']
-# systs_macrogroups['sf']=['effStatTnP_sf_reco','effStatTnP_sf_tracking','effStatTnP_sf_idip','effStatTnP_sf_trigger'] #these correspond to the names of histograms to recall from file
+systs_macrogroups['sf']=['effStatTnP_sf_reco','effStatTnP_sf_tracking','effStatTnP_sf_idip','effStatTnP_sf_trigger'] #these correspond to the names of histograms to recall from file
 
 procs = ["signal"]+procs #careful!! this must be the same order as before!
 nominal_cols = ['Zrap', 'Zpt', 'mueta', 'mupt', 'charge', 'helicities','downUpVar']
@@ -256,6 +289,11 @@ for proc in procs:
             print('{proc}_{nuisance}'.format(proc=proc,nuisance=nuisance))
             syst_histo = C * results[process]['output']['{proc}_{nuisance}'.format(proc=proc,nuisance=nuisance)].get()
             axes = [axis for axis in syst_histo.axes]
+            # decorrelate in eta if needed
+            if 'sf' in syst:
+                nominal = C * results[process]['output']['{proc}_nominal'.format(proc=proc)].get()
+                syst_histo = decorrelateInEta(nominal,syst_histo)
+                nominal = None
             #select slices in systematics based on "vars"
             syst_arr = syst_histo.to_numpy()[0]
             syst_axes = [axis for axis in syst_histo.axes if axis.name not in nominal_cols]
@@ -298,7 +336,7 @@ for proc in procs:
         # now merge all the dataframes within the group
         syst_df_merged = pd.concat(syst_dfs, axis=0)
         # get list of systematics and drop index
-        syst_list = list(syst_df_merged.query("process == 'helXsec_L_y_0.2_qt_1.5' & charge==1.0").index.get_level_values(2))
+        syst_list = list(syst_df_merged.query("process == 'helXsec_L_y_0.2_qt_1.5' & charge==1.0").index.get_level_values(2)) #FIXME: systs in plus and minus can in principle be different
         # pdb.set_trace()
         systs_groups[syst]=syst_list
         syst_df_merged= syst_df_merged.droplevel('syst')
@@ -607,8 +645,7 @@ nbytes += writeFlatInChunks(constraintweights, f, "hconstraintweights", maxChunk
 constraintweights = None
 
 
-# data_obs = np.concatenate((Hdata_obs.to_numpy()[0][...,0].ravel(),Hdata_obs.to_numpy()[0][...,1].ravel()))
-data_obs = Hdata_obs.to_numpy()[0][...,0].ravel()
+data_obs = np.concatenate((Hdata_obs.to_numpy()[0][...,0].ravel(),Hdata_obs.to_numpy()[0][...,1].ravel()))
 Hdata_obs = None
 data_obs = np.random.poisson(lam=data_obs)
 data_obs = np.array(data_obs,dtype='float64')
@@ -644,8 +681,7 @@ sumw2 = None
 
 
 # retrieve norm
-# norm = np.concatenate((np.stack(df.query("charge==-1.")['nominal'].values,axis=-1),np.stack(df.query("charge==1.")['nominal'].values,axis=-1),np.expand_dims(np.stack(df.query("charge==-1.")['xsec'].values,axis=-1),axis=0),np.expand_dims(np.stack(df.query("charge==1.")['xsec'].values,axis=-1),axis=0)),axis=0)
-norm = np.concatenate((np.stack(df.query("charge==-1.")['nominal'].values,axis=-1),np.expand_dims(np.stack(df.query("charge==-1.")['xsec'].values,axis=-1),axis=0)),axis=0)
+norm = np.concatenate((np.stack(df.query("charge==-1.")['nominal'].values,axis=-1),np.stack(df.query("charge==1.")['nominal'].values,axis=-1),np.expand_dims(np.stack(df.query("charge==-1.")['xsec'].values,axis=-1),axis=0),np.expand_dims(np.stack(df.query("charge==1.")['xsec'].values,axis=-1),axis=0)),axis=0)
 nbytes += writeFlatInChunks(norm, f, "hnorm", maxChunkBytes = chunkSize)
 
 # df = df.drop(columns=['nominal'],inplace=True) #why this doesn't work?
@@ -654,8 +690,7 @@ logk_systs = []
 for syst in systs_groups:
     print(df.query("charge==-1.")["{}_logk".format(syst)].values[0].shape)
     print(df.query("charge==-1.")['nominal'].values[0].shape)
-    # logk_syst = np.moveaxis(np.concatenate((np.stack(df.query("charge==-1.")["{}_logk".format(syst)].values,axis=-2),np.stack(df.query("charge==1.")["{}_logk".format(syst)].values,axis=-2)),axis=1),0,-1)
-    logk_syst = np.moveaxis(np.stack(df.query("charge==-1.")["{}_logk".format(syst)].values,axis=-2),0,-1)
+    logk_syst = np.moveaxis(np.concatenate((np.stack(df.query("charge==-1.")["{}_logk".format(syst)].values,axis=-2),np.stack(df.query("charge==1.")["{}_logk".format(syst)].values,axis=-2)),axis=1),0,-1)
     logk_systs.append(logk_syst)
     print(logk_syst.shape)
 print(logk_systs[0].shape)
@@ -673,17 +708,14 @@ logkhalfdiff = 0.5*(logk_up - logk_down)
 
 print(logkavg.shape)
 #ensure that systematic tensor is sparse where normalization matrix is sparse
-# logkavg = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkavg)
-# logkhalfdiff = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkhalfdiff)
-logkavg = np.where(np.equal(np.expand_dims(norm[:-1,:],axis=-1),0.), np.zeros_like(logkavg), logkavg)
-logkhalfdiff = np.where(np.equal(np.expand_dims(norm[:-1,:],axis=-1),0.), np.zeros_like(logkavg), logkhalfdiff)
+logkavg = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkavg)
+logkhalfdiff = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkhalfdiff)
 
 norm = None
 
 logk = np.stack((logkavg,logkhalfdiff),axis=-2)
 print(logk.shape)
-# logk = np.concatenate((logk,np.zeros((2,nproc,2,nsyst))),axis=0)
-logk = np.concatenate((logk,np.zeros((1,nproc,2,nsyst))),axis=0)
+logk = np.concatenate((logk,np.zeros((2,nproc,2,nsyst))),axis=0)
 print(logk.shape)
 nbytes += writeFlatInChunks(logk, f, "hlogk", maxChunkBytes = chunkSize)
 logk = None
