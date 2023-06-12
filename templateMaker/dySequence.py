@@ -62,10 +62,11 @@ ROOT.gSystem.Load('bin/libAnalysis.so')
 # ys_axis = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 10.0], name = "Zrap")
 # qts_axis_red = hist.axis.Variable([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.], name = "Zpt")
 # ys_axis_red = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4], name = "Zrap")
-qts_axis = hist.axis.Variable([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.,200.], name = "Zpt")
+# qts_axis = hist.axis.Variable([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.,200.], name = "Zpt")
+qts_axis = hist.axis.Variable([ 0., 3.,  4.8,  6.7, 9., 12., 16.01, 23.6, 60.,200], name = "Zpt")
 ys_axis = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 10.0], name = "Zrap")
-qts_axis_red = hist.axis.Variable([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.], name = "Zpt")
-ys_axis_red = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4], name = "Zrap")
+qts_axis_red = hist.axis.Variable([ 0., 3.,  4.8,  6.7, 9., 12., 16.01, 23.6,60.], name = "Zpt")
+ys_axis_red = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0], name = "Zrap")
 costhetas_axis =  hist.axis.Regular(100, -1.,1, name = "costheta")
 phis_axis =  hist.axis.Regular(100, 0.,2.*pi, name = "phi")
 pts_axis =  hist.axis.Regular(60, 25.,55., name = "mupt")
@@ -101,13 +102,13 @@ def build_graph(df, dataset):
     return results, weightsum
 
 #give it to narf
-# resultdict = narf.build_and_run(datasets, build_graph)
+resultdict = narf.build_and_run(datasets, build_graph)
 
-# print(resultdict['ZmumuPostVFP'].keys())
+print(resultdict['ZmumuPostVFP'].keys())
 
-# outfile = "test.hdf5"
-# with h5py.File(outfile, 'w') as f:
-#     narf.ioutils.pickle_dump_h5py("results", resultdict, f)
+outfile = "test.hdf5"
+with h5py.File(outfile, 'w') as f:
+    narf.ioutils.pickle_dump_h5py("results", resultdict, f)
 
 infile = "test.hdf5"
 with h5py.File(infile, "r") as f:
@@ -230,8 +231,8 @@ def build_graph_templates(df, dataset):
 
         # sf variations
         p.branch(nodeToStart='signal_nominal', nodeToEnd='signal_sf', modules=[getSFVariations(isWlike=False,helper_stat=muon_efficiency_helper_stat,helper_syst=muon_efficiency_helper_syst)])
-        for key,helper in muon_efficiency_helper_stat.items():
-            p.Histogram('signal_sf', f'signal_effStatTnP_{key}', [*nom_cols,f"effStatTnP_{key}_tensor_hel"], axes, tensor_axes = [helicity_axis,*(helper.tensor_axes)])
+        # for key,helper in muon_efficiency_helper_stat.items():
+        #     p.Histogram('signal_sf', f'signal_effStatTnP_{key}', [*nom_cols,f"effStatTnP_{key}_tensor_hel"], axes, tensor_axes = [helicity_axis,*(helper.tensor_axes)])
         # p.Histogram('signal_sf', 'signal_effSystTnP', [*nom_cols,"effSystTnP_tensor_hel"], axes, tensor_axes = [helicity_axis,*(muon_efficiency_helper_syst.tensor_axes)])
 
         #prefiring variations
@@ -249,8 +250,8 @@ def build_graph_templates(df, dataset):
 
         # sf variations
         p.branch(nodeToStart='lowacc', nodeToEnd='lowacc_sf', modules=[getSFVariations(isWlike=False,helper_stat=muon_efficiency_helper_stat,helper_syst=muon_efficiency_helper_syst)])
-        for key,helper in muon_efficiency_helper_stat.items():
-            p.Histogram('lowacc_sf', f'lowacc_effStatTnP_{key}', [*nom_cols,f"effStatTnP_{key}_tensor"], axes, tensor_axes = helper.tensor_axes)
+        # for key,helper in muon_efficiency_helper_stat.items():
+        #     p.Histogram('lowacc_sf', f'lowacc_effStatTnP_{key}', [*nom_cols,f"effStatTnP_{key}_tensor"], axes, tensor_axes = helper.tensor_axes)
         # p.Histogram('lowacc_sf', 'lowacc_effSystTnP', [*nom_cols,"effSystTnP_weight"], axes,tensor_axes = muon_efficiency_helper_syst.tensor_axes)
 
         # prefiring variations
@@ -278,7 +279,7 @@ def build_graph_templates(df, dataset):
 resultdict = narf.build_and_run(datasets, build_graph_templates)
 print(resultdict['ZmumuPostVFP']['output'].keys())
 
-outfile = "templatesTest_redstat.hdf5"
+outfile = "templatesTest_newQtBins.hdf5"
 with h5py.File(outfile, 'w') as f:
     narf.ioutils.pickle_dump_h5py("results", resultdict, f)
 
