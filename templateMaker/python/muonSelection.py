@@ -33,6 +33,7 @@ class muonSelection(module):
         self.d = muon_selections.select_standalone_muons(self.d, self.dataset, self.args.trackerMuons, "nonTrigMuons")
 
         self.d = muon_selections.apply_triggermatching_muon(self.d, self.dataset, "trigMuons_eta0", "trigMuons_phi0")
-        
+
+        self.d = muon_calibration.define_corrected_reco_muon_kinematics(self.d)
 
         return self.d

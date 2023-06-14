@@ -59,9 +59,9 @@ RNode genLeptonSelector::run(RNode d)
     }
 
     //swap indices to save +ve lepton as first index
-    std::pair<int, int> genLep;
-    genLep.first = pdgId[prefsrlepidx.first] < 0 ? prefsrlepidx.second : prefsrlepidx.first;
-    genLep.second = pdgId[prefsrlepidx.first] < 0 ? prefsrlepidx.first : prefsrlepidx.second;
+    std::vector<int> genLep;
+    genLep.push_back(pdgId[prefsrlepidx.first] < 0 ? prefsrlepidx.second : prefsrlepidx.first);
+    genLep.push_back(pdgId[prefsrlepidx.first] < 0 ? prefsrlepidx.first : prefsrlepidx.second);
 
     //return prefsrlepidx;
     return genLep;
@@ -87,11 +87,11 @@ RNode genLeptonSelector::run(RNode d)
   };
 
   auto d1 = d.Define("SelectedGenPartIdxs", getGenLeptonIdx, {"GenPart_pdgId", "GenPart_status", "GenPart_genPartIdxMother", "GenPart_statusFlags", "GenPart_pt"})
-                .Define("GenPart_preFSRLepIdx1", [](const std::pair<int, int> &gpIdxs)
-                        { return gpIdxs.first; },
+                .Define("GenPart_preFSRLepIdx1", [](const std::vector<int> &gpIdxs)
+                        { return gpIdxs[0]; },
                         {"SelectedGenPartIdxs"})
-                .Define("GenPart_preFSRLepIdx2", [](const std::pair<int, int> &gpIdxs)
-                        { return gpIdxs.second; },
+                .Define("GenPart_preFSRLepIdx2", [](const std::vector<int> &gpIdxs)
+                        { return gpIdxs[1]; },
                         {"SelectedGenPartIdxs"})
                 .Define("genVtype", getVtype, {"GenPart_preFSRLepIdx1", "GenPart_preFSRLepIdx2", "GenPart_pdgId"});
 

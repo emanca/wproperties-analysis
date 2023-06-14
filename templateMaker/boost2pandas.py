@@ -241,7 +241,7 @@ multi = pd.MultiIndex.from_product(iterables = [yBinsC , qtBinsC , helicities]
 s = pd.Series(T.ravel(), index = multi , name='xsec') #series carrying cross section information
 
 xsec_df = pd.concat([s,s] ,axis=0).reset_index()       #same cross section for both charges, will need double to match dimensions
-charges_xsec =  [-1.0]*288 + [1.0]*288
+charges_xsec =  [-1.0]*len(yBinsC)*len(qtBinsC)*len(helicities) + [1.0]*len(yBinsC)*len(qtBinsC)*len(helicities)
 xsec_df['charge'] = charges_xsec
 
 #now the dataframe carries cross section column
@@ -282,7 +282,8 @@ print('\nreorganizing and adding other procs\n',df.head(),df.tail())
 
 systs_macrogroups = {} # this is a list over groups of systematics
 systs_macrogroups['mass']=['mass_var']
-systs_macrogroups['sf']=['effStatTnP_sf_reco','effStatTnP_sf_tracking','effStatTnP_sf_idip','effStatTnP_sf_trigger'] #these correspond to the names of histograms to recall from file
+systs_macrogroups['muon_calibration']=['jpsi_var']
+# systs_macrogroups['sf']=['effStatTnP_sf_reco','effStatTnP_sf_tracking','effStatTnP_sf_idip','effStatTnP_sf_trigger'] #these correspond to the names of histograms to recall from file
 
 procs = ["signal"]+procs #careful!! this must be the same order as before!
 nominal_cols = ['Zrap', 'Zpt', 'mueta', 'mupt', 'charge', 'helicities','downUpVar']
@@ -657,8 +658,6 @@ constraintweights = None
 
 data_obs = np.concatenate((Hdata_obs.to_numpy()[0][...,0].ravel(),Hdata_obs.to_numpy()[0][...,1].ravel()))
 Hdata_obs = None
-data_obs = np.random.poisson(lam=data_obs)
-data_obs = np.array(data_obs,dtype='float64')
 
 nbytes += writeFlatInChunks(data_obs, f, "hdata_obs", maxChunkBytes = chunkSize)
 data_obs = None

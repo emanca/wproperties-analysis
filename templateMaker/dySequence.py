@@ -11,6 +11,7 @@ from defineWeight import defineWeight
 from getHelWeights import getHelWeights
 from getMassWeights import getMassWeights
 from muonSelection import muonSelection
+from muonCalibration import muonCalibration
 from getSFVariations import getSFVariations
 from getPrefVariations import getPrefVariations
 
@@ -102,13 +103,13 @@ def build_graph(df, dataset):
     return results, weightsum
 
 #give it to narf
-resultdict = narf.build_and_run(datasets, build_graph)
+# resultdict = narf.build_and_run(datasets, build_graph)
 
-print(resultdict['ZmumuPostVFP'].keys())
+# print(resultdict['ZmumuPostVFP'].keys())
 
-outfile = "test.hdf5"
-with h5py.File(outfile, 'w') as f:
-    narf.ioutils.pickle_dump_h5py("results", resultdict, f)
+# outfile = "test.hdf5"
+# with h5py.File(outfile, 'w') as f:
+#     narf.ioutils.pickle_dump_h5py("results", resultdict, f)
 
 infile = "test.hdf5"
 with h5py.File(infile, "r") as f:
@@ -185,8 +186,9 @@ print(args.sfFile)
 muon_efficiency_helper, muon_efficiency_helper_syst, muon_efficiency_helper_stat = wremnants.make_muon_efficiency_helpers_smooth(filename = args.sfFile,
                                                                                                                                      era = era,
                                                                                                                                      max_pt = pts_axis.edges[-1],
-                                                                                                                                     is_w_like = False, directIsoSFsmoothing=args.directIsoSFsmoothing)
-mc_jpsi_crctn_helper, data_jpsi_crctn_helper = muon_calibration.make_jpsi_crctn_helpers(args)
+                                                                                                                                     is_w_like = False, isoEfficiencySmoothing = args.isoEfficiencySmoothing)
+mc_jpsi_crctn_helper, data_jpsi_crctn_helper, jpsi_crctn_MC_unc_helper, jpsi_crctn_data_unc_helper = muon_calibration.make_jpsi_crctn_helpers(args, make_uncertainty_helper=True)
+
 mc_calibration_helper, data_calibration_helper, calibration_uncertainty_helper = muon_calibration.make_muon_calibration_helpers(args)
 # smearing_helper = muon_calibration.make_muon_smearing_helpers() if args.smearing else None
 # bias_helper = muon_calibration.make_muon_bias_helpers(args) if args.biasCalibration else None
@@ -213,7 +215,7 @@ def build_graph_templates(df, dataset):
     p.branch(nodeToStart='event_count', nodeToEnd='calibrations', modules=[muonSelection(dataset,args,data_calibration_helper,mc_calibration_helper,data_jpsi_crctn_helper,mc_jpsi_crctn_helper),defineWeight(dataset,False,pileup_helper,muon_efficiency_helper,muon_prefiring_helper)])
     weightsum = p.EventCount('event_count', "weight")
     if isZ:
-        p.branch(nodeToStart='calibrations', nodeToEnd='theoryTools', modules=[ROOT.genLeptonSelector(), ROOT.CSvariableProducer(), ROOT.genVProducer(),ROOT.defineHarmonics(),getHelWeights("angCoeffZ.hdf5"),ROOT.getWeights(),getMassWeights(isW=False)])
+        p.branch(nodeToStart='calibrations', nodeToEnd='theoryTools', modules=[ROOT.genLeptonSelector(), ROOT.CSvariableProducer(), ROOT.genVProducer(),ROOT.defineHarmonics(),getHelWeights("angCoeffZ.hdf5"),ROOT.getWeights(),getMassWeights(isW=False),muonCalibration(dataset,jpsi_crctn_data_unc_helper)])
         
         axes = [ys_axis_red,qts_axis_red,etas_axis,pts_axis,axis_charge]
         nom_cols = ["Vrap_preFSR_abs","Vpt_preFSR", "trigMuons_eta0", "trigMuons_pt0", "trigMuons_charge0"]
@@ -228,6 +230,10 @@ def build_graph_templates(df, dataset):
         # mass variations
         # p.displayColumn("signal_nominal", columnList=["massVec_size","MEParamWeight_size"])
         p.Histogram('signal_nominal', 'signal_mass_var', [*nom_cols,'massWeight_tensor_hel'], axes,tensor_axes=[helicity_axis,hist.axis.StrCategory(["mass_var"], name="mass_var"),common.down_up_axis])
+
+        print(*(jpsi_crctn_data_unc_helper.tensor_axes))
+        # muon calibration uncertainties
+        p.Histogram('signal_nominal', 'signal_jpsi_var', [*nom_cols,'jpsiWeight_tensor_hel'], axes,tensor_axes = [helicity_axis,*(jpsi_crctn_data_unc_helper.tensor_axes)])
 
         # sf variations
         p.branch(nodeToStart='signal_nominal', nodeToEnd='signal_sf', modules=[getSFVariations(isWlike=False,helper_stat=muon_efficiency_helper_stat,helper_syst=muon_efficiency_helper_syst)])
