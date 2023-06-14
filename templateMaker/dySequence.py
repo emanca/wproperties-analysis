@@ -357,22 +357,9 @@ outfile = "templatesTest_testW_swapped.hdf5"
 with h5py.File(outfile, 'w') as f:
     narf.ioutils.pickle_dump_h5py("results", resultdict, f)
 
-<<<<<<< HEAD
 infile = "templatesTest_testW_swapped.hdf5"
 with h5py.File(infile, "r") as f:
     results = narf.ioutils.pickle_load_h5py(f["results"])
-    print(results['WplusmunuPostVFP']['output'].keys())
-    print(results['WplusmunuPostVFP']["output"]["signal_nominal"].get())
-#     print(h.axes)
-=======
-infile = "templatesTest_redstat.hdf5"
-with h5py.File(infile, "r") as f:
-    print(list(f.keys()))
-    results = narf.ioutils.pickle_load_h5py(f["results"])
-    print(results['ZmumuPostVFP']['output'].keys())
-    h = results['ZmumuPostVFP']["output"]["signal_nominal"].get()
-    print(h.values().shape)
->>>>>>> c42d370 (implementing bootstrap for testing mc uncertainties)
 #     data_obs = results['dataPostVFP']["output"]["data_obs"].get()
 #     lowacc = results['ZmumuPostVFP']["output"]["lowacc_nominal"].get()
 #     hmass = results['ZmumuPostVFP']["output"]["signal_mass"].get()
