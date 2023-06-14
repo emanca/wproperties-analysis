@@ -44,6 +44,16 @@ def writeFlatInChunks(arr, h5group, outname, maxChunkBytes = 1024**2):
 
   return nbytes
 
+def writeSparse(indices, values, dense_shape, h5group, outname, maxChunkBytes = 1024**2):
+  outgroup = h5group.create_group(outname)
+  
+  nbytes = 0
+  nbytes += writeFlatInChunks(indices, outgroup, "indices", maxChunkBytes)
+  nbytes += writeFlatInChunks(values, outgroup, "values", maxChunkBytes)
+  outgroup.attrs['dense_shape'] = np.array(dense_shape, dtype='int64')
+  
+  return nbytes
+
 def fillHelGroup(yBinsC,qtBinsC,helXsecs):
     helGroups = OrderedDict()
     for i in range(len(yBinsC)):
