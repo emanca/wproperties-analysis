@@ -42,15 +42,15 @@ class helSystSFHelper
 public:
     helSystSFHelper() {}
 
-    using SF_tensor_t = Eigen::TensorFixedSize<double, Eigen::Sizes<1, NptEig, NCharges, 2>>;
-    using helicity_sf_tensor_t = Eigen::TensorFixedSize<double, Eigen::Sizes<6, 1, NptEig, NCharges, 2>>;
+    using SF_tensor_t = Eigen::TensorFixedSize<double, Eigen::Sizes<1, NptEig, NCharges>>;
+    using helicity_sf_tensor_t = Eigen::TensorFixedSize<double, Eigen::Sizes<6, 1, NptEig, NCharges>>;
 
     auto operator()(helicity_tensor_t &helicity_tensor, const SF_tensor_t &sf_tensor)
     {
         constexpr Eigen::Index nhelicity = 6;
 
-        constexpr std::array<Eigen::Index, 5> broadcastSF = {1, 1, NptEig, NCharges, 2};
-        constexpr std::array<Eigen::Index, 5> broadcasthelicities = {nhelicity, 1, 1, 1, 1};
+        constexpr std::array<Eigen::Index, 4> broadcastSF = {1, 1, NptEig, NCharges};
+        constexpr std::array<Eigen::Index, 4> broadcasthelicities = {nhelicity, 1, 1, 1};
 
         helicity_sf_tensor_t helicity_sf_tensor;
         helicity_sf_tensor = helicity_tensor.reshape(broadcasthelicities).broadcast(broadcastSF) * sf_tensor.reshape(broadcastSF).broadcast(broadcasthelicities);
