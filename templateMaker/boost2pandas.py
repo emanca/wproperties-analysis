@@ -129,7 +129,7 @@ def mirrorHisto(nom,var):
     down = hh.divideHists(nom,var)
     up = hh.divideHists(var,nom)
     data = np.stack([down,up],axis=-1)
-    mirr_histo = hist.Hist(*nom.axes,downup_axis, name=var.name, data=data, storage = hist.storage.Weight())
+    mirr_histo = hist.Hist(*var.axes,downup_axis, name=var.name, data=data, storage = hist.storage.Weight())
     return mirr_histo
 
 
@@ -317,6 +317,7 @@ for proc in procs:
             # decorrelate in eta if needed
             if 'sf' in syst:
                 nominal = C * results[process]['output']['{proc}_nominal'.format(proc=proc)].get()
+                syst_histo = mirrorHisto(nominal,syst_histo)
                 syst_histo = decorrelateInEta(nominal,syst_histo)
                 nominal = None
             if 'muon_calibration' in syst:
