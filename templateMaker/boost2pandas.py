@@ -172,8 +172,21 @@ def decorrelateInEta(nominal,rawvars):
 
     return dec_histo
 
+def transport_smearing_weights_to_reco(hist_gensmear, nominal_reco, nominal_gensmear):
+    print("here 0")
+    hist_reco = hist.Hist(
+                    *hist_gensmear.axes,
+                    storage = hist_gensmear._storage_type()
+                )
+    print("here 1")
+    bin_ratio = hh.divideHists(hist_gensmear, nominal_gensmear)
+    print("here 2")
+    hist_reco = hh.multiplyHists(nominal_reco, bin_ratio)
+    print("here 3")
+    return hist_reco
+
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~loading boost histograms and cross sections from templates hdf5 file~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
-f = h5py.File("templatesTest_withSF.hdf5","r")
+f = h5py.File("templatesTest_newQtBins.hdf5","r")
 t = h5py.File('templatesFit.hdf5','r')
 results = narf.ioutils.pickle_load_h5py(f["results"])
 print(results['ZmumuPostVFP']["output"])
@@ -299,12 +312,19 @@ for proc in procs:
         for nuisance in nuisances:
             print('{proc}_{nuisance}'.format(proc=proc,nuisance=nuisance))
             syst_histo = C * results[process]['output']['{proc}_{nuisance}'.format(proc=proc,nuisance=nuisance)].get()
+            print("done")
             axes = [axis for axis in syst_histo.axes]
             # decorrelate in eta if needed
             if 'sf' in syst:
                 nominal = C * results[process]['output']['{proc}_nominal'.format(proc=proc)].get()
                 syst_histo = decorrelateInEta(nominal,syst_histo)
                 nominal = None
+            if 'muon_calibration' in syst:
+                print("get {proc}_nominal".format(proc=proc))
+                nominal_reco = C * results[process]['output']['{proc}_nominal'.format(proc=proc)].get()
+                print("get {proc}_nominal_gensmear".format(proc=proc))
+                nominal_gensmear = C * results[process]['output']['{proc}_nominal_gensmear'.format(proc=proc)].get()
+                syst_histo = transport_smearing_weights_to_reco(syst_histo, nominal_reco, nominal_gensmear)
             #select slices in systematics based on "vars"
             syst_arr = syst_histo.to_numpy()[0]
             syst_axes = [axis for axis in syst_histo.axes if axis.name not in nominal_cols]
@@ -631,14 +651,14 @@ hpoly2dreggroupbincenters1 = f.create_dataset("hpoly2dreggroupbincenters1", [len
 hpoly2dreggroupbincenters1[...] = poly2dreggroupbincenters1
 
 #Saving Preconditioner
-preconditioner = setPreconditionVec()
-hpreconditioner = f.create_dataset("hpreconditioner", preconditioner.shape, dtype='float64', compression="gzip")
-hpreconditioner[...] = preconditioner
+# preconditioner = setPreconditionVec()
+# hpreconditioner = f.create_dataset("hpreconditioner", preconditioner.shape, dtype='float64', compression="gzip")
+# hpreconditioner[...] = preconditioner
 
 
-invpreconditioner = np.linalg.inv(preconditioner)
-hinvpreconditioner = f.create_dataset("hinvpreconditioner", invpreconditioner.shape, dtype='float64', compression="gzip")
-hinvpreconditioner[...] = invpreconditioner
+# invpreconditioner = np.linalg.inv(preconditioner)
+# hinvpreconditioner = f.create_dataset("hinvpreconditioner", invpreconditioner.shape, dtype='float64', compression="gzip")
+# hinvpreconditioner[...] = invpreconditioner
 
 hnoigroups = f.create_dataset("hnoigroups", [len(noigroups)], dtype=h5py.special_dtype(vlen=str), compression="gzip")
 hnoigroups[...] = noigroups
@@ -693,6 +713,23 @@ sumw2 = None
 norm = np.concatenate((np.stack(df.query("charge==-1.")['nominal'].values,axis=-1),np.stack(df.query("charge==1.")['nominal'].values,axis=-1),np.expand_dims(np.stack(df.query("charge==-1.")['xsec'].values,axis=-1),axis=0),np.expand_dims(np.stack(df.query("charge==1.")['xsec'].values,axis=-1),axis=0)),axis=0)
 nbytes += writeFlatInChunks(norm, f, "hnorm", maxChunkBytes = chunkSize)
 
+nonzero = np.nonzero(norm)
+# print(np.array(nonzero).shape, np.array(np.transpose(nonzero)).shape)
+# nonzero = np.array(nonzero)
+# norm_sparse_indices = np.transpose(np.array(nonzero).astype(np.int32))
+# norm_sparse_indices = np.argwhere(norm).astype(np.int32)
+# norm_sparse_values = norm[nonzero].reshape([-1])
+# norm_sparse_dense_shape = norm.shape
+# print("norm_sparse_dense_shape",norm_sparse_dense_shape)
+# print("norm_sparse_indices",norm_sparse_indices.shape)
+# print("norm_sparse_values",norm_sparse_values.shape)
+
+
+# nbytes += writeSparse(norm_sparse_indices, norm_sparse_values, norm_sparse_dense_shape, f, "hnorm_sparse", maxChunkBytes = chunkSize)
+# logk_sparse_dense_shape = (norm_sparse_indices.shape[0], 2*nsyst)
+# norm_sparse_indices = None
+# norm_sparse_values = None
+
 # df = df.drop(columns=['nominal'],inplace=True) #why this doesn't work?
 print('\ndrop nominal\n',df.head())
 logk_systs = []
@@ -726,6 +763,24 @@ logk = np.stack((logkavg,logkhalfdiff),axis=-2)
 print(logk.shape)
 logk = np.concatenate((logk,np.zeros((2,nproc,2,nsyst))),axis=0)
 print(logk.shape)
+
+# logk = logk.reshape([logk.shape[0]*nproc,2*nsyst])
+# print(logk.shape)
+# nonzero = np.nonzero(logk)
+# print(np.array(nonzero).shape, np.array(np.transpose(nonzero)).shape)
+# # nonzero = np.array(nonzero)
+# logk_sparse_indices = np.argwhere(logk).astype(np.int32)
+# # logk_sparse_indices = np.transpose(np.array(nonzero).astype(np.int32))
+# logk_sparse_values = logk[nonzero].reshape([-1])
+
+# print("logk_sparse_dense_shape",logk_sparse_dense_shape)
+# print("logk_sparse_indices",logk_sparse_indices.shape)
+# print("logk_sparse_values",logk_sparse_values.shape)
+
+# nbytes += writeSparse(logk_sparse_indices, logk_sparse_values, logk_sparse_dense_shape, f, "hlogk_sparse", maxChunkBytes = chunkSize)
+# logk_sparse_indices = None
+# logk_sparse_values = None
+
 nbytes += writeFlatInChunks(logk, f, "hlogk", maxChunkBytes = chunkSize)
 logk = None
 

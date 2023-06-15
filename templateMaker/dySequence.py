@@ -234,6 +234,8 @@ def build_graph_templates(df, dataset):
         print(*(jpsi_crctn_data_unc_helper.tensor_axes))
         # muon calibration uncertainties
         p.Histogram('signal_nominal', 'signal_jpsi_var', [*nom_cols,'jpsiWeight_tensor_hel'], axes,tensor_axes = [helicity_axis,*(jpsi_crctn_data_unc_helper.tensor_axes)])
+        nom_cols_smeared = ["Vrap_preFSR_abs","Vpt_preFSR", "trigMuons_genSmearedEta", "trigMuons_genSmearedPt", "trigMuons_genSmearedCharge"]
+        p.Histogram('signal_nominal', 'signal_nominal_gensmear', [*nom_cols_smeared,'helWeightTensor'], axes, tensor_axes= [helicity_axis])
 
         # sf variations
         p.branch(nodeToStart='signal_nominal', nodeToEnd='signal_sf', modules=[getSFVariations(isWlike=False,helper_stat=muon_efficiency_helper_stat,helper_syst=muon_efficiency_helper_syst)])
