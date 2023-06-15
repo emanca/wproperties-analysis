@@ -712,24 +712,20 @@ sumw2 = None
 
 # retrieve norm
 norm = np.concatenate((np.stack(df.query("charge==-1.")['nominal'].values,axis=-1),np.stack(df.query("charge==1.")['nominal'].values,axis=-1),np.expand_dims(np.stack(df.query("charge==-1.")['xsec'].values,axis=-1),axis=0),np.expand_dims(np.stack(df.query("charge==1.")['xsec'].values,axis=-1),axis=0)),axis=0)
-nbytes += writeFlatInChunks(norm, f, "hnorm", maxChunkBytes = chunkSize)
+# nbytes += writeFlatInChunks(norm, f, "hnorm", maxChunkBytes = chunkSize)
 
 nonzero = np.nonzero(norm)
-# print(np.array(nonzero).shape, np.array(np.transpose(nonzero)).shape)
-# nonzero = np.array(nonzero)
-# norm_sparse_indices = np.transpose(np.array(nonzero).astype(np.int32))
-# norm_sparse_indices = np.argwhere(norm).astype(np.int32)
-# norm_sparse_values = norm[nonzero].reshape([-1])
-# norm_sparse_dense_shape = norm.shape
-# print("norm_sparse_dense_shape",norm_sparse_dense_shape)
-# print("norm_sparse_indices",norm_sparse_indices.shape)
-# print("norm_sparse_values",norm_sparse_values.shape)
+
+norm_sparse_indices = np.argwhere(norm).astype(np.int32)
+norm_sparse_values = norm[nonzero].reshape([-1])
+norm_sparse_dense_shape = norm.shape
+print("norm_sparse_dense_shape",norm_sparse_dense_shape)
+print("norm_sparse_indices",norm_sparse_indices.shape)
+print("norm_sparse_values",norm_sparse_values.shape)
 
 
-# nbytes += writeSparse(norm_sparse_indices, norm_sparse_values, norm_sparse_dense_shape, f, "hnorm_sparse", maxChunkBytes = chunkSize)
-# logk_sparse_dense_shape = (norm_sparse_indices.shape[0], 2*nsyst)
-# norm_sparse_indices = None
-# norm_sparse_values = None
+nbytes += writeSparse(norm_sparse_indices, norm_sparse_values, norm_sparse_dense_shape, f, "hnorm_sparse", maxChunkBytes = chunkSize)
+logk_sparse_dense_shape = (norm_sparse_indices.shape[0], 2*nsyst)
 
 # df = df.drop(columns=['nominal'],inplace=True) #why this doesn't work?
 print('\ndrop nominal\n',df.head())
@@ -758,32 +754,40 @@ print(logkavg.shape)
 logkavg = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkavg)
 logkhalfdiff = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkhalfdiff)
 
-norm = None
-
 logk = np.stack((logkavg,logkhalfdiff),axis=-2)
-print(logk.shape)
 logk = np.concatenate((logk,np.zeros((2,nproc,2,nsyst))),axis=0)
+
 print(logk.shape)
 
-# logk = logk.reshape([logk.shape[0]*nproc,2*nsyst])
-# print(logk.shape)
-# nonzero = np.nonzero(logk)
-# print(np.array(nonzero).shape, np.array(np.transpose(nonzero)).shape)
-# # nonzero = np.array(nonzero)
-# logk_sparse_indices = np.argwhere(logk).astype(np.int32)
-# # logk_sparse_indices = np.transpose(np.array(nonzero).astype(np.int32))
-# logk_sparse_values = logk[nonzero].reshape([-1])
+logk = logk.reshape([norm.shape[0],nproc,2*nsyst])
 
-# print("logk_sparse_dense_shape",logk_sparse_dense_shape)
-# print("logk_sparse_indices",logk_sparse_indices.shape)
-# print("logk_sparse_values",logk_sparse_values.shape)
+norm = None
+print(logk.shape)
 
-# nbytes += writeSparse(logk_sparse_indices, logk_sparse_values, logk_sparse_dense_shape, f, "hlogk_sparse", maxChunkBytes = chunkSize)
-# logk_sparse_indices = None
-# logk_sparse_values = None
+logk = logk[nonzero]
 
-nbytes += writeFlatInChunks(logk, f, "hlogk", maxChunkBytes = chunkSize)
-logk = None
+print("after nonzero", logk.shape)
+
+nonzero = np.nonzero(logk)
+
+print(np.array(nonzero).shape, np.array(np.transpose(nonzero)).shape)
+# nonzero = np.array(nonzero)
+logk_sparse_indices = np.argwhere(logk).astype(np.int32)
+# logk_sparse_indices = np.transpose(np.array(nonzero).astype(np.int32))
+logk_sparse_values = logk[nonzero].reshape([-1])
+
+print("logk_sparse_dense_shape",logk_sparse_dense_shape)
+print("logk_sparse_indices",logk_sparse_indices.shape)
+print("logk_sparse_values",logk_sparse_values.shape)
+
+nbytes += writeSparse(logk_sparse_indices, logk_sparse_values, logk_sparse_dense_shape, f, "hlogk_sparse", maxChunkBytes = chunkSize)
+norm_sparse_indices = None
+norm_sparse_values = None
+logk_sparse_indices = None
+logk_sparse_values = None
+
+# nbytes += writeFlatInChunks(logk, f, "hlogk", maxChunkBytes = chunkSize)
+# logk = None
 
 print("Total raw bytes in arrays = %d" % nbytes)
 
