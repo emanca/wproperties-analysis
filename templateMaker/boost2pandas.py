@@ -293,10 +293,16 @@ print('\nreorganizing and adding other procs\n',df.head(),df.tail())
 
 #add systematics
 
+'''
+dict_keys(['signal_nominal', 'signal_mass_var', 'signal_jpsi_var', 'signal_nominal_gensmear', 'signal_effStatTnP_sf_reco', 'signal_effStatTnP_sf_tracking', 'signal_effStatTnP_sf_idip', 'signal_effStatTnP_sf_trigger', 'signal_effStatTnP_sf_iso', 'signal_effSystTnP', 'signal_muonL1PrefireStat_tensor', 'signal_muonL1PrefireSyst_tensor', 'signal_ecalL1Prefire_tensor'])
+'''
+
 systs_macrogroups = {} # this is a list over groups of systematics
 systs_macrogroups['mass']=['mass_var']
 systs_macrogroups['muon_calibration']=['jpsi_var']
-# systs_macrogroups['sf']=['effStatTnP_sf_reco','effStatTnP_sf_tracking','effStatTnP_sf_idip','effStatTnP_sf_trigger'] #these correspond to the names of histograms to recall from file
+systs_macrogroups['sf']=['effStatTnP_sf_reco','effStatTnP_sf_tracking','effStatTnP_sf_idip','effStatTnP_sf_trigger','effStatTnP_sf_iso','effSystTnP'] #these correspond to the names of histograms to recall from file
+systs_macrogroups['prefire']=['muonL1PrefireStat_tensor','muonL1PrefireSyst_tensor','ecalL1Prefire_tensor']
+
 
 procs = ["signal"]+procs #careful!! this must be the same order as before!
 nominal_cols = ['Zrap', 'Zpt', 'mueta', 'mupt', 'charge', 'helicities','downUpVar']
@@ -318,7 +324,8 @@ for proc in procs:
             if 'sf' in syst:
                 nominal = C * results[process]['output']['{proc}_nominal'.format(proc=proc)].get()
                 syst_histo = mirrorHisto(nominal,syst_histo)
-                syst_histo = decorrelateInEta(nominal,syst_histo)
+                if not 'effSystTnP' in nuisance:
+                    syst_histo = decorrelateInEta(nominal,syst_histo)
                 nominal = None
             if 'muon_calibration' in syst:
                 print("get {proc}_nominal".format(proc=proc))
@@ -344,6 +351,9 @@ for proc in procs:
                 # rapidity, qt, hel, charge, syst, data, up/down
                 names = ['rapidity', 'qt' , 'hel','charge']+[axis.name for axis in syst_axes]
                 iterables = [yBinsC, qtBinsC,helicities ,charges] + [axis.centers for axis in syst_axes]
+                if syst_axes == []:
+                    names.append(f"{nuisance}")
+                    iterables.append([0.5])
                 multi = pd.MultiIndex.from_product(iterables, names = names)
                 # print(multi)
                 syst_df = pd.Series(list(syst_arr),index=multi,name=syst)
@@ -353,6 +363,8 @@ for proc in procs:
                 syst_string = f"{nuisance}_"
                 for axis in syst_axes:
                     syst_string+=axis.name.replace(' ','')+'_'+syst_df[axis.name].apply(str)+'_'
+                if syst_axes == []:
+                    syst_string+=syst_string+syst_df[syst_string[:-1]].apply(str)+'_'
                 syst_string = syst_string.apply(lambda s: s[:-1] if s.endswith('_') else s)
                 idx_strings.append(syst_string)
                 syst_df.set_index(idx_strings,inplace=True)
