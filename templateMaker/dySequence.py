@@ -36,6 +36,9 @@ from wremnants import muon_calibration, muon_selections
 
 parser,initargs = common.common_parser(True)
 parser = common.set_parser_default(parser, "filterProcs", common.vprocs+["dataPostVFP"])
+# custom args
+parser.add_argument("-Wlike", "--Wlike", action='store_true', help="run analysis on Wlike")
+parser.add_argument("-runHel", "--runHel", action='store_true', help="get helicity cross sections")
 
 args = parser.parse_args()
 
@@ -47,18 +50,27 @@ datasets = wremnants.datasets2016.getDatasets(maxFiles=args.maxFiles,
                                               nanoVersion="v8" if args.v8 else "v9", base_path=args.dataPath)
 
 logger.debug(f"Will process samples {[d.name for d in datasets]}")
-print([d.name for d in datasets])
-print(args.filterProcs)
-print(args.excludeProcs)
 
 wremnants_dir = f"{pathlib.Path(__file__).parent}/../wremnants"
 data_dir = f"{wremnants_dir}/data/"
 
 ROOT.gSystem.Load('bin/libAnalysis.so')
 
-# ROOT.ROOT.EnableImplicitMT()
+isWlike = args.Wlike
+runHel = args.runHel
+era = args.era
 
+qts_axis_W = hist.axis.Variable([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.,200.], name = "Wpt")
+ys_axis_W = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 10.0], name = "Wrap")
+qts_axis_red_W = hist.axis.Variable([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.], name = "Wpt")
+ys_axis_red_W = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4], name = "Wrap")
 
+qts_axis_Z = hist.axis.Variable([ 0., 3.,  4.8,  6.7, 9., 12., 16.01, 23.6,60,200.], name = "Vpt")
+ys_axis_Z = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 10.0], name = "Vrap")
+qts_axis_red_Z = hist.axis.Variable([ 0., 3.,  4.8,  6.7, 9., 12., 16.01, 23.6,60.], name = "Vpt")
+ys_axis_red_Z = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0], name = "Vrap")
+
+<<<<<<< HEAD
 # qts_axis = hist.axis.Variable([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.,200.], name = "Zpt")
 # ys_axis = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 10.0], name = "Zrap")
 # qts_axis_red = hist.axis.Variable([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.], name = "Zpt")
@@ -68,17 +80,20 @@ qts_axis = hist.axis.Variable([ 0., 3.,  4.8,  6.7, 9., 12., 16.01, 23.6, 60.,20
 ys_axis = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 10.0], name = "Zrap")
 qts_axis_red = hist.axis.Variable([ 0., 3.,  4.8,  6.7, 9., 12., 16.01, 23.6,60.], name = "Zpt")
 ys_axis_red = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0], name = "Zrap")
+=======
+>>>>>>> 1231e27 (first step into including W analysis)
 costhetas_axis =  hist.axis.Regular(100, -1.,1, name = "costheta")
 phis_axis =  hist.axis.Regular(100, 0.,2.*pi, name = "phi")
 pts_axis =  hist.axis.Regular(60, 25.,55., name = "mupt")
 etas_axis =  hist.axis.Regular(48, -2.4,2.4, name = "mueta")
 axis_charge = hist.axis.Regular(2, -2., 2., underflow=False, overflow=False, name = "charge")
 
+
 def build_graph(df, dataset):
     
     logger.info(f"build graph for dataset: {dataset.name}")
-    isW = dataset.name in common.wprocs
-    isZ = dataset.name in common.zprocs
+    isW = dataset.name in common.wprocs_recoil #["WplusmunuPostVFP", "WminusmunuPostVFP"]
+    isZ = dataset.name in common.zprocs_recoil #["ZmumuPostVFP"]
 
     if isW or isZ:
 
@@ -86,6 +101,13 @@ def build_graph(df, dataset):
         p.branch(nodeToStart='input', nodeToEnd='defs', modules=[defineWeight(dataset,True),ROOT.genLeptonSelector(), ROOT.CSvariableProducer(), ROOT.genVProducer()])
 
         weightsum = p.EventCount('defs', "weight")
+
+        if isW:
+            ys_axis = ys_axis_W
+            qts_axis = qts_axis_W
+        elif isZ:
+            ys_axis = ys_axis_Z
+            qts_axis = qts_axis_Z
 
         axes = [ys_axis,qts_axis,costhetas_axis,phis_axis]
         cols = ["Vrap_preFSR_abs","Vpt_preFSR","CStheta_preFSR","CSphi_preFSR","weight"]
@@ -102,11 +124,14 @@ def build_graph(df, dataset):
 
     return results, weightsum
 
-#give it to narf
-# resultdict = narf.build_and_run(datasets, build_graph)
+if runHel:
+    resultdict = narf.build_and_run(datasets, build_graph)
 
-# print(resultdict['ZmumuPostVFP'].keys())
+    outfile = "momentsWZ.hdf5"
+    with h5py.File(outfile, 'w') as f:
+        narf.ioutils.pickle_dump_h5py("results", resultdict, f)
 
+<<<<<<< HEAD
 # outfile = "test.hdf5"
 # with h5py.File(outfile, 'w') as f:
 #     narf.ioutils.pickle_dump_h5py("results", resultdict, f)
@@ -115,71 +140,101 @@ infile = "test.hdf5"
 with h5py.File(infile, "r") as f:
     results = narf.ioutils.pickle_load_h5py(f["results"])
     hFullAcc = results['ZmumuPostVFP']["output"]["xsecs"].get()
+=======
+infile = "momentsWZ.hdf5"
+>>>>>>> 1231e27 (first step into including W analysis)
 
-lumi = results['dataPostVFP']["lumi"]
-xsec = results['ZmumuPostVFP']["dataset"]["xsec"]
-yBins = hFullAcc.axes[0].edges
-yBinsS = yBins[1:]-yBins[:-1]
+def getHelXsecs(sample):
 
-# pick the right harmonics and reweight
-cosThetaBins = hFullAcc.axes[2].edges
-phiBins = hFullAcc.axes[-1].edges
-yBins = hFullAcc.axes[0].edges
-qtBins = hFullAcc.axes[1].edges
+    with h5py.File(infile, "r") as f:
+        results = narf.ioutils.pickle_load_h5py(f["results"])
+        hFullAcc = results[sample]["output"]["xsecs"].get()
 
-cosThetaBins = np.asarray(cosThetaBins)
-cosThetaBinsC = 0.5*(cosThetaBins[1:]+cosThetaBins[:-1])
-phiBins = np.asarray(phiBins)
-phiBinsC = 0.5*(phiBins[1:]+phiBins[:-1])
+    lumi = results['dataPostVFP']["lumi"]
+    xsec = results[sample]["dataset"]["xsec"]
+    yBins = hFullAcc.axes[0].edges
+    yBinsS = yBins[1:]-yBins[:-1]
 
-P0w = np.outer(1. / 2. * (1. - 3. * cosThetaBinsC * cosThetaBinsC),np.ones(len(phiBinsC)))
-P1w = np.outer(2. * cosThetaBinsC * np.sqrt(1. - cosThetaBinsC * cosThetaBinsC),np.cos(phiBinsC))
-P2w = np.outer(1. / 2. * (1. - cosThetaBinsC * cosThetaBinsC),np.cos(2. * phiBinsC))
-P3w = np.outer(np.sqrt(1. - cosThetaBinsC * cosThetaBinsC),np.cos(phiBinsC))
-P4w = np.outer(cosThetaBinsC,np.ones(len(phiBinsC)))
-P5w = np.outer((1. - cosThetaBinsC * cosThetaBinsC),np.sin(2. * phiBinsC))
-P6w = np.outer(2. * cosThetaBinsC * np.sqrt(1. - cosThetaBinsC * cosThetaBinsC),np.sin(phiBinsC))
-P7w = np.outer(np.sqrt(1. - cosThetaBinsC * cosThetaBinsC),np.sin(phiBinsC))
-P8w = np.outer(1 + cosThetaBinsC * cosThetaBinsC,np.ones(len(phiBinsC)))
+    # pick the right harmonics and reweight
+    cosThetaBins = hFullAcc.axes[2].edges
+    phiBins = hFullAcc.axes[-1].edges
+    yBins = hFullAcc.axes[0].edges
+    qtBins = hFullAcc.axes[1].edges
 
-wharmonics = [P0w,P1w,P2w,P3w,P4w,P5w,P6w,P7w]
-hharmonics = []
-hFullAcc = hFullAcc*lumi*1000*xsec/results["ZmumuPostVFP"]["weight_sum"]
-totalxsec = hFullAcc.project(0,1)
+    cosThetaBins = np.asarray(cosThetaBins)
+    cosThetaBinsC = 0.5*(cosThetaBins[1:]+cosThetaBins[:-1])
+    phiBins = np.asarray(phiBins)
+    phiBinsC = 0.5*(phiBins[1:]+phiBins[:-1])
 
-factors = [(20./3., 1./10),(5.,0.),(20.,0.),(4.,0.),(4.,0.),(5.,0.),(5.,0.),(4.,0.)]
-for i,hw in enumerate(wharmonics):
-    htmp = np.einsum('ijkm,km->ij',hFullAcc.values(),hw)/totalxsec.values()
-    htmp = factors[i][0]*(htmp+factors[i][1])
-    hharmonics.append(htmp)
+    P0w = np.outer(1. / 2. * (1. - 3. * cosThetaBinsC * cosThetaBinsC),np.ones(len(phiBinsC)))
+    P1w = np.outer(2. * cosThetaBinsC * np.sqrt(1. - cosThetaBinsC * cosThetaBinsC),np.cos(phiBinsC))
+    P2w = np.outer(1. / 2. * (1. - cosThetaBinsC * cosThetaBinsC),np.cos(2. * phiBinsC))
+    P3w = np.outer(np.sqrt(1. - cosThetaBinsC * cosThetaBinsC),np.cos(phiBinsC))
+    P4w = np.outer(cosThetaBinsC,np.ones(len(phiBinsC)))
+    P5w = np.outer((1. - cosThetaBinsC * cosThetaBinsC),np.sin(2. * phiBinsC))
+    P6w = np.outer(2. * cosThetaBinsC * np.sqrt(1. - cosThetaBinsC * cosThetaBinsC),np.sin(phiBinsC))
+    P7w = np.outer(np.sqrt(1. - cosThetaBinsC * cosThetaBinsC),np.sin(phiBinsC))
+    P8w = np.outer(1 + cosThetaBinsC * cosThetaBinsC,np.ones(len(phiBinsC)))
 
-hharmonics.append(totalxsec.values())
-hharmonics = np.stack(hharmonics,axis=-1)
+    wharmonics = [P0w,P1w,P2w,P3w,P4w,P5w,P6w,P7w]
+    hharmonics = []
+    hFullAcc = hFullAcc*lumi*1000*xsec/results[sample]["weight_sum"]
+    totalxsec = hFullAcc.project(0,1)
 
-hharmonics[:,:,0]*=(1./2.)
-hharmonics[:,:,1]*=(1./(2.*sqrt(2)))
-hharmonics[:,:,2]*=(1./4.)
-hharmonics[:,:,3]*=(1./(4.*sqrt(2)))
-hharmonics[:,:,4]*=(1./2.)
-hharmonics[:,:,5]*=(1./2.)
-hharmonics[:,:,6]*=(1./(2.*sqrt(2)))
-hharmonics[:,:,7]*=(1./(4.*sqrt(2)))
+    factors = [(20./3., 1./10),(5.,0.),(20.,0.),(4.,0.),(4.,0.),(5.,0.),(5.,0.),(4.,0.)]
+    for i,hw in enumerate(wharmonics):
+        htmp = np.einsum('ijkm,km->ij',hFullAcc.values(),hw)/totalxsec.values()
+        htmp = factors[i][0]*(htmp+factors[i][1])
+        hharmonics.append(htmp)
 
-#convert np array to boost histogram and write to file
-#create boost histogram as placeholder using hist package
-hist_coeffs = hist.Hist(ys_axis,qts_axis,hist.axis.Integer(-1, 8, underflow=False, overflow=False, name='helicity'), name = "hist_coeffs",
-data = hharmonics
-    )
+    hharmonics.append(totalxsec.values())
+    hharmonics = np.stack(hharmonics,axis=-1)
 
-outfile = "angCoeffZ.hdf5"
+    hharmonics[:,:,0]*=(1./2.)
+    hharmonics[:,:,1]*=(1./(2.*sqrt(2)))
+    hharmonics[:,:,2]*=(1./4.)
+    hharmonics[:,:,3]*=(1./(4.*sqrt(2)))
+    hharmonics[:,:,4]*=(1./2.)
+    hharmonics[:,:,5]*=(1./2.)
+    hharmonics[:,:,6]*=(1./(2.*sqrt(2)))
+    hharmonics[:,:,7]*=(1./(4.*sqrt(2)))
+
+    #convert np array to boost histogram and write to file
+    #create boost histogram as placeholder using hist package
+    if sample=="ZmumuPostVFP":
+        name="Z"
+        ys_axis = ys_axis_Z
+        qts_axis = qts_axis_Z
+    elif sample == "WplusmunuPostVFP":
+        name ="Wplus"
+        ys_axis = ys_axis_W
+        qts_axis = qts_axis_W
+    else:
+        name ="Wminus"
+        ys_axis = ys_axis_W
+        qts_axis = qts_axis_W
+    
+    hist_coeffs = hist.Hist(ys_axis,qts_axis,hist.axis.Integer(-1, 8, underflow=False, overflow=False, name='helicity'), name = f"hist_coeffs_{name}",
+    data = hharmonics
+        )
+    return hist_coeffs
+
+hist_coeffs_dict = {}
+
+hist_coeffs_dict[getHelXsecs("ZmumuPostVFP").name]=getHelXsecs("ZmumuPostVFP")
+hist_coeffs_dict[getHelXsecs("WplusmunuPostVFP").name]=getHelXsecs("WplusmunuPostVFP")
+hist_coeffs_dict[getHelXsecs("WminusmunuPostVFP").name]=getHelXsecs("WminusmunuPostVFP")
+
+outfile = "angCoeffWZ.hdf5"
 with h5py.File(outfile, 'w') as f:
-    narf.ioutils.pickle_dump_h5py("angCoeffZ", hist_coeffs, f)
+    narf.ioutils.pickle_dump_h5py("angCoeffWZ", hist_coeffs_dict, f)
+
+with h5py.File(outfile, "r") as f:
+    results = narf.ioutils.pickle_load_h5py(f["angCoeffWZ"])
+    print(results)
 
 ## helper definition - will need better organization maybe
 
-era="2016PostVFP"
-sfFile = "allSmooth_GtoH.root"
-sfFile = f"{data_dir}/testMuonSF/{sfFile}"
 pileup_helper = wremnants.make_pileup_helper(era = era)
 muon_prefiring_helper, muon_prefiring_helper_stat, muon_prefiring_helper_syst = wremnants.make_muon_prefiring_helpers(era = era)
 print(args.sfFile)
@@ -207,16 +262,23 @@ def massWeightNames(matches=None, proc=""):
 def build_graph_templates(df, dataset):
     
     logger.info(f"build graph for dataset: {dataset.name}")
-    isW = dataset.name in common.wprocs
-    isZ = dataset.name in common.zprocs
+    isW = dataset.name in common.wprocs_recoil #["WplusmunuPostVFP", "WminusmunuPostVFP"]
+    isZ = dataset.name in common.zprocs_recoil #["ZmumuPostVFP"]
 
     p = RDFtree(df)
     p.branch(nodeToStart='input', nodeToEnd='event_count', modules=[defineWeight(dataset,True)])
     p.branch(nodeToStart='event_count', nodeToEnd='calibrations', modules=[muonSelection(dataset,args,data_calibration_helper,mc_calibration_helper,data_jpsi_crctn_helper,mc_jpsi_crctn_helper),defineWeight(dataset,False,pileup_helper,muon_efficiency_helper,muon_prefiring_helper)])
     weightsum = p.EventCount('event_count', "weight")
-    if isZ:
-        p.branch(nodeToStart='calibrations', nodeToEnd='theoryTools', modules=[ROOT.genLeptonSelector(), ROOT.CSvariableProducer(), ROOT.genVProducer(),ROOT.defineHarmonics(),getHelWeights("angCoeffZ.hdf5"),ROOT.getWeights(),getMassWeights(isW=False),muonCalibration(dataset,jpsi_crctn_data_unc_helper)])
+    if (isZ and isWlike) or (isW and not isWlike):
+        p.branch(nodeToStart='calibrations', nodeToEnd='theoryTools', modules=[ROOT.genLeptonSelector(), ROOT.CSvariableProducer(), ROOT.genVProducer(),ROOT.defineHarmonics(),getHelWeights(angFile="angCoeffWZ.hdf5",type=dataset.name),ROOT.getWeights(),getMassWeights(isW=False),muonCalibration(dataset,jpsi_crctn_data_unc_helper)])
         
+        if not isWlike:
+            ys_axis_red = ys_axis_W
+            qts_axis_red = qts_axis_W
+        else:
+            ys_axis_red = ys_axis_Z
+            qts_axis_red = qts_axis_Z
+
         axes = [ys_axis_red,qts_axis_red,etas_axis,pts_axis,axis_charge]
         nom_cols = ["Vrap_preFSR_abs","Vpt_preFSR", "trigMuons_eta0", "trigMuons_pt0", "trigMuons_charge0"]
         helicity_axis = hist.axis.StrCategory(["L", "I", "T", "A", "P","UL"], name = "helicities")
@@ -271,10 +333,7 @@ def build_graph_templates(df, dataset):
         # p.Histogram('lowacc_pref', 'lowacc_ecal1L1Prefire', [*nom_cols,"ecalL1Prefire_tensor"], axes,tensor_axes = [common.down_up_axis])
 
         results = p.getObjects()
-    
-    elif isW:
 
-        results = []
     else:
         
         axes = [etas_axis,pts_axis,axis_charge]
