@@ -12,9 +12,10 @@ ROOT.gInterpreter.Declare('#include "interface/helHelper.h"')
 
 class getHelWeights(module):
    
-    def __init__(self, angFile):
+    def __init__(self, angFile, type):
         
         self.angFile=angFile
+        self.type = type
         pass
       
 
@@ -23,8 +24,8 @@ class getHelWeights(module):
         self.d=d
 
         with h5py.File(self.angFile, "r") as f:
-            results = narf.ioutils.pickle_load_h5py(f["angCoeffZ"])
-            hharmonics = results
+            results = narf.ioutils.pickle_load_h5py(f["angCoeffWZ"])
+            hharmonics = results[f"hist_coeffs_{self.type}"]
         
         #convert to boost histogram with pyroot bindings
         

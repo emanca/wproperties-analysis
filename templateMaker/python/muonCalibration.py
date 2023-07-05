@@ -10,10 +10,11 @@ ROOT.gInterpreter.Declare('#include "interface/helSystHelper.h"')
 
 class muonCalibration(module):
    
-    def __init__(self,dataset,jpsi_crctn_data_unc_helper):
+    def __init__(self,dataset,isWlike,jpsi_crctn_data_unc_helper):
         
         self.jpsi_crctn_data_unc_helper=jpsi_crctn_data_unc_helper
         self.dataset=dataset
+        self.isWlike=isWlike
     def run(self,d):
 
         self.d = d
@@ -32,7 +33,10 @@ class muonCalibration(module):
         self.d = muon_calibration.calculate_matched_gen_muon_kinematics(self.d, reco_sel_GF)
         self.d = muon_calibration.define_matched_genSmeared_muon_kinematics(self.d, reco_sel_GF)
 
-        reco_sel = "trigMuons"
+        if self.isWlike:
+            reco_sel = "trigMuons"
+        else:
+            reco_sel = "goodMuons"
         self.d = muon_calibration.define_matched_gen_muons_kinematics(self.d, reco_sel)
         self.d = muon_calibration.calculate_matched_gen_muon_kinematics(self.d, reco_sel)
         self.d = muon_calibration.define_matched_gen_muons_covMat(self.d, reco_sel)

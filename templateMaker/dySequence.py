@@ -60,33 +60,23 @@ isWlike = args.Wlike
 runHel = args.runHel
 era = args.era
 
-qts_axis_W = hist.axis.Variable([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.,200.], name = "Wpt")
-ys_axis_W = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 10.0], name = "Wrap")
-qts_axis_red_W = hist.axis.Variable([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.], name = "Wpt")
-ys_axis_red_W = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4], name = "Wrap")
+qts_axis_W = hist.axis.Variable([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.,200.],underflow=False, overflow=False, name = "Vpt")
+ys_axis_W = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 10.0], underflow=False, overflow=False, name = "Vrap")
+qts_axis_red_W = hist.axis.Variable([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.], underflow=False, overflow=False, name = "Vpt")
+ys_axis_red_W = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4], underflow=False, overflow=False, name = "Vrap")
 
-qts_axis_Z = hist.axis.Variable([ 0., 3.,  4.8,  6.7, 9., 12., 16.01, 23.6,60,200.], name = "Vpt")
-ys_axis_Z = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 10.0], name = "Vrap")
-qts_axis_red_Z = hist.axis.Variable([ 0., 3.,  4.8,  6.7, 9., 12., 16.01, 23.6,60.], name = "Vpt")
-ys_axis_red_Z = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0], name = "Vrap")
+qts_axis_Z = hist.axis.Variable([ 0., 3.,  4.8,  6.7, 9., 12., 16.01, 23.6,60,200.], underflow=False, overflow=False, name = "Vpt")
+ys_axis_Z = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 10.0], underflow=False, overflow=False, name = "Vrap")
+qts_axis_red_Z = hist.axis.Variable([ 0., 3.,  4.8,  6.7, 9., 12., 16.01, 23.6,60.], underflow=False, overflow=False, name = "Vpt")
+ys_axis_red_Z = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0], underflow=False, overflow=False, name = "Vrap")
 
-<<<<<<< HEAD
-# qts_axis = hist.axis.Variable([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.,200.], name = "Zpt")
-# ys_axis = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 10.0], name = "Zrap")
-# qts_axis_red = hist.axis.Variable([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.], name = "Zpt")
-# ys_axis_red = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4], name = "Zrap")
-# qts_axis = hist.axis.Variable([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.,200.], name = "Zpt")
-qts_axis = hist.axis.Variable([ 0., 3.,  4.8,  6.7, 9., 12., 16.01, 23.6, 60.,200], name = "Zpt")
-ys_axis = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 10.0], name = "Zrap")
-qts_axis_red = hist.axis.Variable([ 0., 3.,  4.8,  6.7, 9., 12., 16.01, 23.6,60.], name = "Zpt")
-ys_axis_red = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0], name = "Zrap")
-=======
->>>>>>> 1231e27 (first step into including W analysis)
-costhetas_axis =  hist.axis.Regular(100, -1.,1, name = "costheta")
-phis_axis =  hist.axis.Regular(100, 0.,2.*pi, name = "phi")
-pts_axis =  hist.axis.Regular(60, 25.,55., name = "mupt")
-etas_axis =  hist.axis.Regular(48, -2.4,2.4, name = "mueta")
+costhetas_axis =  hist.axis.Regular(100, -1.,1, underflow=False, overflow=False, name = "costheta")
+phis_axis =  hist.axis.Regular(100, 0.,2.*pi, underflow=False, overflow=False, name = "phi")
+pts_axis =  hist.axis.Regular(60, 25.,55., underflow=False, overflow=False, name = "mupt")
+etas_axis =  hist.axis.Regular(48, -2.4,2.4, underflow=False, overflow=False, name = "mueta")
 axis_charge = hist.axis.Regular(2, -2., 2., underflow=False, overflow=False, name = "charge")
+axis_passIso = common.axis_passIso
+axis_passMT = common.axis_passMT
 
 
 def build_graph(df, dataset):
@@ -131,18 +121,7 @@ if runHel:
     with h5py.File(outfile, 'w') as f:
         narf.ioutils.pickle_dump_h5py("results", resultdict, f)
 
-<<<<<<< HEAD
-# outfile = "test.hdf5"
-# with h5py.File(outfile, 'w') as f:
-#     narf.ioutils.pickle_dump_h5py("results", resultdict, f)
-
-infile = "test.hdf5"
-with h5py.File(infile, "r") as f:
-    results = narf.ioutils.pickle_load_h5py(f["results"])
-    hFullAcc = results['ZmumuPostVFP']["output"]["xsecs"].get()
-=======
 infile = "momentsWZ.hdf5"
->>>>>>> 1231e27 (first step into including W analysis)
 
 def getHelXsecs(sample):
 
@@ -202,15 +181,15 @@ def getHelXsecs(sample):
     #convert np array to boost histogram and write to file
     #create boost histogram as placeholder using hist package
     if sample=="ZmumuPostVFP":
-        name="Z"
+        name="ZmumuPostVFP"
         ys_axis = ys_axis_Z
         qts_axis = qts_axis_Z
     elif sample == "WplusmunuPostVFP":
-        name ="Wplus"
+        name ="WplusmunuPostVFP"
         ys_axis = ys_axis_W
         qts_axis = qts_axis_W
     else:
-        name ="Wminus"
+        name ="WminusmunuPostVFP"
         ys_axis = ys_axis_W
         qts_axis = qts_axis_W
     
@@ -265,54 +244,68 @@ def build_graph_templates(df, dataset):
     isW = dataset.name in common.wprocs_recoil #["WplusmunuPostVFP", "WminusmunuPostVFP"]
     isZ = dataset.name in common.zprocs_recoil #["ZmumuPostVFP"]
 
-    p = RDFtree(df)
-    p.branch(nodeToStart='input', nodeToEnd='event_count', modules=[defineWeight(dataset,True)])
-    p.branch(nodeToStart='event_count', nodeToEnd='calibrations', modules=[muonSelection(dataset,args,data_calibration_helper,mc_calibration_helper,data_jpsi_crctn_helper,mc_jpsi_crctn_helper),defineWeight(dataset,False,pileup_helper,muon_efficiency_helper,muon_prefiring_helper)])
-    weightsum = p.EventCount('event_count', "weight")
-    if (isZ and isWlike) or (isW and not isWlike):
-        p.branch(nodeToStart='calibrations', nodeToEnd='theoryTools', modules=[ROOT.genLeptonSelector(), ROOT.CSvariableProducer(), ROOT.genVProducer(),ROOT.defineHarmonics(),getHelWeights(angFile="angCoeffWZ.hdf5",type=dataset.name),ROOT.getWeights(),getMassWeights(isW=False),muonCalibration(dataset,jpsi_crctn_data_unc_helper)])
-        
-        if not isWlike:
-            ys_axis_red = ys_axis_W
-            qts_axis_red = qts_axis_W
-        else:
-            ys_axis_red = ys_axis_Z
-            qts_axis_red = qts_axis_Z
+    if not isWlike:
+        ys_axis_red = ys_axis_red_W
+        qts_axis_red = qts_axis_red_W
+        flag = "goodMuons"
+    else:
+        ys_axis_red = ys_axis_red_Z
+        qts_axis_red = qts_axis_red_Z
+        flag = "trigMuons"
 
-        axes = [ys_axis_red,qts_axis_red,etas_axis,pts_axis,axis_charge]
-        nom_cols = ["Vrap_preFSR_abs","Vpt_preFSR", "trigMuons_eta0", "trigMuons_pt0", "trigMuons_charge0"]
+    p = RDFtree(df)
+    p.branch(nodeToStart='input', nodeToEnd='event_count', modules=[defineWeight(dataset,isWlike,True)])
+    p.branch(nodeToStart='event_count', nodeToEnd='calibrations', modules=[muonSelection(dataset,args,data_calibration_helper,mc_calibration_helper,data_jpsi_crctn_helper,mc_jpsi_crctn_helper),defineWeight(dataset,isWlike,False,pileup_helper,muon_efficiency_helper,muon_prefiring_helper)])
+    weightsum = p.EventCount('event_count', "weight")
+    
+    if (isZ and isWlike) or (isW and not isWlike):
+        p.branch(nodeToStart='calibrations', nodeToEnd='theoryTools', modules=[ROOT.genLeptonSelector(), ROOT.CSvariableProducer(), ROOT.genVProducer(),ROOT.defineHarmonics(),getHelWeights(angFile="angCoeffWZ.hdf5",type=dataset.name),ROOT.getWeights(),getMassWeights(isW=False),muonCalibration(dataset,isWlike,jpsi_crctn_data_unc_helper)])
+
+        # axes = [ys_axis_red,qts_axis_red,etas_axis,pts_axis,axis_charge]
+        # nom_cols = ["Vrap_preFSR_abs","Vpt_preFSR", f"{flag}_eta0", f"{flag}_pt0", f"{flag}_charge0"]
+        axes = [etas_axis,pts_axis,axis_charge,ys_axis_red,qts_axis_red]
+        nom_cols = [f"{flag}_eta0", f"{flag}_pt0", f"{flag}_charge0","Vrap_preFSR_abs","Vpt_preFSR"]
+
+        if isW:
+            axes = [etas_axis,pts_axis,axis_charge,axis_passMT,axis_passIso,ys_axis_red,qts_axis_red]
+            nom_cols = [f"{flag}_eta0", f"{flag}_pt0", f"{flag}_charge0","passMT","passIso","Vrap_preFSR_abs","Vpt_preFSR"]
+        
         helicity_axis = hist.axis.StrCategory(["L", "I", "T", "A", "P","UL"], name = "helicities")
         
         ## signal templates decomposed by helicity
-
+        p.EventFilter(nodeToStart='theoryTools', nodeToEnd='theoryTools', evfilter=f"{flag}_pt0> 25. && {flag}_pt0< 55. && fabs({flag}_eta0)< 2.4", filtername="{:20s}".format("accept"))
         p.EventFilter(nodeToStart='theoryTools', nodeToEnd='signal_nominal', evfilter="Vrap_preFSR_abs<2.4 && Vpt_preFSR<60.", filtername="{:20s}".format("signal_nominal"))
+        # p.getCutFlowReport("signal_nominal").Print()
 
         # nominal histogram
         p.Histogram('signal_nominal', 'signal_nominal', [*nom_cols,'helWeightTensor'], axes, tensor_axes= [helicity_axis])
-        # mass variations
-        # p.displayColumn("signal_nominal", columnList=["massVec_size","MEParamWeight_size"])
-        p.Histogram('signal_nominal', 'signal_mass_var', [*nom_cols,'massWeight_tensor_hel'], axes,tensor_axes=[helicity_axis,hist.axis.StrCategory(["mass_var"], name="mass_var"),common.down_up_axis])
 
-        # muon calibration uncertainties
-        p.Histogram('signal_nominal', 'signal_jpsi_var', [*nom_cols,'jpsiWeight_tensor_hel'], axes,tensor_axes = [helicity_axis,*(jpsi_crctn_data_unc_helper.tensor_axes)])
-        nom_cols_smeared = ["Vrap_preFSR_abs","Vpt_preFSR", "trigMuons_genSmearedEta", "trigMuons_genSmearedPt", "trigMuons_genSmearedCharge"]
-        p.Histogram('signal_nominal', 'signal_nominal_gensmear', [*nom_cols_smeared,'helWeightTensor'], axes, tensor_axes= [helicity_axis])
+        storage = hist.storage.Double()
+        # mass variations
+        p.Histogram('signal_nominal', 'signal_mass_var', [*nom_cols,'massWeight_tensor_hel'], axes,tensor_axes=[helicity_axis,hist.axis.StrCategory(["mass_var"], name="mass_var"),common.down_up_axis],storage=storage)
+
+        # # muon calibration uncertainties
+        # p.Histogram('signal_nominal', 'signal_jpsi_var', [*nom_cols,'jpsiWeight_tensor_hel'], axes,tensor_axes = [helicity_axis,*(jpsi_crctn_data_unc_helper.tensor_axes)],storage=storage)
+        # nom_cols_smeared = ["Vrap_preFSR_abs","Vpt_preFSR", f"{flag}_genSmearedEta", f"{flag}_genSmearedPt", f"{flag}_genSmearedCharge"]
+        # if isW:
+        #     nom_cols_smeared.extend(["passMT","passIso"])
+        # p.Histogram('signal_nominal', 'signal_nominal_gensmear', [*nom_cols_smeared,'helWeightTensor'], axes, tensor_axes= [helicity_axis],storage=storage)
 
         # sf variations and prefiring variations
-        p.branch(nodeToStart='signal_nominal', nodeToEnd='signal_sf', modules=[getSFVariations(isWlike=False,helper_stat=muon_efficiency_helper_stat,helper_syst=muon_efficiency_helper_syst, helperPref_stat = muon_prefiring_helper_stat, helperPref_syst=muon_prefiring_helper_syst)])
+        p.branch(nodeToStart='signal_nominal', nodeToEnd='signal_sf', modules=[getSFVariations(isWlike=isWlike,helper_stat=muon_efficiency_helper_stat,helper_syst=muon_efficiency_helper_syst, helperPref_stat = muon_prefiring_helper_stat, helperPref_syst=muon_prefiring_helper_syst)])
         
         for key,helper in muon_efficiency_helper_stat.items():
             print(f'signal_effStatTnP_{key}',*(helper.tensor_axes))
-            p.Histogram('signal_sf', f'signal_effStatTnP_{key}', [*nom_cols,f"effStatTnP_{key}_tensor_hel"], axes, tensor_axes = [helicity_axis,*(helper.tensor_axes)])
-        p.Histogram('signal_sf', 'signal_effSystTnP', [*nom_cols,"effSystTnP_tensor_hel"], axes, tensor_axes = [helicity_axis,*(muon_efficiency_helper_syst.tensor_axes)])
+            p.Histogram('signal_sf', f'signal_effStatTnP_{key}', [*nom_cols,f"effStatTnP_{key}_tensor_hel"], axes, tensor_axes = [helicity_axis,*(helper.tensor_axes)],storage=storage)
+        p.Histogram('signal_sf', 'signal_effSystTnP', [*nom_cols,"effSystTnP_tensor_hel"], axes, tensor_axes = [helicity_axis,*(muon_efficiency_helper_syst.tensor_axes)],storage=storage)
 
-        p.Histogram('signal_sf', 'signal_muonL1PrefireStat_tensor', [*nom_cols,'muonL1PrefireStat_tensor_hel'], axes,tensor_axes=[helicity_axis,*(muon_prefiring_helper_stat.tensor_axes)])
-        p.Histogram('signal_sf', 'signal_muonL1PrefireSyst_tensor', [*nom_cols,'muonL1PrefireSyst_tensor_hel'], axes,tensor_axes=[helicity_axis,common.down_up_axis])
-        p.Histogram('signal_sf', 'signal_ecalL1Prefire_tensor', [*nom_cols,'ecalL1Prefire_tensor_hel'], axes, tensor_axes=[helicity_axis,common.down_up_axis])
+        p.Histogram('signal_sf', 'signal_muonL1PrefireStat_tensor', [*nom_cols,'muonL1PrefireStat_tensor_hel'], axes,tensor_axes=[helicity_axis,*(muon_prefiring_helper_stat.tensor_axes)],storage=storage)
+        p.Histogram('signal_sf', 'signal_muonL1PrefireSyst_tensor', [*nom_cols,'muonL1PrefireSyst_tensor_hel'], axes,tensor_axes=[helicity_axis,common.down_up_axis],storage=storage)
+        p.Histogram('signal_sf', 'signal_ecalL1Prefire_tensor', [*nom_cols,'ecalL1Prefire_tensor_hel'], axes, tensor_axes=[helicity_axis,common.down_up_axis],storage=storage)
 
         ## low acc
         axes = [etas_axis,pts_axis,axis_charge]
-        nom_cols = ["trigMuons_eta0", "trigMuons_pt0", "trigMuons_charge0"]
+        nom_cols = [f"{flag}_eta0", f"{flag}_pt0", f"{flag}_charge0"]
         
         p.EventFilter(nodeToStart='theoryTools', nodeToEnd='lowacc', evfilter="(Vrap_preFSR_abs>2.4 || Vpt_preFSR>60.) && Vpt_preFSR<200.", filtername="{:20s}".format("low acc"))
         # p.Histogram('lowacc', 'lowacc_nominal', [*nom_cols,"nominal_weight"], axes)
@@ -337,7 +330,7 @@ def build_graph_templates(df, dataset):
     else:
         
         axes = [etas_axis,pts_axis,axis_charge]
-        cols = ["trigMuons_eta0", "trigMuons_pt0", "trigMuons_charge0"]
+        cols = [f"{flag}_eta0", f"{flag}_pt0", f"{flag}_charge0"]
 
         p.Histogram('calibrations', 'data_obs', [*cols], axes)
 
@@ -346,17 +339,17 @@ def build_graph_templates(df, dataset):
     return results, weightsum
 
 resultdict = narf.build_and_run(datasets, build_graph_templates)
-print(resultdict['ZmumuPostVFP']['output'].keys())
+print(resultdict['WplusmunuPostVFP']['output'].keys())
 
-outfile = "templatesTest_newQtBins.hdf5"
+outfile = "templatesTest_testW_swapped.hdf5"
 with h5py.File(outfile, 'w') as f:
     narf.ioutils.pickle_dump_h5py("results", resultdict, f)
 
-# infile = "templatesTest3.hdf5"
-# with h5py.File(infile, "r") as f:
-#     results = narf.ioutils.pickle_load_h5py(f["results"])
-#     print(results['ZmumuPostVFP']['output'].keys())
-#     h = results['ZmumuPostVFP']["output"]["signal_nominal"].get()
+infile = "templatesTest_testW_swapped.hdf5"
+with h5py.File(infile, "r") as f:
+    results = narf.ioutils.pickle_load_h5py(f["results"])
+    print(results['WplusmunuPostVFP']['output'].keys())
+    print(results['WplusmunuPostVFP']["output"]["signal_nominal"].get())
 #     print(h.axes)
 #     data_obs = results['dataPostVFP']["output"]["data_obs"].get()
 #     lowacc = results['ZmumuPostVFP']["output"]["lowacc_nominal"].get()

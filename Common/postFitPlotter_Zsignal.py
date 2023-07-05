@@ -14,7 +14,6 @@ from matplotlib.patches import Rectangle
 import matplotlib.patches as mpatches
 import mplhep as hep
 sys.path.append('data/')
-from binning import yBins, qtBins, ptBins, etaBins, mTBins, isoBins, chargeBins, yBins_val, qtBins_val
 import argparse
 
 parser = argparse.ArgumentParser('')

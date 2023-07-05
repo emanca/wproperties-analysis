@@ -15,6 +15,17 @@ import mplhep as hep
 import re
 from collections import OrderedDict
 import pdb
+import psutil
+
+# Function to get CPU and memory usage
+def get_usage():
+    # Get CPU usage as a percentage
+    cpu_percent = psutil.cpu_percent()
+
+    # Get memory usage in bytes and convert to megabytes (MB)
+    memory_usage = psutil.Process().memory_info().rss / 1024 / 1024
+
+    return cpu_percent, memory_usage
 
 def writeFlatInChunks(arr, h5group, outname, maxChunkBytes = 1024**2):    
   arrflat = arr.reshape(-1)
@@ -54,11 +65,12 @@ def writeSparse(indices, values, dense_shape, h5group, outname, maxChunkBytes = 
   
   return nbytes
 
-def fillHelGroup(yBinsC,qtBinsC,helXsecs):
+def fillHelGroup(yBinsC,qtBinsC,helXsecs, flavour =''):
     helGroups = OrderedDict()
     for i in range(len(yBinsC)):
         for j in range(len(qtBinsC)):
             s = 'y_{i}_qt_{j}'.format(i=round(yBinsC[i],1),j=round(qtBinsC[j],1))
+            if not flavour=='': s+='_'+flavour
             helGroups[s] = []
             
             for hel in helXsecs:
@@ -67,10 +79,11 @@ def fillHelGroup(yBinsC,qtBinsC,helXsecs):
                 del helGroups[s]
     return helGroups
 
-def fillHelMetaGroup(yBinsC,qtBinsC,sumGroups):
+def fillHelMetaGroup(yBinsC,qtBinsC,sumGroups,flavour =''):
     helMetaGroups = OrderedDict()
     for i in range(len(yBinsC)):
         s = 'y_{i}'.format(i=round(yBinsC[i],1))
+        if not flavour=='': s+='_'+flavour
         helMetaGroups[s] = []
         for key in sumGroups:
             if s in key:
@@ -81,6 +94,7 @@ def fillHelMetaGroup(yBinsC,qtBinsC,sumGroups):
     
     for j in range(len(qtBinsC)):
         s = 'qt_{j}'.format(j=round(qtBinsC[j],1))
+        if not flavour=='': s+='_'+flavour
         helMetaGroups[s] = []
         for key in sumGroups:
             if 'qt' in key and key.split('_')[3]==str(round(qtBinsC[j],1)):
@@ -90,10 +104,11 @@ def fillHelMetaGroup(yBinsC,qtBinsC,sumGroups):
                 del helMetaGroups[s]
     return helMetaGroups
 
-def fillSumGroup(yBinsC,qtBinsC,helXsecs,processes):
+def fillSumGroup(yBinsC,qtBinsC,helXsecs,processes,flavour =''):
     sumGroups = OrderedDict()
     for i in range(len(yBinsC)):
         s = 'y_{i}'.format(i=round(yBinsC[i],1))
+        if not flavour=='': s+='_'+flavour
         for hel in helXsecs:
             for signal in processes:
                 sumGroups['helXsec_'+hel+'_'+s] = []
@@ -103,6 +118,7 @@ def fillSumGroup(yBinsC,qtBinsC,helXsecs,processes):
     
     for j in range(len(qtBinsC)):
         s = 'qt_{j}'.format(j=round(qtBinsC[j],1))
+        if not flavour=='': s+='_'+flavour
         for hel in helXsecs:
             for signal in processes:
                 if signal.split('_')[0]+ '_' + signal.split('_')[1]== 'helXsec_'+hel and signal.split('_')[-1] == str(round(qtBinsC[j],1)):
@@ -152,17 +168,19 @@ def decorrelateInEta(nominal,rawvars):
     idx = SFaxes.index(mod_axis)
     SFaxes[idx] = hist.axis.Regular(48, -2.4, 2.4, underflow=False, overflow=False, name='SF eta')
     dec_histo = hist.Hist(*SFaxes, name=rawvars.name,storage = hist.storage.Double())
-
+    print("here")
     # create data by patching nominal and variations
     diff_shape = dec_histo.shape[len(nominal.shape):]
     # print(diff_shape)
-    tmp = np.tile(nominal.values()[:,:,:,:,:,:,np.newaxis,np.newaxis,np.newaxis,np.newaxis], diff_shape)
-    # print(tmp.shape,dec_histo.shape)
-    for i  in range(nEtaBins):
-        tmp[:,:,i,:,:,:,i,...] = rawvars.values()[:,:,i,:,:,:,0,...]
+    tmp = np.tile(nominal.values()[...,np.newaxis,np.newaxis,np.newaxis,np.newaxis], diff_shape)
+    print("here 2")
+    # for i  in range(nEtaBins):
+    #     tmp[i,...,i,:,:,:] = rawvars.values()[i,...,0,:,:,:]
+    tmp[j_indices,..., j_indices, :, :, :] = rawvars.values()[j_indices, ..., 0, :, :, :]
     # print(tmp.shape)
-    dec_histo[...] = tmp
-
+    print("here 3")
+    dec_histo.values()[...] = tmp
+    print("here 4")
     # print(rawvars.shape)
     # fig, ax1 = plt.subplots(figsize=(48,10))
     # hep.histplot(dec_histo[0,0,:,:,0, 4, 24, 0, 0, 0].values().ravel()/rawvars[0,0,:,:,0, 4, 0, 0, 0, 0].values().ravel())
@@ -186,210 +204,246 @@ def transport_smearing_weights_to_reco(hist_gensmear, nominal_reco, nominal_gens
     return hist_reco
 
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~loading boost histograms and cross sections from templates hdf5 file~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
-f = h5py.File("templatesTest_newQtBins.hdf5","r")
-t = h5py.File('templatesFit.hdf5','r')
+f = h5py.File("templatesTest_testW_swapped.hdf5","r")
+t = h5py.File('angCoeffWZ.hdf5','r')
 results = narf.ioutils.pickle_load_h5py(f["results"])
-print(results['ZmumuPostVFP']["output"])
+print(results['WminusmunuPostVFP']["output"])
 # Hdata_obs = results['dataPostVFP']["output"]["data_obs"].get()
 
+Hdata_obs = results['WminusmunuPostVFP']['output']['signal_nominal'].get().project(*["mueta","mupt","charge","passMT","passIso"])
+print(Hdata_obs)
+
 #constants
-process = 'ZmumuPostVFP'
-V ='Z'
-lumi    = results['dataPostVFP']["lumi"]
-xsec    = results[process]["dataset"]["xsec"]
-weights = results[process]["weight_sum"]
-C       = lumi*1000*xsec/weights
-Hdata_obs = C*results['ZmumuPostVFP']['output']['signal_nominal'].get()[sum,sum,:,:,:,sum]
-# procs = ["lowacc"]
-procs = []
-systs_groups = {}
-
-#first add nominal boost histogram for signal
-H = C*results[process]['output']['signal_nominal'].get()
-
-#Bin information
-yBinsC     = H.axes[V+'rap'].centers
-qtBinsC    = H.axes[V+'pt'].centers
-charges    = H.axes['charge'].centers
-eta        = H.axes['mueta'].centers
-pt         = H.axes['mupt'].centers
-helicities   = list(H.axes['helicities'])
-unrolled_dim = len(eta) * len(pt)
-qtBins = H.axes[V+'pt'].edges
-yBins = H.axes[V+'rap'].edges
-
-#Reshaping the data. 2d format. one row per unrolled pt-eta distribution
-unrolled_and_stacked = np.swapaxes(H.to_numpy()[0].reshape(\
-                           (len(yBinsC),len(qtBinsC),-1,len(charges),len(helicities)))\
-                            ,2,-1).reshape(-1,unrolled_dim)
+processes = ['WminusmunuPostVFP','WplusmunuPostVFP']
+df = pd.DataFrame()
 
 #TODO add bkg processes to this
-sumw = np.concatenate((H[sum,sum,:,:,0,sum].values().ravel(),H[sum,sum,:,:,1,sum].values().ravel()))
-sumw2 = np.concatenate((H[sum,sum,:,:,0,sum].variances().ravel(),H[sum,sum,:,:,1,sum].variances().ravel()))
+# print(hh.findAxes([H],["Vrap","Vpt","helicities"]))
+sumw = np.zeros_like(Hdata_obs.values().ravel())
+sumw2 = np.zeros_like(Hdata_obs.values().ravel())
 
-#clean memory
-H = None
-#Generating multi index 
-iterables = [yBinsC, qtBinsC,helicities ,charges]
-multi = pd.MultiIndex.from_product(iterables , names = ['rapidity', 'qt' , 'hel','charge'])
+for process in processes:
+    V ='V'
+    lumi    = results['dataPostVFP']["lumi"]
+    xsec    = results[process]["dataset"]["xsec"]
+    weights = results[process]["weight_sum"]
+    C       = lumi*1000*xsec/weights
 
-'''Building the nominal DataFrame'''
-    
-#building dataframe
-df = pd.Series(list(unrolled_and_stacked),index=multi, name="nominal")
-df = pd.DataFrame(df)
-print('\nnominal dataframe\n' , df.head())
+    # procs = ["lowacc"]
+    procs = []
+    systs_groups = {}
 
-unrolled_and_stacked = None
-#Adding cross section information to our dataframe by creating cross section dataframe and merging
-#TODO: pass boost histograms format
+    #first add nominal boost histogram for signal
+    H = C*results[process]['output']['signal_nominal'].get()
 
-threshold_y = np.digitize(2.4,yBins)-1
-threshold_qt = np.digitize(60.,qtBins)-1
-T = t['helicity'][:threshold_y,:threshold_qt,:] #cross sections
-    
-iterables = [yBinsC , qtBinsC , helicities]
-multi = pd.MultiIndex.from_product(iterables = [yBinsC , qtBinsC , helicities]
- , names = ['rapidity', 'qt' , 'hel']) #multi index to be joined on
-s = pd.Series(T.ravel(), index = multi , name='xsec') #series carrying cross section information
+    nom_axes = [axis for axis in H.axes]
+    nominal_cols = [axis.name for axis in nom_axes]
+    unrolled_dim = np.prod(np.array([len(axis.centers) for axis in nom_axes if not axis.name in ["Vrap","Vpt","helicities"]]))
+    unrolled_names = [axis.name for axis in nom_axes if not axis.name in ["Vrap","Vpt","helicities"]]
+    index_dim = np.prod(np.array([len(axis.centers) for axis in nom_axes if axis.name in ["Vrap","Vpt","helicities"]]))
+    index_centers = [axis.centers for axis in nom_axes if axis.name in ["Vrap","Vpt"]]
+    helicities   = list(H.axes['helicities'])
 
-xsec_df = pd.concat([s,s] ,axis=0).reset_index()       #same cross section for both charges, will need double to match dimensions
-charges_xsec =  [-1.0]*len(yBinsC)*len(qtBinsC)*len(helicities) + [1.0]*len(yBinsC)*len(qtBinsC)*len(helicities)
-xsec_df['charge'] = charges_xsec
+    #Bin information
+    yBinsC     = np.round(H.axes[V+'rap'].centers,1)
+    qtBinsC    = np.round(H.axes[V+'pt'].centers,1)
+    charges    = H.axes['charge'].centers
+    eta        = H.axes['mueta'].centers
+    pt         = H.axes['mupt'].centers
 
-#now the dataframe carries cross section column
-df = df.merge(xsec_df ,left_on=['rapidity','qt','hel','charge'], right_on=['rapidity','qt','hel','charge'])
-print('\nadded cross-sections\n',df.head())
+    qtBins = H.axes[V+'pt'].edges
+    yBins = H.axes[V+'rap'].edges
 
-#setting process as index & cleaning up by removing redundant information
-df.set_index(['helXsec_'+df['hel']+'_y_'+df['rapidity'].apply(lambda x: round(x,1)).apply(str)+'_qt_'+df['qt'].apply(lambda x: round(x,1)).apply(str),df['charge']],inplace=True)
-df.drop(columns=['rapidity','qt','charge','hel'],inplace=True)
-df.rename_axis(['process','charge'] ,inplace=True)
-print('\nre-indexing\n',df.head())
+    #Reshaping the data. 2d format. one row per unrolled pt-eta-charge(-mt-iso) distribution
+    unrolled_and_stacked = H.values().reshape(unrolled_dim,index_dim).T
+    print("unrolled_and_stacked",unrolled_and_stacked.shape)
 
-#adding column for helicity group
-# df['helgroups'] = df.index.get_level_values(0).map(lambda x: re.search("y.+" , x).group(0))
-df['isSignal']  = True
+    sumw += H.project(*unrolled_names).values().ravel()
+    sumw2 += H.project(*unrolled_names).variances().ravel()
 
-print('\nnominal dataframe\n' , df.head())
-
-#now add other procs
-for proc in procs:
-    histo=C*results[process]['output']['{}_nominal'.format(proc)].get()
-    unrolled = histo.to_numpy()[0].reshape(len(charges),-1)
-    histo=None
-    #add data
-    iterables_proc = [[proc],charges]
-    multi_proc = pd.MultiIndex.from_product(iterables_proc , names = ['process','charge'])
-    print(charges,iterables_proc,multi_proc)
-    df_proc = pd.Series(list(unrolled),index=multi_proc, name="nominal")
+    #clean memory
+    H = None
+    #Generating multi index 
+    multi = pd.MultiIndex.from_product([*index_centers,helicities] , names = ['rapidity', 'qt' , 'hel'])
+    '''Building the nominal DataFrame'''
+        
+    #building dataframe
+    df_proc = pd.Series(list(unrolled_and_stacked),index=multi, name="nominal")
     df_proc = pd.DataFrame(df_proc)
-    unrolled=None
-    df_proc['isSignal'] = False
-    df_proc['xsec'] = -1
-    df = pd.concat([df,df_proc],axis=0)
+    print('\nnominal dataframe\n' , df_proc.head())
+
+    unrolled_and_stacked = None
+    #Adding cross section information to our dataframe by creating cross section dataframe and merging
+    #TODO: pass boost histograms format
+
+    threshold_y = np.digitize(2.4,yBins)-1
+    threshold_qt = np.digitize(60.,qtBins)-1
+
+    hxsecs = narf.ioutils.pickle_load_h5py(t["angCoeffWZ"])
+    T = hxsecs[f"hist_coeffs_{process}"].values()[:threshold_y,:threshold_qt,:] #cross sections
+    good_idx = [0,1,2,3,4,-1]
+    T = T[...,good_idx]
+
+    for i in range(5):
+        T[...,i]*=T[...,-1]
+
+    multi = pd.MultiIndex.from_product([*index_centers,helicities], names = ['rapidity', 'qt' , 'hel']) #multi index to be joined on
+    s = pd.Series(T.ravel(), index = multi , name='xsec') #series carrying cross section information
+    df_proc["xsec"] = s
+    print('\nadded cross sections\n',df_proc.head())
+    print('\nadded cross sections\n',df_proc.tail())
+
+    df_proc = df_proc.reset_index() #promote all indices to columns
+    #setting process as index & cleaning up by removing redundant information
+    df_proc.set_index(['helXsec_'+df_proc['hel']+'_y_'+df_proc['rapidity'].apply(lambda x: round(x,1)).apply(str)+'_qt_'+df_proc['qt'].apply(lambda x: round(x,1)).apply(str)+f'_{process}'],inplace=True)
+
+    df_proc.drop(columns=['rapidity','qt','hel'],inplace=True)
+    df_proc.rename_axis(['process'] ,inplace=True)
+    print('\nre-indexing\n',df_proc.head())
+
+    # import mplhep as hep
+    # hep.hist2dplot(df_proc['nominal'].loc[('helXsec_UL_y_0.2_qt_1.5')].reshape(48,60,2,2,2)[...,-1,1,1])
+    # plt.show()
+
+    #adding column for helicity group
+    # df_proc['helgroups'] = df_proc.index.get_level_values(0).map(lambda x: re.search("y.+" , x).group(0))
+    df_proc['isSignal']  = True
+
+    print('\nnominal dataframe\n' , df_proc.head())
+    df = pd.concat([df, df_proc], axis=0)
+
+print('\nnominal dataframe concat\n' , df.head())
+print('\nnominal dataframe concat\n' , df.tail())
+
+# import mplhep as hep
+# plot = df['nominal'].loc[("helXsec_L_y_0.2_qt_1.5",1.0)].reshape(48,60)
+# hep.hist2dplot(plot,vmin=-0.005,vmax=0)
+# plt.show()
+#now add other procs
+# for proc in procs:
+#     histo=C*results[process]['output']['{}_nominal'.format(proc)].get()
+#     unrolled = histo.values().reshape(len(charges),-1)
+#     histo=None
+#     #add data
+#     iterables_proc = [[proc],charges]
+#     multi_proc = pd.MultiIndex.from_product(iterables_proc , names = ['process','charge'])
+#     print(charges,iterables_proc,multi_proc)
+#     df_proc = pd.Series(list(unrolled),index=multi_proc, name="nominal")
+#     df_proc = pd.DataFrame(df_proc)
+#     unrolled=None
+#     df_proc['isSignal'] = False
+#     df_proc['xsec'] = -1
+#     df = pd.concat([df,df_proc],axis=0)
     
-print('\nreorganizing and adding other procs\n',df.head(),df.tail())
+# print('\nreorganizing and adding other procs\n',df.head(),df.tail())
 
 #add systematics
 
-'''
-dict_keys(['signal_nominal', 'signal_mass_var', 'signal_jpsi_var', 'signal_nominal_gensmear', 'signal_effStatTnP_sf_reco', 'signal_effStatTnP_sf_tracking', 'signal_effStatTnP_sf_idip', 'signal_effStatTnP_sf_trigger', 'signal_effStatTnP_sf_iso', 'signal_effSystTnP', 'signal_muonL1PrefireStat_tensor', 'signal_muonL1PrefireSyst_tensor', 'signal_ecalL1Prefire_tensor'])
-'''
-
 systs_macrogroups = {} # this is a list over groups of systematics
-systs_macrogroups['mass']=['mass_var']
-systs_macrogroups['muon_calibration']=['jpsi_var']
-systs_macrogroups['sf']=['effStatTnP_sf_reco','effStatTnP_sf_tracking','effStatTnP_sf_idip','effStatTnP_sf_trigger','effStatTnP_sf_iso','effSystTnP'] #these correspond to the names of histograms to recall from file
-systs_macrogroups['prefire']=['muonL1PrefireStat_tensor','muonL1PrefireSyst_tensor','ecalL1Prefire_tensor']
+systs_macrogroups['mass']=['mass_var'] #mass and other no-constraint nuisances must be first in the list
+# systs_macrogroups['muon_calibration']=['jpsi_var']
+# systs_macrogroups['sf']=['effStatTnP_sf_reco','effStatTnP_sf_tracking','effStatTnP_sf_idip','effStatTnP_sf_trigger','effStatTnP_sf_iso','effSystTnP'] #these correspond to the names of histograms to recall from file
+# systs_macrogroups['sf']=['effSystTnP'] #these correspond to the names of histograms to recall from file
+# systs_macrogroups['prefire']=['muonL1PrefireStat_tensor','muonL1PrefireSyst_tensor','ecalL1Prefire_tensor']
 
-
-procs = ["signal"]+procs #careful!! this must be the same order as before!
-nominal_cols = ['Zrap', 'Zpt', 'mueta', 'mupt', 'charge', 'helicities','downUpVar']
+procs = ["signal"]+procs #careful!! this must be the same order as before! -->REVIEW
 multi = df.index
+nominal_cols.append("downUpVar")
 
-#loop over systematics:
-for proc in procs:
-    #get variations
-    for syst,nuisances in systs_macrogroups.items():
-        #TODO add exception for histograms not found
-        syst_dfs = []
-        print(syst,nuisances)
-        for nuisance in nuisances:
-            print('{proc}_{nuisance}'.format(proc=proc,nuisance=nuisance))
-            syst_histo = C * results[process]['output']['{proc}_{nuisance}'.format(proc=proc,nuisance=nuisance)].get()
-            print("done")
-            axes = [axis for axis in syst_histo.axes]
-            # decorrelate in eta if needed
-            if 'sf' in syst:
-                nominal = C * results[process]['output']['{proc}_nominal'.format(proc=proc)].get()
-                syst_histo = mirrorHisto(nominal,syst_histo)
-                if not 'effSystTnP' in nuisance:
-                    syst_histo = decorrelateInEta(nominal,syst_histo)
-                nominal = None
-            if 'muon_calibration' in syst:
-                print("get {proc}_nominal".format(proc=proc))
-                nominal_reco = C * results[process]['output']['{proc}_nominal'.format(proc=proc)].get()
-                print("get {proc}_nominal_gensmear".format(proc=proc))
-                nominal_gensmear = C * results[process]['output']['{proc}_nominal_gensmear'.format(proc=proc)].get()
-                syst_histo = transport_smearing_weights_to_reco(syst_histo, nominal_reco, nominal_gensmear)
-            #select slices in systematics based on "vars"
-            syst_arr = syst_histo.to_numpy()[0]
-            syst_axes = [axis for axis in syst_histo.axes if axis.name not in nominal_cols]
-            nsysts = 1 #this is the total number of systematics after considering all the bins
-            for axis in syst_axes:
-                nsysts = nsysts*len(axis.centers)
-            print("nsysts",nsysts)
-            syst_histo = None
-            if proc == "signal":
-                #Reshaping the data. 2d format. one row per unrolled pt-eta distribution
-                syst_arr = syst_arr.reshape((len(yBinsC),len(qtBinsC),-1,len(charges),len(helicities),nsysts,2))#last axis is always up/down
-                # rapidity, qt, data, charge, hel, syst, up/down
-                syst_arr = np.moveaxis(syst_arr,2,-2)
-                # rapidity, qt, charge, hel, syst, data, up/down
-                syst_arr = np.swapaxes(syst_arr,2,3).reshape(-1,unrolled_dim*2)
-                # rapidity, qt, hel, charge, syst, data, up/down
-                names = ['rapidity', 'qt' , 'hel','charge']+[axis.name for axis in syst_axes]
-                iterables = [yBinsC, qtBinsC,helicities ,charges] + [axis.centers for axis in syst_axes]
-                if syst_axes == []:
-                    names.append(f"{nuisance}")
-                    iterables.append([0.5])
-                multi = pd.MultiIndex.from_product(iterables, names = names)
-                # print(multi)
-                syst_df = pd.Series(list(syst_arr),index=multi,name=syst)
-                print(syst_df.head())
-                syst_df = pd.DataFrame(syst_df).reset_index()
-                idx_strings = ['helXsec_'+syst_df['hel']+'_y_'+syst_df['rapidity'].apply(lambda x: round(x,1)).apply(str)+'_qt_'+syst_df['qt'].apply(lambda x: round(x,1)).apply(str),syst_df['charge']]
-                syst_string = f"{nuisance}_"
+for process in processes:
+    lumi    = results['dataPostVFP']["lumi"]
+    xsec    = results[process]["dataset"]["xsec"]
+    weights = results[process]["weight_sum"]
+    C       = lumi*1000*xsec/weights
+    #loop over systematics:
+    for proc in procs:
+        #get variations
+        for syst,nuisances in systs_macrogroups.items():
+            #TODO add exception for histograms not found
+            syst_dfs = []
+            print(syst,nuisances)
+            for nuisance in nuisances:
+                print('{proc}_{nuisance}'.format(proc=proc,nuisance=nuisance))
+                syst_histo = C * results[process]['output']['{proc}_{nuisance}'.format(proc=proc,nuisance=nuisance)].get()
+                print(syst_histo)
+                print("done")
+                axes = [axis for axis in syst_histo.axes]
+                # decorrelate in eta if needed
+                if 'sf' in syst:
+                    nominal = C * results[process]['output']['{proc}_nominal'.format(proc=proc)].get()
+                    print("here")
+                    syst_histo = mirrorHisto(nominal,syst_histo)
+                    # if not 'effSystTnP' in nuisance:
+                    #     syst_histo = decorrelateInEta(nominal,syst_histo)
+                    nominal = None
+                if 'muon_calibration' in syst:
+                    print("get {proc}_nominal".format(proc=proc))
+                    nominal_reco = C * results[process]['output']['{proc}_nominal'.format(proc=proc)].get()
+                    print("get {proc}_nominal_gensmear".format(proc=proc))
+                    nominal_gensmear = C * results[process]['output']['{proc}_nominal_gensmear'.format(proc=proc)].get()
+                    syst_histo = transport_smearing_weights_to_reco(syst_histo, nominal_reco, nominal_gensmear)
+                #select slices in systematics based on "vars"
+                
+                syst_axes = [axis for axis in syst_histo.axes if axis.name not in nominal_cols]
+                nsysts = 1 #this is the total number of systematics after considering all the bins
                 for axis in syst_axes:
-                    syst_string+=axis.name.replace(' ','')+'_'+syst_df[axis.name].apply(str)+'_'
-                if syst_axes == []:
-                    syst_string+=syst_string+syst_df[syst_string[:-1]].apply(str)+'_'
-                syst_string = syst_string.apply(lambda s: s[:-1] if s.endswith('_') else s)
-                idx_strings.append(syst_string)
-                syst_df.set_index(idx_strings,inplace=True)
-                syst_df.drop(columns=[axis.name for axis in syst_axes],inplace=True)
-                syst_df.drop(columns=['rapidity','qt','charge','hel'],inplace=True)
-                syst_df.rename_axis(['process','charge','syst'] ,inplace=True)
-                syst_dfs.append(syst_df)
-            else:
-                pass
-                #data, charge, syst, up/down
-                syst_arr = np.moveaxis(syst_arr,0,-2)
-                syst_arr = syst_arr.reshape(-1,unrolled_dim)
-        # now merge all the dataframes within the group
-        syst_df_merged = pd.concat(syst_dfs, axis=0)
-        # get list of systematics and drop index
-        syst_list = list(syst_df_merged.query("process == 'helXsec_L_y_0.2_qt_1.5' & charge==1.0").index.get_level_values(2)) #FIXME: systs in plus and minus can in principle be different
-        # pdb.set_trace()
-        systs_groups[syst]=syst_list
-        syst_df_merged= syst_df_merged.droplevel('syst')
-        # group by process and charge, and concatenate the arrays
-        syst_df_merged = syst_df_merged.groupby(["process", "charge"])[syst].agg(np.concatenate)
-        syst_df_merged = syst_df_merged.map(lambda x: x.reshape((-1,unrolled_dim,2)))
-        print(syst_df_merged.loc[('helXsec_L_y_0.2_qt_1.5',-1)].shape)
-        print(syst_df_merged.head())
-        df[syst]=syst_df_merged
+                    nsysts = nsysts*len(axis.centers)
+                print("nsysts",nsysts)
+                # syst_arr = np.ascontiguousarray(syst_histo.values(flow=True))
+                syst_arr = syst_histo.values()
+                print(syst_arr.flags.contiguous)
+                print("values")
+                syst_histo = None
+                if proc == "signal":
+                    #Reshaping the data. 2d format. one row per unrolled pt-eta-charge(-mt-iso) distribution
+                    syst_arr = np.moveaxis(syst_arr.reshape(unrolled_dim,index_dim,nsysts,2),0,-2).reshape(index_dim*nsysts,unrolled_dim*2)# rapidity, qt, hel, charge, syst, data, up/down
+                    # print(syst_arr.shape)
+                    # syst_arr = syst_arr.reshape((unrolled_dim,index_dim,nsysts,2),order="A")
+                    print(syst_arr.flags.contiguous)
+                    print("here 5")
+                    names = ['rapidity', 'qt' , 'hel']+[axis.name for axis in syst_axes]
+                    iterables = [*index_centers,helicities] + [axis.centers for axis in syst_axes]
+                    if syst_axes == []:
+                        names.append(f"{nuisance}")
+                        iterables.append([0.5])
+                    multi = pd.MultiIndex.from_product(iterables, names = names)
+                    # print(multi)
+                    syst_df = pd.Series(list(syst_arr),index=multi,name=syst)
+                    syst_arr = None
+                    print("here 6")
+                    print(syst_df.head())
+                    syst_df = pd.DataFrame(syst_df).reset_index()
+                    idx_strings = ['helXsec_'+syst_df['hel']+'_y_'+syst_df['rapidity'].apply(lambda x: round(x,1)).apply(str)+'_qt_'+syst_df['qt'].apply(lambda x: round(x,1)).apply(str)+f'_{process}']
+                    syst_string = f"{nuisance}_"
+                    for axis in syst_axes:
+                        syst_string+=axis.name.replace(' ','')+'_'+syst_df[axis.name].apply(str)+'_'
+                    if syst_axes == []:
+                        syst_string+=syst_string+syst_df[syst_string[:-1]].apply(str)+'_'
+                    syst_string = syst_string.apply(lambda s: s[:-1] if s.endswith('_') else s)
+                    idx_strings.append(syst_string)
+                    syst_df.set_index(idx_strings,inplace=True)
+                    syst_df.drop(columns=[axis.name for axis in syst_axes],inplace=True)
+                    syst_df.drop(columns=['rapidity','qt','hel'],inplace=True)
+                    syst_df.rename_axis(['process','syst'] ,inplace=True)
+                    syst_dfs.append(syst_df)
+                else:
+                    pass
+                    #data, charge, syst, up/down
+                    syst_arr = np.moveaxis(syst_arr,0,-2)
+                    syst_arr = syst_arr.reshape(-1,unrolled_dim)
+            # now merge all the dataframes within the group
+            syst_df_merged = pd.concat(syst_dfs, axis=0)
+            print(syst_df_merged.head())
+            print(syst_df_merged.tail())
+            # get list of systematics and drop index -->REVIEW
+            syst_list = list(syst_df_merged.query(f"process == 'helXsec_L_y_0.2_qt_1.5_{process}'").index.get_level_values(1))
+            # pdb.set_trace()
+            systs_groups[syst]=syst_list
+            syst_df_merged= syst_df_merged.droplevel('syst')
+            # group by process and charge, and concatenate the arrays
+            syst_df_merged = syst_df_merged.groupby(["process"])[syst].agg(np.concatenate)
+            syst_df_merged = syst_df_merged.map(lambda x: x.reshape((-1,unrolled_dim,2)))
+            df.loc[df.index.str.contains(process),syst]=syst_df_merged
 
 print('\nadding systematics\n',df.head(),df.tail())
 
@@ -406,21 +460,22 @@ for syst in systs_macrogroups:
     df["{}_logk".format(syst)]=df.apply(lambda x: np.where(np.equal(np.sign(x[syst]*np.expand_dims(x['nominal'],axis=(0,-1))),1),x["{}_logk".format(syst)],logkepsilon*np.ones_like(x[syst])),axis='columns')
 
     #multiply down times -1
-    mask = np.stack([-1*np.ones_like(df[syst].loc[('helXsec_L_y_0.2_qt_1.5',-1)][...,0]),np.ones_like(df[syst].loc[('helXsec_L_y_0.2_qt_1.5',-1)][...,0])],axis=-1)
+    mask = np.stack([-1*np.ones_like(df[syst].loc[('helXsec_L_y_0.2_qt_1.5_WplusmunuPostVFP')][...,0]),np.ones_like(df[syst].loc[('helXsec_L_y_0.2_qt_1.5_WplusmunuPostVFP')][...,0])],axis=-1)
     print(mask.shape)
     df["{}_logk".format(syst)]=df["{}_logk".format(syst)].apply(lambda x: mask*x)
     
+    df.drop(columns=[syst],inplace=True)
     print('\nfinal df\n',df.head(),df.tail())
 
-
+print(df.memory_usage(deep=True))
 
 
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
 
 #retrieve metadata
 
-procs = list(df.query("charge==1.0").index.get_level_values(0))
-signals = list(df.query("charge==1.0 & isSignal==True").index.get_level_values(0))
+procs = list(df.index.get_level_values(0))
+signals = list(df.query("isSignal==True").index.get_level_values(0))
 nproc = len(procs)
 nsignals = len(signals)
 maskedchans = ['Wlike_minus','Wlike_plus']
@@ -436,7 +491,12 @@ polgroupidxs = []
 #list of groups of signal processes by helicity xsec
 helgroups = []
 helgroupidxs = []
-helGroups = fillHelGroup(yBinsC,qtBinsC,helicities)
+helGroups_plus = fillHelGroup(yBinsC,qtBinsC,helicities, flavour = "WplusmunuPostVFP")
+helGroups_minus = fillHelGroup(yBinsC,qtBinsC,helicities, flavour = "WminusmunuPostVFP")
+
+helGroups_minus.update(helGroups_plus)
+helGroups = helGroups_minus
+
 for group in helGroups:
   helgroups.append(group)
   helgroupidx = []
@@ -448,12 +508,12 @@ for group in helGroups:
 sumgroups = []
 sumgroupsegmentids = []
 sumgroupidxs = []
-sumGroups = fillSumGroup(yBinsC,qtBinsC,helicities,signals)
-for igroup,group in enumerate(sumGroups):
-  sumgroups.append(group)
-  for proc in sumGroups[group]:
-    sumgroupsegmentids.append(igroup)
-    sumgroupidxs.append(procs.index(proc))
+# sumGroups = fillSumGroup(yBinsC,qtBinsC,helicities,signals)
+# for igroup,group in enumerate(sumGroups):
+#   sumgroups.append(group)
+#   for proc in sumGroups[group]:
+#     sumgroupsegmentids.append(igroup)
+#     sumgroupidxs.append(procs.index(proc))
     
 #list of groups of signal processes by chargemeta - DON'T NEED THAT
 chargemetagroups = []
@@ -466,13 +526,13 @@ ratiometagroupidxs = []
 #list of groups of signal processes by helmeta
 helmetagroups = []
 helmetagroupidxs = []
-helMetaGroups = fillHelMetaGroup(yBinsC,qtBinsC,sumGroups)
-for group in helMetaGroups:
-  helmetagroups.append(group)
-  helmetagroupidx = []
-  for proc in helMetaGroups[group]:
-    helmetagroupidx.append(sumgroups.index(proc))
-  helmetagroupidxs.append(helmetagroupidx)
+# helMetaGroups = fillHelMetaGroup(yBinsC,qtBinsC,sumGroups)
+# for group in helMetaGroups:
+#   helmetagroups.append(group)
+#   helmetagroupidx = []
+#   for proc in helMetaGroups[group]:
+#     helmetagroupidx.append(sumgroups.index(proc))
+#   helmetagroupidxs.append(helmetagroupidx)
 
 #list of groups of signal processes for regularization - DON'T NEED THAT
 reggroups = []
@@ -551,7 +611,7 @@ if chunkSize > defChunkSize:
   print("Warning: Maximum chunk size in bytes was increased from %d to %d to align with tensor sizes and allow more efficient reading/writing." % (defChunkSize, chunkSize))
 
 #create HDF5 file (chunk cache set to the chunk size since we can guarantee fully aligned writes
-outfilename = "Wlike.hdf5"
+outfilename = "Wminus.hdf5"
 f = h5py.File(outfilename, rdcc_nbytes=chunkSize, mode='w')
 
 #save some lists of strings to the file for later use
@@ -689,7 +749,9 @@ nbytes += writeFlatInChunks(constraintweights, f, "hconstraintweights", maxChunk
 constraintweights = None
 
 
-data_obs = np.concatenate((Hdata_obs.to_numpy()[0][...,0].ravel(),Hdata_obs.to_numpy()[0][...,1].ravel()))
+# data_obs = np.concatenate((Hdata_obs.values()[...,0].ravel(),Hdata_obs.values()[...,1].ravel()))
+data_obs = Hdata_obs.values()[...].ravel()
+Hdata_obs = None
 Hdata_obs = None
 
 nbytes += writeFlatInChunks(data_obs, f, "hdata_obs", maxChunkBytes = chunkSize)
@@ -723,7 +785,8 @@ sumw2 = None
 
 
 # retrieve norm
-norm = np.concatenate((np.stack(df.query("charge==-1.")['nominal'].values,axis=-1),np.stack(df.query("charge==1.")['nominal'].values,axis=-1),np.expand_dims(np.stack(df.query("charge==-1.")['xsec'].values,axis=-1),axis=0),np.expand_dims(np.stack(df.query("charge==1.")['xsec'].values,axis=-1),axis=0)),axis=0)
+# norm = np.concatenate((np.stack(df.query("charge==-1.")['nominal'].values,axis=-1),np.stack(df.query("charge==1.")['nominal'].values,axis=-1),np.expand_dims(np.stack(df.query("charge==-1.")['xsec'].values,axis=-1),axis=0),np.expand_dims(np.stack(df.query("charge==1.")['xsec'].values,axis=-1),axis=0)),axis=0)
+norm = np.concatenate((np.stack(df['nominal'].values,axis=-1),np.expand_dims(np.stack(df['xsec'].values,axis=-1),axis=0)),axis=0)
 # nbytes += writeFlatInChunks(norm, f, "hnorm", maxChunkBytes = chunkSize)
 
 nonzero = np.nonzero(norm)
@@ -743,9 +806,10 @@ logk_sparse_dense_shape = (norm_sparse_indices.shape[0], 2*nsyst)
 print('\ndrop nominal\n',df.head())
 logk_systs = []
 for syst in systs_groups:
-    print(df.query("charge==-1.")["{}_logk".format(syst)].values[0].shape)
-    print(df.query("charge==-1.")['nominal'].values[0].shape)
-    logk_syst = np.moveaxis(np.concatenate((np.stack(df.query("charge==-1.")["{}_logk".format(syst)].values,axis=-2),np.stack(df.query("charge==1.")["{}_logk".format(syst)].values,axis=-2)),axis=1),0,-1)
+    print(df["{}_logk".format(syst)].values[0].shape)
+    print(df['nominal'].values[0].shape)
+    # logk_syst = np.moveaxis(np.concatenate((np.stack(df.query("charge==-1.")["{}_logk".format(syst)].values,axis=-2),np.stack(df.query("charge==1.")["{}_logk".format(syst)].values,axis=-2)),axis=1),0,-1)
+    logk_syst = np.moveaxis(np.stack(df["{}_logk".format(syst)].values,axis=-2),0,-1)
     logk_systs.append(logk_syst)
     print(logk_syst.shape)
 print(logk_systs[0].shape)
@@ -763,11 +827,14 @@ logkhalfdiff = 0.5*(logk_up - logk_down)
 
 print(logkavg.shape)
 #ensure that systematic tensor is sparse where normalization matrix is sparse
-logkavg = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkavg)
-logkhalfdiff = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkhalfdiff)
+# logkavg = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkavg)
+# logkhalfdiff = np.where(np.equal(np.expand_dims(norm[:-2,:],axis=-1),0.), np.zeros_like(logkavg), logkhalfdiff)
+logkavg = np.where(np.equal(np.expand_dims(norm[:-1,:],axis=-1),0.), np.zeros_like(logkavg), logkavg)
+logkhalfdiff = np.where(np.equal(np.expand_dims(norm[:-1,:],axis=-1),0.), np.zeros_like(logkavg), logkhalfdiff)
 
 logk = np.stack((logkavg,logkhalfdiff),axis=-2)
-logk = np.concatenate((logk,np.zeros((2,nproc,2,nsyst))),axis=0)
+# logk = np.concatenate((logk,np.zeros((2,nproc,2,nsyst))),axis=0)
+logk = np.concatenate((logk,np.zeros((1,nproc,2,nsyst))),axis=0)
 
 print(logk.shape)
 
@@ -803,3 +870,7 @@ logk_sparse_values = None
 
 print("Total raw bytes in arrays = %d" % nbytes)
 
+# Call the function to get CPU and memory usage after the script finishes
+cpu_usage, memory_usage = get_usage()
+print(f"CPU Usage: {cpu_usage}%")
+print(f"Memory Usage: {memory_usage} MB")
