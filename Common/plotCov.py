@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import mplhep as hep
 sys.path.append('data/')
 from binning import yBins, qtBins, ptBins, etaBins, mTBins, isoBins, chargeBins
-from root_numpy import hist2array
+import narf
 import argparse
 
 # matplotlib stuff
@@ -22,7 +22,7 @@ parser.add_argument('-asimov', '--asimov', default=False, action='store_true', h
 args = parser.parse_args()
 asimov = args.asimov
 # file with fit results
-f = ROOT.TFile.Open('../Fit/FitRes/fit_WPlus_{}.root'.format('asimov' if asimov else 'data'))
+f = ROOT.TFile.Open('../Fit/FitRes/fit_Wbstrp.root'.format('asimov' if asimov else 'data'))
 
 threshold_y = np.digitize(2.4,yBins)-1
 threshold_qt = np.digitize(60.,qtBins)-1
@@ -35,23 +35,32 @@ nBins=len(yBinsC)*len(qtBinsC)
 bins=np.linspace(0,nBins+1,nBins+1)
 yticks = np.round(qtBins[:threshold_qt+1],0)
 
-# helXsecs = ['helicity L', 'helicity I', 'helicity T', 'helicity A', 'helicity P','helicity UL']
-helXsecs = ['unpolarised cross section','A0','A1','A2','A3','A4']
+helXsecs = ['helXsec_L', 'helXsec_I', 'helXsec_T', 'helXsec_A', 'helXsec_P','helXsec_UL']
+# helXsecs = ['unpolarised cross section','A0','A1','A2','A3','A4']
 
-hcov = f.Get('correlation_matrix_channelhelpois')
-cov = hist2array(hcov)[:,:]
+hcov = f.Get('correlation_matrix_channelmu')
+cov = narf.root_to_hist(hcov).values()
 
-# retrieve impacts per group of POI
-for i,hel in enumerate(helXsecs):
-    vcovreduced = cov[i*nBins:(i+1)*nBins,i*nBins:(i+1)*nBins]
+# hel_idx = {}
+# for hel in helXsecs:
+#     hel_idx[hel] = []
+#     for i in range(1,hcov.GetNbinsX()+1):
+#         if hel in hcov.GetXaxis().GetBinLabel(i):
+#             print(i,hcov.GetXaxis().GetBinLabel(i))
+#             hel_idx[hel].append(i)
+        # print(i, hcov.GetXaxis().GetBinLabel(i))
 
-    fig, ax1 = plt.subplots()
-    plt. text(0.1, 0.9,"{}".format(hel), ha='center', va='center', transform=ax1.transAxes, color="k", weight="bold")
-    hep.hist2dplot(vcovreduced,bins,bins, cmap ='jet', vmin =-1, vmax=1)
-    plt.tight_layout()
-    plt.savefig("cov{}.png".format(hel))
-    plt.savefig("cov{}.pdf".format(hel))
-    plt.clf()
+# # retrieve impacts per group of POI
+# for i,hel in enumerate(helXsecs):
+#     vcovreduced = cov[hel_idx[hel],:]
+#     vcovreduced = vcovreduced[:,hel_idx[hel]]
+#     fig, ax1 = plt.subplots()
+#     plt. text(0.1, 0.9,"{}".format(hel), ha='center', va='center', transform=ax1.transAxes, color="k", weight="bold")
+#     hep.hist2dplot(vcovreduced,bins,bins, cmap ='jet', vmin =-1, vmax=1)
+#     plt.tight_layout()
+#     plt.savefig("cov{}.png".format(hel))
+#     plt.savefig("cov{}.pdf".format(hel))
+#     plt.clf()
 
 # hcov = f.Get('correlation_matrix_channelhelmetapois')
 # cov = hist2array(hcov)[:,:]
@@ -76,11 +85,11 @@ for i,hel in enumerate(helXsecs):
 # plt.savefig("covqt.pdf")
 # plt.clf()
 
-vcovreduced = cov[0:48*6,0:48*6]
-bins=np.linspace(0,48*6+1,48*6+1)
+vcovreduced = np.expand_dims(cov[6,...],axis=0)
+bins=np.linspace(0,6+1,6+1)
 
 fig, ax1 = plt.subplots()
-hep.hist2dplot(vcovreduced,bins,bins, cmap ='jet', vmin =-1, vmax=1)
+hep.hist2dplot(vcovreduced, cmap ='jet', vmin =-1, vmax=1)
 plt.xticks(np.arange(min(bins), max(bins)+1, 48))
 plt.yticks(np.arange(min(bins), max(bins)+1, 48))
 # Turn off tick labels

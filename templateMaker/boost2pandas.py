@@ -16,6 +16,15 @@ import re
 from collections import OrderedDict
 import pdb
 import psutil
+import argparse
+
+parser = argparse.ArgumentParser('')
+parser.add_argument('-bstr_idx', '--bstr_idx', type=int, help='bootstrap index')
+parser.add_argument('-seed', '--seed', type=int, help='seed for random gen')
+
+args = parser.parse_args()
+bstr_idx = args.bstr_idx
+seed = args.seed
 
 # Function to get CPU and memory usage
 def get_usage():
@@ -150,7 +159,7 @@ def mirrorHisto(nom,var):
 
 
 def setPreconditionVec():
-    f=h5py.File('../Fit/FitRes/fit_Wlike_asimov.hdf5', 'r')
+    f=h5py.File('../Fit/FitRes/fit_Wplus_asimov.hdf5', 'r')
     hessian = f['hess'][:]
     eig, U = np.linalg.eigh(hessian)
     M1 = np.matmul(np.diag(1./np.sqrt(eig)),U.T)
@@ -204,17 +213,19 @@ def transport_smearing_weights_to_reco(hist_gensmear, nominal_reco, nominal_gens
     return hist_reco
 
 '''~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~loading boost histograms and cross sections from templates hdf5 file~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'''
-f = h5py.File("templatesTest_testW_swapped.hdf5","r")
+f = h5py.File("templates_W_halfStat.hdf5","r")
+f_bstrp = h5py.File("templates_W_halfStat.hdf5","r")
 t = h5py.File('angCoeffWZ.hdf5','r')
-results = narf.ioutils.pickle_load_h5py(f["results"])
-print(results['WminusmunuPostVFP']["output"])
+results_nom = narf.ioutils.pickle_load_h5py(f["results"])
+results = narf.ioutils.pickle_load_h5py(f_bstrp["results"])
 # Hdata_obs = results['dataPostVFP']["output"]["data_obs"].get()
 
-Hdata_obs = results['WminusmunuPostVFP']['output']['signal_nominal'].get().project(*["mueta","mupt","charge","passMT","passIso"])
+Hdata_obs = results_nom['WplusmunuPostVFP']['output']['signal_nominal'].get().project(*["mueta","mupt","charge","passMT","passIso"])
 print(Hdata_obs)
 
 #constants
-processes = ['WminusmunuPostVFP','WplusmunuPostVFP']
+# processes = ['WminusmunuPostVFP','WplusmunuPostVFP']
+processes = ['WplusmunuPostVFP']
 df = pd.DataFrame()
 
 #TODO add bkg processes to this
@@ -228,13 +239,26 @@ for process in processes:
     xsec    = results[process]["dataset"]["xsec"]
     weights = results[process]["weight_sum"]
     C       = lumi*1000*xsec/weights
-
+    weights_nom = results_nom[process]["weight_sum"]
+    C_nom       = lumi*1000*xsec/weights_nom
     # procs = ["lowacc"]
     procs = []
     systs_groups = {}
 
+    Hdata_obs = hh.scaleHist(Hdata_obs, C_nom, createNew=False)
+
     #first add nominal boost histogram for signal
-    H = C*results[process]['output']['signal_nominal'].get()
+    H = results[process]['output']['signal_nominal'].get()#[...,bstr_idx]
+    H = hh.scaleHist(H, C, createNew=False)
+    H_nom = results_nom[process]['output']['signal_nominal'].get()
+    H_nom = hh.scaleHist(H_nom, C_nom, createNew=False)
+
+    print(H_nom)
+    print(H)
+
+    # import mplhep as hep
+    # hep.histplot(H.project(*["mueta","mupt","charge","passMT","passIso"])[12,30,-1,True,True,:])
+    # plt.show()
 
     nom_axes = [axis for axis in H.axes]
     nominal_cols = [axis.name for axis in nom_axes]
@@ -258,8 +282,8 @@ for process in processes:
     unrolled_and_stacked = H.values().reshape(unrolled_dim,index_dim).T
     print("unrolled_and_stacked",unrolled_and_stacked.shape)
 
-    sumw += H.project(*unrolled_names).values().ravel()
-    sumw2 += H.project(*unrolled_names).variances().ravel()
+    sumw += H_nom.project(*unrolled_names).values().ravel()
+    sumw2 += H_nom.project(*unrolled_names).variances().ravel()
 
     #clean memory
     H = None
@@ -308,7 +332,12 @@ for process in processes:
     #adding column for helicity group
     # df_proc['helgroups'] = df_proc.index.get_level_values(0).map(lambda x: re.search("y.+" , x).group(0))
     df_proc['isSignal']  = True
-
+    # df_proc.loc[df_proc.index.str.contains('helXsec_A'),'isSignal']=True
+    # df_proc.loc[df_proc.index.str.contains('helXsec_P'),'isSignal']=True
+    # df_proc.loc[df_proc.index.str.contains('helXsec_L'),'isSignal']=True
+    # df_proc.loc[df_proc.index.str.contains('helXsec_T'),'isSignal']=True
+    # df_proc.loc[df_proc.index.str.contains('helXsec_I'),'isSignal']=True
+    
     print('\nnominal dataframe\n' , df_proc.head())
     df = pd.concat([df, df_proc], axis=0)
 
@@ -364,7 +393,8 @@ for process in processes:
             print(syst,nuisances)
             for nuisance in nuisances:
                 print('{proc}_{nuisance}'.format(proc=proc,nuisance=nuisance))
-                syst_histo = C * results[process]['output']['{proc}_{nuisance}'.format(proc=proc,nuisance=nuisance)].get()
+                syst_histo = results[process]['output']['{proc}_{nuisance}'.format(proc=proc,nuisance=nuisance)].get()#[...,bstr_idx]
+                syst_histo = hh.scaleHist(syst_histo, C, createNew=False)
                 print(syst_histo)
                 print("done")
                 axes = [axis for axis in syst_histo.axes]
@@ -494,9 +524,9 @@ helgroupidxs = []
 helGroups_plus = fillHelGroup(yBinsC,qtBinsC,helicities, flavour = "WplusmunuPostVFP")
 helGroups_minus = fillHelGroup(yBinsC,qtBinsC,helicities, flavour = "WminusmunuPostVFP")
 
-helGroups_minus.update(helGroups_plus)
-helGroups = helGroups_minus
-
+# helGroups_minus.update(helGroups_plus)
+# helGroups = helGroups_minus
+helGroups = helGroups_plus
 for group in helGroups:
   helgroups.append(group)
   helgroupidx = []
@@ -611,7 +641,8 @@ if chunkSize > defChunkSize:
   print("Warning: Maximum chunk size in bytes was increased from %d to %d to align with tensor sizes and allow more efficient reading/writing." % (defChunkSize, chunkSize))
 
 #create HDF5 file (chunk cache set to the chunk size since we can guarantee fully aligned writes
-outfilename = "Wminus.hdf5"
+outfilename = f"Wplus_halfStat.hdf5"
+# outfilename = f"bstrp_inputs/Wplus_bstrp_{bstr_idx}.hdf5"
 f = h5py.File(outfilename, rdcc_nbytes=chunkSize, mode='w')
 
 #save some lists of strings to the file for later use
@@ -724,14 +755,14 @@ hpoly2dreggroupbincenters1 = f.create_dataset("hpoly2dreggroupbincenters1", [len
 hpoly2dreggroupbincenters1[...] = poly2dreggroupbincenters1
 
 #Saving Preconditioner
-# preconditioner = setPreconditionVec()
-# hpreconditioner = f.create_dataset("hpreconditioner", preconditioner.shape, dtype='float64', compression="gzip")
-# hpreconditioner[...] = preconditioner
+preconditioner = setPreconditionVec()
+hpreconditioner = f.create_dataset("hpreconditioner", preconditioner.shape, dtype='float64', compression="gzip")
+hpreconditioner[...] = preconditioner
 
 
-# invpreconditioner = np.linalg.inv(preconditioner)
-# hinvpreconditioner = f.create_dataset("hinvpreconditioner", invpreconditioner.shape, dtype='float64', compression="gzip")
-# hinvpreconditioner[...] = invpreconditioner
+invpreconditioner = np.linalg.inv(preconditioner)
+hinvpreconditioner = f.create_dataset("hinvpreconditioner", invpreconditioner.shape, dtype='float64', compression="gzip")
+hinvpreconditioner[...] = invpreconditioner
 
 hnoigroups = f.create_dataset("hnoigroups", [len(noigroups)], dtype=h5py.special_dtype(vlen=str), compression="gzip")
 hnoigroups[...] = noigroups
@@ -751,14 +782,19 @@ constraintweights = None
 
 # data_obs = np.concatenate((Hdata_obs.values()[...,0].ravel(),Hdata_obs.values()[...,1].ravel()))
 data_obs = Hdata_obs.values()[...].ravel()
-Hdata_obs = None
+data_obs = np.clip(data_obs, 0, np.inf)
+
+np.random.seed(seed)
+data_obs_rand = np.random.poisson(lam=data_obs, size=None)
+data_obs_rand = np.array(data_obs_rand,dtype='float64')
+
 Hdata_obs = None
 
-nbytes += writeFlatInChunks(data_obs, f, "hdata_obs", maxChunkBytes = chunkSize)
+nbytes += writeFlatInChunks(data_obs_rand, f, "hdata_obs", maxChunkBytes = chunkSize)
 data_obs = None
 
 #compute poisson parameter for Barlow-Beeston bin-by-bin statistical uncertainties
-kstat = np.square(sumw)/sumw2
+kstat = np.square(sumw)/(sumw2)
 #numerical protection to avoid poorly defined constraint
 kstat = np.where(np.equal(sumw,0.), 1., kstat)
 
