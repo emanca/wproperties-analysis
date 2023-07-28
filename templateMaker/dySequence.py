@@ -41,6 +41,7 @@ parser = common.set_parser_default(parser, "filterProcs", common.vprocs+["dataPo
 parser.add_argument("-Wlike", "--Wlike", action='store_true', help="run analysis on Wlike")
 parser.add_argument("-runHel", "--runHel", action='store_true', help="get helicity cross sections")
 parser.add_argument("-bstrp", "--bstrp", action='store_true', help="randomize templates by bootstrapping")
+parser.add_argument("--oneMCfileEveryN", type=int, default=None, help="Use 1 MC file every N, where N is given by this option. Mainly for tests")
 
 args = parser.parse_args()
 
@@ -49,7 +50,9 @@ logger = logging.setup_logger(__file__, args.verbose, args.noColorLogger)
 datasets = wremnants.datasets2016.getDatasets(maxFiles=args.maxFiles,
                                               filt=args.filterProcs,
                                               excl=args.excludeProcs, 
-                                              nanoVersion="v8" if args.v8 else "v9", base_path=args.dataPath)
+                                              nanoVersion="v8" if args.v8 else "v9", base_path=args.dataPath,
+                                              oneMCfileEveryN=args.oneMCfileEveryN
+                                              )
 
 logger.debug(f"Will process samples {[d.name for d in datasets]}")
 
@@ -62,6 +65,27 @@ isWlike = args.Wlike
 runHel = args.runHel
 bstrp = args.bstrp
 era = args.era
+
+if bstrp:
+    # this function creates a vector of 100 poisson random numbers per event
+    ROOT.gInterpreter.Declare("""
+        ROOT::VecOps::RVec<double> bootstrapping( const int & run, const int & lumi, const int & event, const int &dataset_number){
+        TRandom3 rnd;
+        
+        std::seed_seq seq{run, lumi, event, dataset_number};
+        std::vector<std::uint32_t> seeds(1);
+        seq.generate(seeds.begin(), seeds.end());
+        
+        rnd.SetSeed(seeds[0]);
+        ROOT::VecOps::RVec<double> rndPoisson;
+        rndPoisson.reserve(400);
+        for( int i =0; i < 400; ++i){
+            rndPoisson.push_back((double)rnd.PoissonD(1));
+        }
+        
+        return rndPoisson;
+    };     
+    """)
 
 qts_axis_W = hist.axis.Variable([0., 3., 6., 9.62315204,12.36966732,16.01207711,21.35210602,29.50001253,60.,200.],underflow=False, overflow=False, name = "Vpt")
 ys_axis_W = hist.axis.Variable([0., 0.4, 0.8, 1.2, 1.6, 2.0, 2.4, 3.0, 10.0], underflow=False, overflow=False, name = "Vrap")
@@ -220,10 +244,7 @@ with h5py.File(outfile, "r") as f:
 pileup_helper = wremnants.make_pileup_helper(era = era)
 muon_prefiring_helper, muon_prefiring_helper_stat, muon_prefiring_helper_syst = wremnants.make_muon_prefiring_helpers(era = era)
 print(args.sfFile)
-muon_efficiency_helper, muon_efficiency_helper_syst, muon_efficiency_helper_stat = wremnants.make_muon_efficiency_helpers_smooth(filename = args.sfFile,
-                                                                                                                                     era = era,
-                                                                                                                                     max_pt = pts_axis.edges[-1],
-                                                                                                                                     is_w_like = False, isoEfficiencySmoothing = args.isoEfficiencySmoothing)
+muon_efficiency_helper, muon_efficiency_helper_syst, muon_efficiency_helper_stat = wremnants.make_muon_efficiency_helpers_smooth(filename = args.sfFile,era = era,max_pt = pts_axis.edges[-1],is_w_like = False, isoEfficiencySmoothing = args.isoEfficiencySmoothing)
 mc_jpsi_crctn_helper, data_jpsi_crctn_helper, jpsi_crctn_MC_unc_helper, jpsi_crctn_data_unc_helper = muon_calibration.make_jpsi_crctn_helpers(args, make_uncertainty_helper=True)
 
 mc_calibration_helper, data_calibration_helper, calibration_uncertainty_helper = muon_calibration.make_muon_calibration_helpers(args)
@@ -288,13 +309,16 @@ def build_graph_templates(df, dataset):
             # mass variations
             p.Histogram('signal_nominal', 'signal_mass_var', [*nom_cols,'massWeight_tensor_hel'], axes,tensor_axes=[helicity_axis,hist.axis.StrCategory(["mass_var"], name="mass_var"),common.down_up_axis],storage=storage)
         else:
-            p.branch(nodeToStart='signal_nominal', nodeToEnd='bootstrap', modules=[bootstrap()])
-            poisson_axis = hist.axis.Integer(0,100, name = "bootstap")
+            p.branch(nodeToStart='signal_nominal', nodeToEnd='bootstrap', modules=[bootstrap(dataset)])
+            poisson_axis = hist.axis.Integer(0,400, name = "bootstap")
             # nominal histogram
-            p.Histogram('signal_nominal', 'signal_nominal', [*nom_cols,'rndPoisson_tensor_hel'], axes, tensor_axes= [helicity_axis,poisson_axis])
+            p.Histogram('bootstrap', 'signal_nominal', [*nom_cols,'rndPoisson_tensor_hel'], axes, tensor_axes= [helicity_axis,poisson_axis])
             # mass variations
             # p.displayColumn("signal_nominal", columnList=["massVec_size","MEParamWeight_size"])
-            p.Histogram('signal_nominal', 'signal_mass_var', [*nom_cols,'rndPoisson_tensor_hel_mass'], axes,tensor_axes=[helicity_axis,hist.axis.StrCategory(["mass"], name="mass"),common.down_up_axis,poisson_axis],storage=storage)
+            p.Histogram('bootstrap', 'signal_mass_var', [*nom_cols,'rndPoisson_tensor_hel_mass'], axes,tensor_axes=[helicity_axis,hist.axis.StrCategory(["mass_var"], name="mass_var"),common.down_up_axis,poisson_axis],storage=storage)
+
+            results = p.getObjects()
+            return results, weightsum
 
         # # muon calibration uncertainties
         # p.Histogram('signal_nominal', 'signal_jpsi_var', [*nom_cols,'jpsiWeight_tensor_hel'], axes,tensor_axes = [helicity_axis,*(jpsi_crctn_data_unc_helper.tensor_axes)],storage=storage)
@@ -304,16 +328,16 @@ def build_graph_templates(df, dataset):
         # p.Histogram('signal_nominal', 'signal_nominal_gensmear', [*nom_cols_smeared,'helWeightTensor'], axes, tensor_axes= [helicity_axis],storage=storage)
 
         # sf variations and prefiring variations
-        p.branch(nodeToStart='signal_nominal', nodeToEnd='signal_sf', modules=[getSFVariations(isWlike=isWlike,helper_stat=muon_efficiency_helper_stat,helper_syst=muon_efficiency_helper_syst, helperPref_stat = muon_prefiring_helper_stat, helperPref_syst=muon_prefiring_helper_syst)])
+        # p.branch(nodeToStart='signal_nominal', nodeToEnd='signal_sf', modules=[getSFVariations(isWlike=isWlike,helper_stat=muon_efficiency_helper_stat,helper_syst=muon_efficiency_helper_syst, helperPref_stat = muon_prefiring_helper_stat, helperPref_syst=muon_prefiring_helper_syst)])
         
-        for key,helper in muon_efficiency_helper_stat.items():
-            print(f'signal_effStatTnP_{key}',*(helper.tensor_axes))
-            p.Histogram('signal_sf', f'signal_effStatTnP_{key}', [*nom_cols,f"effStatTnP_{key}_tensor_hel"], axes, tensor_axes = [helicity_axis,*(helper.tensor_axes)],storage=storage)
-        p.Histogram('signal_sf', 'signal_effSystTnP', [*nom_cols,"effSystTnP_tensor_hel"], axes, tensor_axes = [helicity_axis,*(muon_efficiency_helper_syst.tensor_axes)],storage=storage)
+        # for key,helper in muon_efficiency_helper_stat.items():
+        #     print(f'signal_effStatTnP_{key}',*(helper.tensor_axes))
+        #     p.Histogram('signal_sf', f'signal_effStatTnP_{key}', [*nom_cols,f"effStatTnP_{key}_tensor_hel"], axes, tensor_axes = [helicity_axis,*(helper.tensor_axes)],storage=storage)
+        # p.Histogram('signal_sf', 'signal_effSystTnP', [*nom_cols,"effSystTnP_tensor_hel"], axes, tensor_axes = [helicity_axis,*(muon_efficiency_helper_syst.tensor_axes)],storage=storage)
 
-        p.Histogram('signal_sf', 'signal_muonL1PrefireStat_tensor', [*nom_cols,'muonL1PrefireStat_tensor_hel'], axes,tensor_axes=[helicity_axis,*(muon_prefiring_helper_stat.tensor_axes)],storage=storage)
-        p.Histogram('signal_sf', 'signal_muonL1PrefireSyst_tensor', [*nom_cols,'muonL1PrefireSyst_tensor_hel'], axes,tensor_axes=[helicity_axis,common.down_up_axis],storage=storage)
-        p.Histogram('signal_sf', 'signal_ecalL1Prefire_tensor', [*nom_cols,'ecalL1Prefire_tensor_hel'], axes, tensor_axes=[helicity_axis,common.down_up_axis],storage=storage)
+        # p.Histogram('signal_sf', 'signal_muonL1PrefireStat_tensor', [*nom_cols,'muonL1PrefireStat_tensor_hel'], axes,tensor_axes=[helicity_axis,*(muon_prefiring_helper_stat.tensor_axes)],storage=storage)
+        # p.Histogram('signal_sf', 'signal_muonL1PrefireSyst_tensor', [*nom_cols,'muonL1PrefireSyst_tensor_hel'], axes,tensor_axes=[helicity_axis,common.down_up_axis],storage=storage)
+        # p.Histogram('signal_sf', 'signal_ecalL1Prefire_tensor', [*nom_cols,'ecalL1Prefire_tensor_hel'], axes, tensor_axes=[helicity_axis,common.down_up_axis],storage=storage)
 
         ## low acc
         axes = [etas_axis,pts_axis,axis_charge]
@@ -337,82 +361,26 @@ def build_graph_templates(df, dataset):
         # p.Histogram('lowacc_pref', 'lowacc_muonL1PrefireSyst', [*nom_cols,"muonL1PrefireSyst_tensor"], axes,tensor_axes = [common.down_up_axis])
         # p.Histogram('lowacc_pref', 'lowacc_ecal1L1Prefire', [*nom_cols,"ecalL1Prefire_tensor"], axes,tensor_axes = [common.down_up_axis])
 
-        results = p.getObjects()
-
     else:
         
         axes = [etas_axis,pts_axis,axis_charge]
         cols = [f"{flag}_eta0", f"{flag}_pt0", f"{flag}_charge0"]
 
-        p.Histogram('calibrations', 'data_obs', [*cols], axes)
+        p.Histogram('calibrations', dataset.name, [*cols], axes)
 
-        results = p.getObjects()
+    results = p.getObjects()
 
     return results, weightsum
 
 resultdict = narf.build_and_run(datasets, build_graph_templates)
 print(resultdict['WplusmunuPostVFP']['output'].keys())
 
-outfile = "templatesTest_testW_swapped.hdf5"
+flag = "W"
+if isWlike: flag = "Wlike"
+bstrp_flag = ""
+if bstrp: bstrp_flag = "_bstrp"
+
+outfile = f"templates_{flag}{bstrp_flag}_halfStat.hdf5"
 with h5py.File(outfile, 'w') as f:
     narf.ioutils.pickle_dump_h5py("results", resultdict, f)
-
-infile = "templatesTest_testW_swapped.hdf5"
-with h5py.File(infile, "r") as f:
-    results = narf.ioutils.pickle_load_h5py(f["results"])
-#     data_obs = results['dataPostVFP']["output"]["data_obs"].get()
-#     lowacc = results['ZmumuPostVFP']["output"]["lowacc_nominal"].get()
-#     hmass = results['ZmumuPostVFP']["output"]["signal_mass"].get()
-#     lowacc_mass = results['ZmumuPostVFP']["output"]["lowacc_mass"].get()
-#     lumi = results['dataPostVFP']["lumi"]
-#     # signal_effStatTnP_sf_reco = results['ZmumuPostVFP']["output"]["signal_effStatTnP_sf_reco"].get()
-#     # full = results['ZmumuPostVFP']["output"]["full"].get()
-#     # acceptance = results['ZmumuPostVFP']["output"]["acceptance"].get()
-    
-# h = h*lumi*1000*xsec/results["ZmumuPostVFP"]["weight_sum"]
-# lowacc = lowacc*lumi*1000*xsec/results["ZmumuPostVFP"]["weight_sum"]
-# good_idx_mass = [5,15]
-# hmass = hmass*lumi*1000*xsec/results["ZmumuPostVFP"]["weight_sum"]
-# lowacc_mass = lowacc_mass*lumi*1000*xsec/results["ZmumuPostVFP"]["weight_sum"]
-
-# print(hmass.values().shape)
-# # print(hmass.values()[:,:,:,:,:,:,good_idx_mass].shape)
-# good_idx = [0,1,2,3,4,-1]
-# hhel = hharmonics[...,good_idx]
-
-# for i in range(5):
-#     hhel[...,i]*=hhel[...,-1]
-# dtype= 'float64'
-# with h5py.File('templatesFit.hdf5', mode="w") as f:
-#     dset_templ = f.create_dataset('template', h.values().shape, dtype=dtype)
-#     dset_templ[...] = h.values()
-#     dset_sumw2 = f.create_dataset('template_sumw2', h.variances().shape, dtype=dtype)
-#     dset_sumw2[...] = h.variances()
-#     dset_templ = f.create_dataset('template_mass', hmass.values()[...].shape, dtype=dtype)
-#     dset_templ[...] = hmass.values()[...]
-#     dset_hel = f.create_dataset('helicity', hhel.shape, dtype=dtype)
-#     dset_hel[...] = hhel
-#     dset_lowacc = f.create_dataset('lowacc', lowacc.values().shape, dtype=dtype)
-#     dset_lowacc[...] = lowacc.values()
-#     dset_lowacc = f.create_dataset('lowacc_mass', lowacc_mass.values()[...].shape, dtype=dtype)
-#     dset_lowacc[...] = lowacc_mass.values()[...]
-#     dset_data_obs = f.create_dataset('data_obs', data_obs.values().shape, dtype=dtype)
-#     dset_data_obs[...] = data_obs.values()
-#     dset_lowacc_sumw2 = f.create_dataset('lowacc_sumw2', lowacc.variances().shape, dtype=dtype)
-#     dset_lowacc_sumw2[...] = lowacc.variances()
-#     dset_data_obs_sumw2 = f.create_dataset('data_obs_sumw2', data_obs.variances().shape, dtype=dtype)
-#     dset_data_obs_sumw2[...] = data_obs.variances()
-
-# # import pdb; pdb.set_trace()
-
-# # etaBins = h.axes[-3].edges
-# # ptBins = h.axes[-2].edges
-# # yBins = full.axes[0].edges
-# # qtBins = full.axes[1].edges
-
-# # fig, ax1 = plt.subplots(figsize=(48,48))
-# # ax1.set_ylabel('Events')
-# # ratio = acceptance.values()/full.values()
-# # hep.hist2dplot(np.round(ratio,1),yBins,qtBins,labels=True)
-# # plt.savefig('acceptanceZ.png')
 
